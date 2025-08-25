@@ -12,12 +12,12 @@ Ein modernes Download-Portal für Kunden, entwickelt mit React, Vite und Netlify
 
 ## 📋 Voraussetzungen
 
-- Node.js 18 oder höher
+- Node.js 18 oder höhe
 - npm oder yarn
 - Netlify Account
 - Neon PostgreSQL Datenbank (kostenlos verfügbar)
 
-## 🛠️ Installation
+## 🛠️ Installation 
 
 1. **Repository klonen**
 ```bash
