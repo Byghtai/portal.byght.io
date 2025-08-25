@@ -38,6 +38,13 @@ const AdminPanel = () => {
   const [userToDelete, setUserToDelete] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Neue States für Benutzer-Datei-Zuweisungsverwaltung
+  const [editingUser, setEditingUser] = useState(null);
+  const [showEditUserFiles, setShowEditUserFiles] = useState(false);
+  const [editSelectedFiles, setEditSelectedFiles] = useState([]);
+  const [updatingUserFiles, setUpdatingUserFiles] = useState(false);
+  const [userFiles, setUserFiles] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -144,6 +151,66 @@ const AdminPanel = () => {
     }
   };
 
+  // Neue Funktionen für Benutzer-Datei-Zuweisungsverwaltung
+  const handleEditUserFiles = async (user) => {
+    setEditingUser(user);
+    setShowEditUserFiles(true);
+    
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch(`/.netlify/functions/admin-get-user-files?userId=${user.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUserFiles(data.files || []);
+        setEditSelectedFiles(data.files.map(file => file.id) || []);
+      }
+    } catch (error) {
+      console.error('Error fetching user files:', error);
+      setUserFiles([]);
+      setEditSelectedFiles([]);
+    }
+  };
+
+  const handleUpdateUserFiles = async () => {
+    if (!editingUser) return;
+
+    setUpdatingUserFiles(true);
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-update-user-files', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: editingUser.id,
+          fileIds: editSelectedFiles
+        }),
+      });
+
+      if (response.ok) {
+        alert('Datei-Zuweisungen erfolgreich aktualisiert!');
+        setShowEditUserFiles(false);
+        setEditingUser(null);
+        setEditSelectedFiles([]);
+        setUserFiles([]);
+        fetchFiles(); // Liste aktualisieren
+      } else {
+        throw new Error('Update fehlgeschlagen');
+      }
+    } catch (error) {
+      alert('Fehler beim Aktualisieren: ' + error.message);
+    } finally {
+      setUpdatingUserFiles(false);
+    }
+  };
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
@@ -228,6 +295,24 @@ const AdminPanel = () => {
   const cancelAdminDelete = () => {
     setShowAdminDeleteConfirm(false);
     setUserToDelete(null);
+  };
+
+  // Hilfsfunktion für Datumsformatierung
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Unbekannt';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Ungültiges Datum';
+      return date.toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Ungültiges Datum';
+    }
   };
 
   const filteredFiles = files.filter(file =>
@@ -457,16 +542,15 @@ const AdminPanel = () => {
                           {file.assignedUsers?.join(', ') || 'Niemand'}
                         </td>
                         <td className="px-4 py-5 sm:px-6 sm:py-6 whitespace-nowrap text-sm text-gray-600 hidden lg:table-cell">
-                          {new Date(file.uploadedAt).toLocaleDateString('de-DE')}
+                          {formatDate(file.uploadedAt)}
                         </td>
                         <td className="px-4 py-5 sm:px-6 sm:py-6 whitespace-nowrap text-right">
                           <button
                             onClick={() => handleDeleteFile(file.id)}
-                            className="btn-danger flex items-center gap-2 text-xs sm:text-sm py-2 px-4 sm:py-3 sm:px-6 group-hover:scale-105 transition-transform duration-300"
+                            className="btn-danger flex items-center gap-2 text-xs sm:text-sm py-2 px-3 sm:py-2 sm:px-4 group-hover:scale-105 transition-transform duration-300"
                           >
-                            <Trash2 size={16} className="sm:w-5 sm:h-5" />
+                            <Trash2 size={14} className="sm:w-4 sm:h-4" />
                             <span className="hidden sm:inline">Löschen</span>
-                            <span className="sm:hidden">Del</span>
                           </button>
                         </td>
                       </tr>
@@ -634,22 +718,104 @@ const AdminPanel = () => {
                           )}
                         </td>
                         <td className="px-4 py-5 sm:px-6 sm:py-6 whitespace-nowrap text-sm text-gray-600 hidden lg:table-cell">
-                          {new Date(user.createdAt).toLocaleDateString('de-DE')}
+                          {formatDate(user.createdAt)}
                         </td>
                         <td className="px-4 py-5 sm:px-6 sm:py-6 whitespace-nowrap text-right">
-                          <button
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="btn-danger flex items-center gap-2 mobile-button group-hover:scale-105 transition-transform duration-300"
-                          >
-                            <Trash2 size={16} className="sm:w-5 sm:h-5" />
-                            <span className="hidden sm:inline">Löschen</span>
-                            <span className="sm:hidden">Del</span>
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            {!user.isAdmin && (
+                              <button
+                                onClick={() => handleEditUserFiles(user)}
+                                className="btn-secondary flex items-center gap-2 text-xs sm:text-sm py-2 px-3 sm:py-2 sm:px-4 group-hover:scale-105 transition-transform duration-300"
+                              >
+                                <FileText size={14} className="sm:w-4 sm:h-4" />
+                                <span className="hidden sm:inline">Dateien</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="btn-danger flex items-center gap-2 text-xs sm:text-sm py-2 px-3 sm:py-2 sm:px-4 group-hover:scale-105 transition-transform duration-300"
+                            >
+                              <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                              <span className="hidden sm:inline">Löschen</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit User Files Modal */}
+        {showEditUserFiles && editingUser && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="mobile-modal card max-w-2xl w-full">
+              <div className="flex items-center gap-4 sm:gap-5 mb-6 sm:mb-8">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-2xl flex items-center justify-center">
+                  <FileText className="text-white sm:w-7 sm:h-7" size={24} />
+                </div>
+                <h3 className="mobile-subtitle font-black text-primary">
+                  Datei-Zuweisungen bearbeiten
+                </h3>
+              </div>
+              
+              <div className="mb-6 sm:mb-8">
+                <p className="mobile-text text-gray-700 mb-4 sm:mb-5 font-medium">
+                  Benutzer: <strong>"{editingUser.username}"</strong>
+                </p>
+                <p className="mobile-text text-gray-600 mb-6 sm:mb-8">
+                  Wählen Sie die Dateien aus, die diesem Benutzer zugewiesen werden sollen:
+                </p>
+                
+                <div className="space-y-3 sm:space-y-4 max-h-60 sm:max-h-80 overflow-y-auto border-2 border-gray-200/50 rounded-2xl p-4 sm:p-5 bg-gray-50/50 backdrop-blur-sm">
+                  {files.map((file) => (
+                    <label key={file.id} className="flex items-center space-x-3 sm:space-x-4 cursor-pointer hover:bg-white/50 p-3 rounded-xl transition-all duration-300">
+                      <input
+                        type="checkbox"
+                        checked={editSelectedFiles.includes(file.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setEditSelectedFiles([...editSelectedFiles, file.id]);
+                          } else {
+                            setEditSelectedFiles(editSelectedFiles.filter(id => id !== file.id));
+                          }
+                        }}
+                        className="rounded border-gray-300 text-[rgb(255,179,0)] focus:ring-[rgb(255,179,0)]"
+                      />
+                      <div className="flex-1">
+                        <span className="text-sm sm:text-base lg:text-lg font-semibold text-primary block">{file.filename}</span>
+                        {file.description && (
+                          <span className="text-xs sm:text-sm text-gray-500 block">{file.description}</span>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-end">
+                <button
+                  onClick={() => {
+                    setShowEditUserFiles(false);
+                    setEditingUser(null);
+                    setEditSelectedFiles([]);
+                    setUserFiles([]);
+                  }}
+                  className="btn-secondary mobile-button"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={handleUpdateUserFiles}
+                  disabled={updatingUserFiles}
+                  className="btn-primary flex items-center gap-3 mobile-button"
+                >
+                  <Save size={16} className="sm:w-5 sm:h-5" />
+                  {updatingUserFiles ? 'Wird aktualisiert...' : 'Speichern'}
+                </button>
               </div>
             </div>
           </div>

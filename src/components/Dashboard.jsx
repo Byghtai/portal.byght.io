@@ -98,25 +98,25 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen gradient-bg relative overflow-hidden">
-      {/* Animated Background Elements */}
+      {/* Animated Background Elements - Cleaner */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 right-10 w-40 h-40 bg-white/5 rounded-full animate-float"></div>
-        <div className="absolute bottom-10 left-10 w-32 h-32 bg-white/5 rounded-full animate-float" style={{animationDelay: '1.5s'}}></div>
-        <div className="absolute top-1/3 left-1/2 w-20 h-20 bg-white/3 rounded-full animate-float" style={{animationDelay: '3s'}}></div>
+        <div className="absolute top-10 right-10 w-40 h-40 bg-white/3 rounded-full animate-float"></div>
+        <div className="absolute bottom-10 left-10 w-32 h-32 bg-white/3 rounded-full animate-float" style={{animationDelay: '1.5s'}}></div>
+        <div className="absolute top-1/3 left-1/2 w-20 h-20 bg-white/2 rounded-full animate-float" style={{animationDelay: '3s'}}></div>
       </div>
 
       {/* Header */}
-      <header className="glass-effect border-b border-white/20 relative z-10">
+      <header className="glass-effect border-b border-white/15 relative z-10">
         <div className="px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="flex justify-between items-center py-4 sm:py-6 lg:py-8">
             <div className="flex items-center space-x-3 sm:space-x-4">
               <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center shadow-xl p-2 sm:p-3 border border-white/30">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/15 backdrop-blur-xl rounded-2xl flex items-center justify-center shadow-lg p-2 sm:p-3 border border-white/25">
                   <img src={ByghtLogo} alt="Byght Logo" className="w-full h-full object-contain" />
                 </div>
                 <div className="hidden sm:block">
                   <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-white drop-shadow-lg">Byght Portal</h1>
-                  <p className="text-sm sm:text-base lg:text-lg text-white/80 font-medium">Sicherer Dokumentenzugang</p>
+                  <p className="text-sm sm:text-base lg:text-lg text-white/75 font-medium">Sicherer Dokumentenzugang</p>
                 </div>
                 <div className="sm:hidden">
                   <h1 className="text-sm sm:text-base lg:text-lg font-black text-white drop-shadow-lg">Byght Portal</h1>
@@ -129,22 +129,22 @@ const Dashboard = () => {
               {isAdmin && (
                 <button
                   onClick={() => navigate('/admin')}
-                  className="flex items-center gap-2 text-white hover:text-white text-opacity-90 hover:text-opacity-100 font-semibold transition-all duration-500 bg-white/10 hover:bg-white/20 px-4 py-3 rounded-2xl text-sm sm:text-base lg:text-lg backdrop-blur-sm border border-white/20 hover:scale-105"
+                  className="flex items-center gap-2 text-white hover:text-white text-opacity-85 hover:text-opacity-100 font-semibold transition-all duration-300 bg-white/8 hover:bg-white/15 px-4 py-3 rounded-2xl text-sm sm:text-base lg:text-lg backdrop-blur-sm border border-white/20 hover:scale-105"
                 >
                   <Settings size={18} className="sm:w-5 sm:h-5" />
                   <span className="hidden lg:inline">Admin Panel</span>
                   <span className="lg:hidden">Admin</span>
                 </button>
               )}
-              <div className="flex items-center gap-3 sm:gap-4 text-white text-opacity-90">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30">
+              <div className="flex items-center gap-3 sm:gap-4 text-white text-opacity-85">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/25">
                   <User size={16} className="sm:w-5 sm:h-5" />
                 </div>
                 <span className="font-semibold text-sm sm:text-base lg:text-lg hidden sm:inline">{user?.username}</span>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 text-white hover:text-red-200 font-semibold transition-all duration-500 text-sm sm:text-base lg:text-lg hover:scale-105"
+                className="flex items-center gap-2 text-white hover:text-red-200 font-semibold transition-all duration-300 text-sm sm:text-base lg:text-lg hover:scale-105"
               >
                 <LogOut size={18} className="sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Abmelden</span>
@@ -155,7 +155,7 @@ const Dashboard = () => {
             <div className="sm:hidden">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="text-white p-2 hover:bg-white/10 rounded-xl transition-all duration-300"
+                className="text-white p-2 hover:bg-white/8 rounded-xl transition-all duration-300"
               >
                 {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -164,7 +164,7 @@ const Dashboard = () => {
 
           {/* Mobile Navigation Menu */}
           {mobileMenuOpen && (
-            <div className="sm:hidden pb-6 border-t border-white/20">
+            <div className="sm:hidden pb-6 border-t border-white/15">
               <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 space-y-4 pt-6">
                 {isAdmin && (
                   <button
@@ -172,14 +172,14 @@ const Dashboard = () => {
                       navigate('/admin');
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full sm:w-auto text-center sm:text-left transition-all duration-300 flex items-center justify-center gap-3 text-white hover:text-white text-opacity-90 hover:text-opacity-100 font-semibold transition-all duration-500 bg-white/10 hover:bg-white/20 px-6 py-4 rounded-2xl text-sm sm:text-base lg:text-lg backdrop-blur-sm border border-white/20"
+                    className="w-full sm:w-auto text-center sm:text-left transition-all duration-300 flex items-center justify-center gap-3 text-white hover:text-white text-opacity-85 hover:text-opacity-100 font-semibold transition-all duration-300 bg-white/8 hover:bg-white/15 px-6 py-4 rounded-2xl text-sm sm:text-base lg:text-lg backdrop-blur-sm border border-white/20"
                   >
                     <Settings size={20} />
                     Admin Panel
                   </button>
                 )}
-                <div className="flex items-center justify-center gap-4 text-white text-opacity-90 text-sm sm:text-base lg:text-lg">
-                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30">
+                <div className="flex items-center justify-center gap-4 text-white text-opacity-85 text-sm sm:text-base lg:text-lg">
+                  <div className="w-10 h-10 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/25">
                     <User size={18} />
                   </div>
                   <span className="font-semibold">{user?.username}</span>
@@ -189,7 +189,7 @@ const Dashboard = () => {
                     handleLogout();
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full sm:w-auto text-center sm:text-left transition-all duration-300 flex items-center justify-center gap-3 text-white hover:text-red-200 font-semibold transition-all duration-500 text-sm sm:text-base lg:text-lg"
+                  className="w-full sm:w-auto text-center sm:text-left transition-all duration-300 flex items-center justify-center gap-3 text-white hover:text-red-200 font-semibold transition-all duration-300 text-sm sm:text-base lg:text-lg"
                 >
                   <LogOut size={20} />
                   Abmelden
@@ -204,7 +204,7 @@ const Dashboard = () => {
       <main className="px-4 sm:px-6 lg:px-8 xl:px-12 p-6 sm:p-8 lg:p-10 relative z-10">
         <div className="mb-8 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-white mb-4 drop-shadow-lg">Ihre Dateien</h2>
-          <p className="text-sm sm:text-base lg:text-lg text-white/90 font-medium">Hier finden Sie alle für Sie freigegebenen Dateien zum Download.</p>
+          <p className="text-sm sm:text-base lg:text-lg text-white/85 font-medium">Hier finden Sie alle für Sie freigegebenen Dateien zum Download.</p>
         </div>
 
         {/* Search Bar */}
@@ -212,14 +212,14 @@ const Dashboard = () => {
           <div className="mb-8">
             <div className="relative max-w-md">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-white/60" />
+                <Search className="h-5 w-5 text-white/50" />
               </div>
               <input
                 type="text"
                 placeholder="Dateien durchsuchen..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl text-white placeholder-white/60 focus:outline-none focus:ring-4 focus:ring-white/20 focus:border-white/50 transition-all duration-300"
+                className="w-full pl-12 pr-4 py-4 bg-white/15 backdrop-blur-sm border border-white/25 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/40 transition-all duration-300"
               />
             </div>
           </div>
@@ -233,7 +233,7 @@ const Dashboard = () => {
             </div>
           </div>
         ) : error ? (
-          <div className="card bg-red-500/20 backdrop-blur-sm border-red-400/30">
+          <div className="card bg-red-500/15 backdrop-blur-sm border-red-400/25">
             <div className="flex items-center gap-4 text-red-100">
               <AlertCircle size={24} className="sm:w-6 sm:h-6 flex-shrink-0" />
               <span className="font-semibold text-sm sm:text-base lg:text-lg">{error}</span>
@@ -241,19 +241,19 @@ const Dashboard = () => {
           </div>
         ) : files.length === 0 ? (
           <div className="card text-center">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-3xl flex items-center justify-center mx-auto mb-6 sm:mb-8 shadow-xl">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-r from-[rgb(255,179,0)]/80 to-[rgb(56,184,189)]/80 rounded-3xl flex items-center justify-center mx-auto mb-6 sm:mb-8 shadow-lg">
               <Folder className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
             </div>
             <h3 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-primary mb-3">Keine Dateien verfügbar</h3>
             <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-6 font-medium">
               Sobald Dateien für Sie freigegeben werden, erscheinen diese hier.
             </p>
-            <div className="w-16 h-1 sm:w-20 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-full mx-auto"></div>
+            <div className="w-16 h-1 sm:w-20 bg-gradient-to-r from-[rgb(255,179,0)]/80 to-[rgb(56,184,189)]/80 rounded-full mx-auto"></div>
           </div>
         ) : (
           <div className="card">
             <div className="overflow-x-auto -mx-4 sm:mx-0 rounded-2xl">
-              <table className="min-w-full divide-y divide-gray-200/50">
+              <table className="min-w-full divide-y divide-gray-200/30">
                 <thead>
                   <tr>
                     <th className="px-4 py-4 sm:px-6 sm:py-5 text-left text-xs sm:text-sm lg:text-base font-bold text-primary uppercase tracking-wider">
@@ -273,12 +273,12 @@ const Dashboard = () => {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200/50">
+                <tbody className="divide-y divide-gray-200/30">
                   {filteredFiles.map((file) => (
-                    <tr key={file.id} className="hover:bg-gray-50/50 transition-all duration-300 group">
+                    <tr key={file.id} className="hover:bg-gray-50/30 transition-all duration-300 group">
                       <td className="px-4 py-5 sm:px-6 sm:py-6 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-2xl flex items-center justify-center mr-4 sm:mr-5 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-[rgb(255,179,0)]/80 to-[rgb(56,184,189)]/80 rounded-2xl flex items-center justify-center mr-4 sm:mr-5 shadow-md group-hover:scale-110 transition-transform duration-300">
                             <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                           </div>
                           <div className="min-w-0 flex-1">

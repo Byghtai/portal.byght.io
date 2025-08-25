@@ -284,4 +284,18 @@ export async function hasFileAccess(userId, fileId) {
   }
 }
 
+// Benutzer-IDs für eine Datei abrufen
+export async function getFileUserIds(fileId) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'SELECT user_id FROM file_user_assignments WHERE file_id = $1',
+      [fileId]
+    );
+    return result.rows.map(row => row.user_id);
+  } finally {
+    client.release();
+  }
+}
+
 export { pool };
