@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { pool } from './db.js';
-import { getFilesForUser } from './db.js';
+import { assignAllExistingFilesToAdmins } from './db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -8,7 +7,7 @@ if (!JWT_SECRET) {
 }
 
 export default async (req, context) => {
-  if (req.method !== 'GET') {
+  if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
       headers: { 'Content-Type': 'application/json' }
@@ -43,31 +42,20 @@ export default async (req, context) => {
       });
     }
 
-    // User ID aus URL-Parameter extrahieren
-    const url = new URL(req.url);
-    const userId = url.searchParams.get('userId');
+    // Alle bestehenden Dateien allen Admin-Benutzern zuweisen
+    const result = await assignAllExistingFilesToAdmins();
 
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'User ID required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const client = await pool.connect();
-    try {
-      // Dateien für den Benutzer abrufen (mit Admin-Sonderbehandlung)
-      const files = await getFilesForUser(userId);
-
-      return new Response(JSON.stringify({ files }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    } finally {
-      client.release();
-    }
+    return new Response(JSON.stringify({ 
+      success: true,
+      message: `Migration abgeschlossen: ${result.filesProcessed} Dateien an ${result.adminsProcessed} Admin-Benutzer zugewiesen`,
+      filesProcessed: result.filesProcessed,
+      adminsProcessed: result.adminsProcessed
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
-    console.error('Get user files error:', error);
+    console.error('Assign files to admins error:', error);
     return new Response(JSON.stringify({ error: 'Server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

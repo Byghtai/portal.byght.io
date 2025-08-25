@@ -48,6 +48,7 @@ const AdminPanel = () => {
   const [editingExpiryDate, setEditingExpiryDate] = useState({});
   const [updatingExpiryDate, setUpdatingExpiryDate] = useState({});
   const [cleaningUp, setCleaningUp] = useState(false);
+  const [assigningToAdmins, setAssigningToAdmins] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -244,6 +245,35 @@ const AdminPanel = () => {
       alert('Fehler bei der Bereinigung: ' + error.message);
     } finally {
       setCleaningUp(false);
+    }
+  };
+
+  const handleAssignFilesToAdmins = async () => {
+    if (!confirm('Möchten Sie wirklich alle bestehenden Dateien allen Admin-Benutzern zuweisen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
+    
+    setAssigningToAdmins(true);
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-assign-files-to-admins', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Migration abgeschlossen!\n\n${result.message}`);
+        await fetchUsers(); // Aktualisiere die Benutzerliste
+      } else {
+        const error = await response.json();
+        alert('Fehler bei der Migration: ' + error.error);
+      }
+    } catch (error) {
+      alert('Fehler bei der Migration: ' + error.message);
+    } finally {
+      setAssigningToAdmins(false);
     }
   };
 
@@ -560,12 +590,20 @@ const AdminPanel = () => {
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-600">{files.length} Datei(en)</span>
                   <button
+                    onClick={handleAssignFilesToAdmins}
+                    disabled={assigningToAdmins}
+                    className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Alle Dateien Admin-Benutzern zuweisen"
+                  >
+                    {assigningToAdmins ? 'Zuweisen...' : 'Admins zuweisen'}
+                  </button>
+                  <button
                     onClick={handleCleanupOrphanedFiles}
                     disabled={cleaningUp}
                     className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Waisen-Dateien aus Blob Storage bereinigen"
                   >
-                    {cleaningUp ? 'Bereinige...' : 'Bereinigen'}
+                    {cleaningUp ? 'Bereinige...' : 'Blob bereinigen'}
                   </button>
                 </div>
               </div>
@@ -832,6 +870,10 @@ const AdminPanel = () => {
                           <div className="flex items-center space-x-2">
                             <div className="animate-spin rounded-full h-3 w-3 border-b border-byght-turquoise"></div>
                             <span className="text-xs text-gray-500">Lade Dateien...</span>
+                          </div>
+                        ) : user.isAdmin ? (
+                          <div className="text-xs text-gray-600 italic">
+                            Admins sind immer alle Dateien zugewiesen
                           </div>
                         ) : userFiles[user.id] && userFiles[user.id].length > 0 ? (
                           <div>

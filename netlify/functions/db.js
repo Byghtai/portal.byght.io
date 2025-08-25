@@ -336,27 +336,6 @@ export async function assignFileToUsers(fileId, userIds) {
   }
 }
 
-// Dateien für einen Benutzer abrufen
-export async function getFilesForUser(userId) {
-  const client = await pool.connect();
-  try {
-    const result = await client.query(`
-      SELECT f.id, f.filename, f.file_size as size, f.mime_type as mimeType, 
-             f.description, f.uploaded_at as uploadedAt, f.blob_key as blobKey
-      FROM files f
-      INNER JOIN file_user_assignments fua ON f.id = fua.file_id
-      WHERE fua.user_id = $1
-      ORDER BY f.uploaded_at DESC
-    `, [userId]);
-    return result.rows.map(row => ({
-      ...row,
-      uploadedAt: row.uploadedat ? new Date(row.uploadedat).toISOString() : null
-    }));
-  } finally {
-    client.release();
-  }
-}
-
 // Alle Dateien für Admin abrufen
 export async function getAllFiles() {
   const client = await pool.connect();
@@ -449,6 +428,118 @@ export async function getFileUserIds(fileId) {
       [fileId]
     );
     return result.rows.map(row => row.user_id);
+  } finally {
+    client.release();
+  }
+}
+
+// Prüfen ob Benutzer Admin ist
+export async function isUserAdmin(userId) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'SELECT is_admin FROM users WHERE id = $1',
+      [userId]
+    );
+    return result.rows.length > 0 && result.rows[0].is_admin;
+  } finally {
+    client.release();
+  }
+}
+
+// Alle Admin-Benutzer abrufen
+export async function getAllAdminUsers() {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'SELECT id FROM users WHERE is_admin = true'
+    );
+    return result.rows.map(row => row.id);
+  } finally {
+    client.release();
+  }
+}
+
+// Datei automatisch allen Admin-Benutzern zuweisen
+export async function assignFileToAllAdmins(fileId) {
+  const client = await pool.connect();
+  try {
+    // Alle Admin-Benutzer abrufen
+    const adminUsers = await getAllAdminUsers();
+    
+    // Datei allen Admins zuweisen
+    for (const adminId of adminUsers) {
+      await client.query(
+        'INSERT INTO file_user_assignments (file_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [fileId, adminId]
+      );
+    }
+  } finally {
+    client.release();
+  }
+}
+
+// Dateien für einen Benutzer abrufen (mit Admin-Sonderbehandlung)
+export async function getFilesForUser(userId) {
+  const client = await pool.connect();
+  try {
+    // Prüfen ob Benutzer Admin ist
+    const isAdmin = await isUserAdmin(userId);
+    
+    if (isAdmin) {
+      // Admins bekommen alle Dateien
+      const result = await client.query(`
+        SELECT f.id, f.filename, f.file_size as size, f.mime_type as mimeType, 
+               f.description, f.uploaded_at as uploadedAt, f.blob_key as blobKey
+        FROM files f
+        ORDER BY f.uploaded_at DESC
+      `);
+      return result.rows.map(row => ({
+        ...row,
+        uploadedAt: row.uploadedat ? new Date(row.uploadedat).toISOString() : null
+      }));
+    } else {
+      // Standard-Benutzer bekommen nur zugewiesene Dateien
+      const result = await client.query(`
+        SELECT f.id, f.filename, f.file_size as size, f.mime_type as mimeType, 
+               f.description, f.uploaded_at as uploadedAt, f.blob_key as blobKey
+        FROM files f
+        INNER JOIN file_user_assignments fua ON f.id = fua.file_id
+        WHERE fua.user_id = $1
+        ORDER BY f.uploaded_at DESC
+      `, [userId]);
+      return result.rows.map(row => ({
+        ...row,
+        uploadedAt: row.uploadedat ? new Date(row.uploadedat).toISOString() : null
+      }));
+    }
+  } finally {
+    client.release();
+  }
+}
+
+// Alle bestehenden Dateien allen Admin-Benutzern zuweisen (für Migration)
+export async function assignAllExistingFilesToAdmins() {
+  const client = await pool.connect();
+  try {
+    // Alle Admin-Benutzer abrufen
+    const adminUsers = await getAllAdminUsers();
+    
+    // Alle Dateien abrufen
+    const result = await client.query('SELECT id FROM files');
+    const allFiles = result.rows.map(row => row.id);
+    
+    // Jede Datei allen Admins zuweisen
+    for (const fileId of allFiles) {
+      for (const adminId of adminUsers) {
+        await client.query(
+          'INSERT INTO file_user_assignments (file_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [fileId, adminId]
+        );
+      }
+    }
+    
+    return { filesProcessed: allFiles.length, adminsProcessed: adminUsers.length };
   } finally {
     client.release();
   }

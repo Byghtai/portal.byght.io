@@ -1,6 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import jwt from 'jsonwebtoken';
-import { saveFileMetadata, assignFileToUsers } from './db.js';
+import { saveFileMetadata, assignFileToUsers, assignFileToAllAdmins } from './db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -85,6 +85,9 @@ export default async (req, context) => {
       blobKey,
       decoded.userId
     );
+
+    // Datei automatisch allen Admin-Benutzern zuweisen
+    await assignFileToAllAdmins(fileId);
 
     // Datei-Benutzer-Zuordnungen erstellen (nur wenn Benutzer ausgewählt wurden)
     if (assignedUsers && assignedUsers.length > 0) {

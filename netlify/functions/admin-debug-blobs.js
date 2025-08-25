@@ -8,7 +8,7 @@ if (!JWT_SECRET) {
 }
 
 export default async (req, context) => {
-  if (req.method !== 'POST') {
+  if (req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
       headers: { 'Content-Type': 'application/json' }
@@ -47,61 +47,63 @@ export default async (req, context) => {
     const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
     
     try {
-      console.log('Starte Bereinigung von Waisen-Dateien...');
-      
       // Alle Blob-Keys aus dem Blob Storage abrufen
       const blobs = await filesStore.list();
       const blobKeys = blobs.blobs.map(blob => blob.key);
-      console.log(`Gefundene Blobs: ${blobKeys.length}`);
       
       // Alle Blob-Keys aus der Datenbank abrufen
-      const result = await client.query('SELECT blob_key FROM files');
-      const dbBlobKeys = result.rows.map(row => row.blob_key);
-      console.log(`Gefundene DB-Einträge: ${dbBlobKeys.length}`);
+      const result = await client.query('SELECT id, filename, blob_key FROM files');
+      const dbFiles = result.rows;
+      const dbBlobKeys = dbFiles.map(row => row.blob_key);
       
       // Waisen-Dateien finden (Blob-Keys, die nicht in der DB sind)
       const orphanedBlobKeys = blobKeys.filter(key => !dbBlobKeys.includes(key));
-      console.log(`Gefundene Waisen-Dateien: ${orphanedBlobKeys.length}`);
       
-      let deletedCount = 0;
-      const errors = [];
-      const deletedBlobs = [];
+      // Fehlende Blobs finden (DB-Einträge ohne Blob)
+      const missingBlobs = dbFiles.filter(file => !blobKeys.includes(file.blob_key));
       
-      // Waisen-Dateien aus dem Blob Storage löschen
-      for (const blobKey of orphanedBlobKeys) {
-        try {
-          console.log(`Versuche Waisen-Datei zu löschen: ${blobKey}`);
-          
-          // Prüfen ob Blob noch existiert
-          const blobExists = await filesStore.get(blobKey);
-          if (blobExists) {
-            await filesStore.delete(blobKey);
-            deletedCount++;
-            deletedBlobs.push(blobKey);
-            console.log(`Waisen-Datei erfolgreich gelöscht: ${blobKey}`);
-          } else {
-            console.warn(`Waisen-Datei existiert nicht mehr: ${blobKey}`);
+      // Detaillierte Informationen für jeden Blob
+      const blobDetails = await Promise.all(
+        blobKeys.map(async (key) => {
+          try {
+            const blob = await filesStore.get(key);
+            return {
+              key,
+              exists: !!blob,
+              size: blob ? blob.size : null,
+              lastAccessed: blob ? blob.lastAccessed : null
+            };
+          } catch (error) {
+            return {
+              key,
+              exists: false,
+              error: error.message
+            };
           }
-        } catch (error) {
-          console.error(`Fehler beim Löschen der Waisen-Datei ${blobKey}:`, error);
-          errors.push({ blobKey, error: error.message });
-        }
-      }
-      
-      console.log(`Bereinigung abgeschlossen. Gelöscht: ${deletedCount}/${orphanedBlobKeys.length}`);
+        })
+      );
       
       return new Response(JSON.stringify({ 
         success: true,
-        message: `Bereinigung abgeschlossen`,
         summary: {
           totalBlobs: blobKeys.length,
-          totalDbFiles: dbBlobKeys.length,
+          totalDbFiles: dbFiles.length,
           orphanedBlobs: orphanedBlobKeys.length,
-          deletedCount: deletedCount,
-          errorCount: errors.length
+          missingBlobs: missingBlobs.length
         },
-        deletedBlobs: deletedBlobs,
-        errors: errors.length > 0 ? errors : undefined
+        blobKeys,
+        dbFiles: dbFiles.map(file => ({
+          id: file.id,
+          filename: file.filename,
+          blobKey: file.blob_key
+        })),
+        orphanedBlobKeys,
+        missingBlobs: missingBlobs.map(file => ({
+          id: file.id,
+          filename: file.filename,
+          blobKey: file.blob_key
+        })),
+        blobDetails
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -111,7 +113,7 @@ export default async (req, context) => {
       client.release();
     }
   } catch (error) {
-    console.error('Cleanup orphaned files error:', error);
+    console.error('Debug blobs error:', error);
     return new Response(JSON.stringify({ 
       error: 'Server error', 
       details: error.message 

@@ -65,27 +65,41 @@ export default async (req, context) => {
     // Blob-Key für spätere Löschung speichern
     const blobKey = fileMetadata.blobKey;
     
-    // Datei aus der Datenbank löschen (inklusive aller Zuordnungen)
-    await deleteFile(fileId);
+    console.log(`Starte Löschung von Datei ${fileId} mit Blob-Key: ${blobKey}`);
     
-    // Datei aus Blob Storage löschen (nach erfolgreicher DB-Löschung)
+    // Datei aus Blob Storage löschen (VOR der DB-Löschung)
+    let blobDeleted = false;
     if (blobKey) {
       try {
         const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
-        await filesStore.delete(blobKey);
-        console.log(`Datei erfolgreich aus Blob Storage gelöscht: ${blobKey}`);
+        console.log(`Versuche Blob zu löschen: ${blobKey}`);
+        
+        // Prüfen ob Blob existiert
+        const blobExists = await filesStore.get(blobKey);
+        if (blobExists) {
+          await filesStore.delete(blobKey);
+          blobDeleted = true;
+          console.log(`Datei erfolgreich aus Blob Storage gelöscht: ${blobKey}`);
+        } else {
+          console.warn(`Blob existiert nicht: ${blobKey}`);
+        }
       } catch (blobError) {
         console.error('Fehler beim Löschen aus Blob Storage:', blobError);
-        // Wir fahren trotz Blob-Fehler fort, da die DB-Löschung erfolgreich war
-        // Aber wir loggen den Fehler für Debugging-Zwecke
+        // Wir fahren trotz Blob-Fehler fort, da die DB-Löschung wichtiger ist
       }
     } else {
       console.warn(`Kein Blob-Key für Datei ${fileId} gefunden`);
     }
+    
+    // Datei aus der Datenbank löschen (inklusive aller Zuordnungen)
+    await deleteFile(fileId);
+    console.log(`Datei erfolgreich aus Datenbank gelöscht: ${fileId}`);
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Datei erfolgreich gelöscht' 
+      message: 'Datei erfolgreich gelöscht',
+      blobDeleted: blobDeleted,
+      blobKey: blobKey
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
