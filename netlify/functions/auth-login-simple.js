@@ -3,41 +3,61 @@ import jwt from 'jsonwebtoken';
 import { findUserByUsername, initDatabase } from './db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is not set');
-}
 
 export default async (req, context) => {
+  // CORS Headers
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
+
+  // Handle OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers });
+  }
+
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' }
+      headers
     });
   }
 
   try {
-    // Datenbank initialisieren (erstellt Tabellen falls nicht vorhanden)
+    // Datenbank initialisieren
     await initDatabase();
 
-    const { username, password } = await req.json();
+    // Request Body parsen
+    const body = await req.json();
+    const { username, password } = body;
 
-    // Benutzer in der Datenbank suchen
+    console.log('Login attempt for username:', username);
+
+    // Benutzer suchen
     const user = await findUserByUsername(username);
     if (!user) {
+      console.log('User not found:', username);
       return new Response(JSON.stringify({ error: 'Ungültige Anmeldedaten' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers
       });
     }
+
+    console.log('User found:', user.username, 'isAdmin:', user.is_admin);
 
     // Passwort verifizieren
     const isValidPassword = await bcrypt.default.compare(password, user.password_hash);
     if (!isValidPassword) {
+      console.log('Invalid password for user:', username);
       return new Response(JSON.stringify({ error: 'Ungültige Anmeldedaten' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers
       });
     }
+
+    console.log('Password verified for user:', username);
 
     // JWT Token generieren
     const token = jwt.sign(
@@ -50,6 +70,8 @@ export default async (req, context) => {
       { expiresIn: '7d' }
     );
 
+    console.log('JWT token generated for user:', username);
+
     return new Response(JSON.stringify({
       token,
       username: user.username,
@@ -57,17 +79,17 @@ export default async (req, context) => {
       isAdmin: user.is_admin
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers
     });
+
   } catch (error) {
     console.error('Login error:', error);
     return new Response(JSON.stringify({ 
       error: error.message,
-      details: error.stack,
-      step: 'login_error'
+      stack: error.stack
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers
     });
   }
 };
