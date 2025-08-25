@@ -62,7 +62,7 @@ export default async (req, context) => {
     }
 
     // Passwort hashen und neuen Benutzer erstellen
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.default.hash(password, 10);
     const newUser = await createUser(username, hashedPassword, isAdmin || false);
 
     return new Response(JSON.stringify({ user: newUser }), {

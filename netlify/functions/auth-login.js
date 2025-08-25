@@ -31,7 +31,7 @@ export default async (req, context) => {
     }
 
     // Passwort verifizieren
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    const isValidPassword = await bcrypt.default.compare(password, user.password_hash);
     if (!isValidPassword) {
       return new Response(JSON.stringify({ error: 'Ungültige Anmeldedaten' }), {
         status: 401,

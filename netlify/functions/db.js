@@ -51,7 +51,7 @@ export async function initDatabase() {
     const adminCheck = await client.query('SELECT id FROM users WHERE username = $1', ['admin']);
     if (adminCheck.rows.length === 0) {
       const bcrypt = await import('bcryptjs');
-      const hashedPassword = await bcrypt.hash('admin123', 10);
+      const hashedPassword = await bcrypt.default.hash('admin123', 10);
       await client.query(
         'INSERT INTO users (username, password_hash, is_admin) VALUES ($1, $2, $3)',
         ['admin', hashedPassword, true]
