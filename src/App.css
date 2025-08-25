@@ -1,42 +1,34 @@
+/* Clean and Professional App Styles */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  min-height: 100vh;
+  width: 100%;
 }
 
+/* Logo Styles - More Subtle */
 .logo {
-  height: 6em;
-  padding: 1.5em;
+  height: 4rem;
+  padding: 0.5rem;
   will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  transition: all 200ms ease-in-out;
 }
 
-@keyframes logo-spin {
+.logo:hover {
+  filter: drop-shadow(0 0 1rem rgba(255, 179, 0, 0.3));
+  transform: scale(1.05);
+}
+
+/* Subtle Animation for Better UX */
+@keyframes logo-pulse {
   from {
-    transform: rotate(0deg);
+    transform: scale(1);
   }
   to {
-    transform: rotate(360deg);
+    transform: scale(1.02);
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+  .logo {
+    animation: logo-pulse 2s ease-in-out infinite alternate;
   }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
 }

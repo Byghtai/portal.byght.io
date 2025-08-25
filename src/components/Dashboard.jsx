@@ -98,55 +98,55 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen gradient-bg relative overflow-hidden">
-      {/* Animated Background Elements - Cleaner */}
+      {/* Subtle Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 right-10 w-40 h-40 bg-white/3 rounded-full animate-float"></div>
-        <div className="absolute bottom-10 left-10 w-32 h-32 bg-white/3 rounded-full animate-float" style={{animationDelay: '1.5s'}}></div>
-        <div className="absolute top-1/3 left-1/2 w-20 h-20 bg-white/2 rounded-full animate-float" style={{animationDelay: '3s'}}></div>
+        <div className="absolute top-10 right-10 w-32 h-32 bg-white/2 rounded-full animate-float"></div>
+        <div className="absolute bottom-10 left-10 w-24 h-24 bg-white/2 rounded-full animate-float" style={{animationDelay: '1.5s'}}></div>
+        <div className="absolute top-1/3 left-1/2 w-16 h-16 bg-white/1 rounded-full animate-float" style={{animationDelay: '3s'}}></div>
       </div>
 
-      {/* Header */}
-      <header className="glass-effect border-b border-white/15 relative z-10">
-        <div className="px-4 sm:px-6 lg:px-8 xl:px-12">
-          <div className="flex justify-between items-center py-4 sm:py-6 lg:py-8">
+      {/* Header - Cleaner */}
+      <header className="glass-effect border-b border-white/10 relative z-10">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4 sm:py-6">
             <div className="flex items-center space-x-3 sm:space-x-4">
               <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/15 backdrop-blur-xl rounded-2xl flex items-center justify-center shadow-lg p-2 sm:p-3 border border-white/25">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/15 backdrop-blur-xl rounded-xl flex items-center justify-center shadow-md p-2 sm:p-3 border border-white/25">
                   <img src={ByghtLogo} alt="Byght Logo" className="w-full h-full object-contain" />
                 </div>
                 <div className="hidden sm:block">
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-white drop-shadow-lg">Byght Portal</h1>
-                  <p className="text-sm sm:text-base lg:text-lg text-white/75 font-medium">Sicherer Dokumentenzugang</p>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-md">Byght Portal</h1>
+                  <p className="text-sm sm:text-base text-white/75 font-medium">Sicherer Dokumentenzugang</p>
                 </div>
                 <div className="sm:hidden">
-                  <h1 className="text-sm sm:text-base lg:text-lg font-black text-white drop-shadow-lg">Byght Portal</h1>
+                  <h1 className="text-base font-bold text-white drop-shadow-md">Byght Portal</h1>
                 </div>
               </div>
             </div>
             
-            {/* Desktop Navigation */}
-            <div className="hidden sm:flex items-center space-x-4 lg:space-x-6">
+            {/* Desktop Navigation - Cleaner */}
+            <div className="hidden sm:flex items-center space-x-3 lg:space-x-4">
               {isAdmin && (
                 <button
                   onClick={() => navigate('/admin')}
-                  className="flex items-center gap-2 text-white hover:text-white text-opacity-85 hover:text-opacity-100 font-semibold transition-all duration-300 bg-white/8 hover:bg-white/15 px-4 py-3 rounded-2xl text-sm sm:text-base lg:text-lg backdrop-blur-sm border border-white/20 hover:scale-105"
+                  className="flex items-center gap-2 text-white/85 hover:text-white font-medium transition-all duration-200 bg-white/8 hover:bg-white/15 px-3 py-2 rounded-lg text-sm backdrop-blur-sm border border-white/20"
                 >
-                  <Settings size={18} className="sm:w-5 sm:h-5" />
+                  <Settings size={16} />
                   <span className="hidden lg:inline">Admin Panel</span>
                   <span className="lg:hidden">Admin</span>
                 </button>
               )}
-              <div className="flex items-center gap-3 sm:gap-4 text-white text-opacity-85">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/25">
-                  <User size={16} className="sm:w-5 sm:h-5" />
+              <div className="flex items-center gap-2 text-white/85">
+                <div className="w-8 h-8 bg-white/15 backdrop-blur-sm rounded-lg flex items-center justify-center border border-white/25">
+                  <User size={14} />
                 </div>
-                <span className="font-semibold text-sm sm:text-base lg:text-lg hidden sm:inline">{user?.username}</span>
+                <span className="font-medium text-sm hidden sm:inline">{user?.username}</span>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 text-white hover:text-red-200 font-semibold transition-all duration-300 text-sm sm:text-base lg:text-lg hover:scale-105"
+                className="flex items-center gap-2 text-white/85 hover:text-red-200 font-medium transition-all duration-200 text-sm"
               >
-                <LogOut size={18} className="sm:w-5 sm:h-5" />
+                <LogOut size={16} />
                 <span className="hidden sm:inline">Abmelden</span>
               </button>
             </div>
@@ -200,36 +200,36 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="px-4 sm:px-6 lg:px-8 xl:px-12 p-6 sm:p-8 lg:p-10 relative z-10">
-        <div className="mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-white mb-4 drop-shadow-lg">Ihre Dateien</h2>
-          <p className="text-sm sm:text-base lg:text-lg text-white/85 font-medium">Hier finden Sie alle für Sie freigegebenen Dateien zum Download.</p>
+      {/* Main Content - Cleaner */}
+      <main className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative z-10">
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-md">Ihre Dateien</h2>
+          <p className="text-sm sm:text-base text-white/85 font-medium">Hier finden Sie alle für Sie freigegebenen Dateien zum Download.</p>
         </div>
 
-        {/* Search Bar */}
+        {/* Search Bar - Cleaner */}
         {files.length > 0 && (
-          <div className="mb-8">
-            <div className="relative max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-white/50" />
+          <div className="mb-6">
+            <div className="relative max-w-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-white/50" />
               </div>
               <input
                 type="text"
                 placeholder="Dateien durchsuchen..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-white/15 backdrop-blur-sm border border-white/25 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/40 transition-all duration-300"
+                className="w-full pl-10 pr-4 py-3 bg-white/15 backdrop-blur-sm border border-white/25 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/40 transition-all duration-200"
               />
             </div>
           </div>
         )}
 
         {loading ? (
-          <div className="flex justify-center py-16 sm:py-20">
-            <div className="glass-effect rounded-3xl p-6 sm:p-8 lg:p-10 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-2 border-white mx-auto mb-6"></div>
-              <p className="text-white font-semibold text-sm sm:text-base lg:text-lg">Lade Dateien...</p>
+          <div className="flex justify-center py-12">
+            <div className="glass-effect rounded-2xl p-6 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+              <p className="text-white font-medium text-sm">Lade Dateien...</p>
             </div>
           </div>
         ) : error ? (

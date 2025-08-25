@@ -5,14 +5,14 @@
 
 @layer base {
   body {
-    @apply antialiased font-['Inter'] bg-gradient-to-br from-slate-50 to-blue-50;
+    @apply antialiased font-['Inter'] bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50;
   }
 }
 
 @layer components {
-  /* Modern Button Styles - Cleaner */
+  /* Modern Button Styles - Cleaner & More Professional */
   .btn-primary {
-    @apply bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] hover:from-[rgb(245,169,0)] hover:to-[rgb(46,174,179)] text-white font-semibold py-3 px-6 rounded-2xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[rgb(255,179,0)] focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-sm sm:text-base relative overflow-hidden;
+    @apply bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] hover:from-[rgb(245,169,0)] hover:to-[rgb(46,174,179)] text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[rgb(255,179,0)]/40 focus:ring-offset-2 shadow-md hover:shadow-lg transform hover:scale-105 text-sm sm:text-base relative overflow-hidden;
   }
   
   .btn-primary::before {
@@ -25,21 +25,21 @@
   }
   
   .btn-secondary {
-    @apply bg-white/90 backdrop-blur-sm hover:bg-white text-[rgb(10,16,69)] font-semibold py-3 px-6 rounded-2xl border border-[rgb(10,16,69)]/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[rgb(10,16,69)] focus:ring-opacity-20 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-sm sm:text-base;
+    @apply bg-white/95 backdrop-blur-sm hover:bg-white text-[rgb(10,16,69)] font-semibold py-3 px-6 rounded-xl border border-[rgb(10,16,69)]/20 hover:border-[rgb(10,16,69)]/40 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[rgb(10,16,69)]/30 focus:ring-offset-2 shadow-sm hover:shadow-md transform hover:scale-105 text-sm sm:text-base;
   }
   
   .btn-danger {
-    @apply bg-gradient-to-r from-red-500/90 to-red-600/90 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-2xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-sm sm:text-base;
+    @apply bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:ring-offset-2 shadow-md hover:shadow-lg transform hover:scale-105 text-sm sm:text-base;
   }
   
-  /* Modern Input Fields - Cleaner */
+  /* Modern Input Fields - Cleaner & More Professional */
   .input-field {
-    @apply w-full px-4 py-4 border border-gray-200/70 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[rgb(255,179,0)] focus:ring-opacity-20 focus:border-[rgb(255,179,0)] transition-all duration-300 bg-white/95 backdrop-blur-sm shadow-md hover:shadow-lg text-sm sm:text-base placeholder-gray-500;
+    @apply w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(255,179,0)]/30 focus:border-[rgb(255,179,0)] transition-all duration-200 bg-white shadow-sm hover:shadow-md focus:shadow-md text-sm sm:text-base placeholder-gray-400;
   }
   
-  /* Modern Card Design - Cleaner */
+  /* Modern Card Design - Cleaner & More Professional */
   .card {
-    @apply bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl p-6 sm:p-8 lg:p-10 border border-white/30 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1;
+    @apply bg-white rounded-2xl shadow-lg p-6 sm:p-8 lg:p-10 border border-gray-100 hover:shadow-xl transition-all duration-200 hover:border-gray-200;
   }
   
   /* Enhanced Gradient Background - Unchanged */
@@ -64,9 +64,9 @@
     pointer-events: none;
   }
   
-  /* Enhanced Glass Effect - Cleaner */
+  /* Enhanced Glass Effect - Cleaner & More Subtle */
   .glass-effect {
-    @apply backdrop-blur-2xl bg-white/15 border border-white/25 shadow-xl;
+    @apply backdrop-blur-xl bg-white/10 border border-white/20 shadow-lg;
   }
   
   /* Modern Text Colors */
@@ -92,25 +92,25 @@
     animation: float 4s ease-in-out infinite;
   }
   
-  /* Enhanced Shadows */
+  /* Enhanced Shadows - More Subtle */
   .shadow-3xl {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.12);
   }
   
-  /* Modern Scrollbar */
+  /* Modern Scrollbar - Cleaner */
   ::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
   
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100/30 rounded-full;
+    @apply bg-gray-100 rounded-full;
   }
   
   ::-webkit-scrollbar-thumb {
-    @apply bg-gradient-to-b from-[rgb(255,179,0)]/80 to-[rgb(56,184,189)]/80 rounded-full;
+    @apply bg-gradient-to-b from-[rgb(255,179,0)]/60 to-[rgb(56,184,189)]/60 rounded-full;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gradient-to-b from-[rgb(255,179,0)] to-[rgb(56,184,189)];
+    @apply bg-gradient-to-b from-[rgb(255,179,0)]/80 to-[rgb(56,184,189)]/80;
   }
 }

@@ -46,6 +46,12 @@ export async function initDatabase() {
         UNIQUE(file_id, user_id)
       )
     `);
+    
+    // Index für bessere Performance beim Löschen
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_file_user_assignments_file_id 
+      ON file_user_assignments(file_id)
+    `);
 
   } catch (error) {
     console.error('Datenbank-Initialisierung fehlgeschlagen:', error);
@@ -250,7 +256,28 @@ export async function getAllFiles() {
 export async function deleteFile(fileId) {
   const client = await pool.connect();
   try {
-    await client.query('DELETE FROM files WHERE id = $1', [fileId]);
+    // Transaktion starten
+    await client.query('BEGIN');
+    
+    // Zuerst alle Zuordnungen löschen
+    await client.query('DELETE FROM file_user_assignments WHERE file_id = $1', [fileId]);
+    
+    // Dann die Datei selbst löschen
+    const result = await client.query('DELETE FROM files WHERE id = $1 RETURNING id', [fileId]);
+    
+    // Transaktion bestätigen
+    await client.query('COMMIT');
+    
+    // Prüfen ob eine Zeile gelöscht wurde
+    if (result.rowCount === 0) {
+      throw new Error('File not found');
+    }
+    
+    return true;
+  } catch (error) {
+    // Transaktion rückgängig machen bei Fehler
+    await client.query('ROLLBACK');
+    throw error;
   } finally {
     client.release();
   }

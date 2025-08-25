@@ -54,22 +54,50 @@ export default async (req, context) => {
 
     // Datei-Metadaten abrufen um den Blob-Key zu bekommen
     const fileMetadata = await getFileById(fileId);
-    if (fileMetadata) {
-      // Datei aus Blob Storage löschen
-      const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
-      await filesStore.delete(fileMetadata.blobKey);
+    
+    if (!fileMetadata) {
+      return new Response(JSON.stringify({ error: 'File not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Datei aus der Datenbank löschen (inklusive aller Zuordnungen)
+    await deleteFile(fileId);
+    
+    // Datei aus Blob Storage löschen (nach erfolgreicher DB-Löschung)
+    if (fileMetadata && fileMetadata.blobKey) {
+      try {
+        const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
+        await filesStore.delete(fileMetadata.blobKey);
+      } catch (blobError) {
+        console.error('Fehler beim Löschen aus Blob Storage:', blobError);
+        // Wir fahren trotz Blob-Fehler fort, da die DB-Löschung erfolgreich war
+      }
     }
 
-    // Datei aus der Datenbank löschen (CASCADE löscht automatisch alle Zuordnungen)
-    await deleteFile(fileId);
-
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      message: 'Datei erfolgreich gelöscht' 
+    }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Delete file error:', error);
-    return new Response(JSON.stringify({ error: 'Server error' }), {
+    
+    // Spezifische Fehlermeldungen für verschiedene Fehlertypen
+    if (error.message === 'File not found') {
+      return new Response(JSON.stringify({ error: 'Datei nicht gefunden' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    return new Response(JSON.stringify({ 
+      error: 'Server error', 
+      details: error.message 
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });

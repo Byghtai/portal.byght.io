@@ -45,6 +45,7 @@ const AdminPanel = () => {
   const [editSelectedFiles, setEditSelectedFiles] = useState([]);
   const [updatingUserFiles, setUpdatingUserFiles] = useState(false);
   const [userFiles, setUserFiles] = useState([]);
+  const [deletingFile, setDeletingFile] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -132,6 +133,7 @@ const AdminPanel = () => {
   const handleDeleteFile = async (fileId) => {
     if (!confirm('Möchten Sie diese Datei wirklich löschen?')) return;
 
+    setDeletingFile(fileId);
     try {
       const token = Cookies.get('auth_token');
       const response = await fetch(`/.netlify/functions/admin-delete-file`, {
@@ -144,10 +146,18 @@ const AdminPanel = () => {
       });
 
       if (response.ok) {
-        fetchFiles();
+        const result = await response.json();
+        alert(result.message || 'Datei erfolgreich gelöscht!');
+        await fetchFiles(); // Warten bis die Liste aktualisiert ist
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Fehler beim Löschen der Datei');
       }
     } catch (error) {
+      console.error('Delete file error:', error);
       alert('Fehler beim Löschen: ' + error.message);
+    } finally {
+      setDeletingFile(null);
     }
   };
 
@@ -326,32 +336,32 @@ const AdminPanel = () => {
 
   return (
     <div className="min-h-screen gradient-bg relative overflow-hidden">
-      {/* Animated Background Elements */}
+      {/* Subtle Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 right-10 w-40 h-40 bg-white/5 rounded-full animate-float"></div>
-        <div className="absolute bottom-10 left-10 w-32 h-32 bg-white/5 rounded-full animate-float" style={{animationDelay: '1.5s'}}></div>
-        <div className="absolute top-1/3 left-1/2 w-20 h-20 bg-white/3 rounded-full animate-float" style={{animationDelay: '3s'}}></div>
+        <div className="absolute top-10 right-10 w-32 h-32 bg-white/3 rounded-full animate-float"></div>
+        <div className="absolute bottom-10 left-10 w-24 h-24 bg-white/3 rounded-full animate-float" style={{animationDelay: '1.5s'}}></div>
+        <div className="absolute top-1/3 left-1/2 w-16 h-16 bg-white/2 rounded-full animate-float" style={{animationDelay: '3s'}}></div>
       </div>
 
-      {/* Header */}
-      <header className="glass-effect border-b border-white/20 relative z-10">
-        <div className="px-4 sm:px-6 lg:px-8 xl:px-12">
-          <div className="flex justify-between items-center py-4 sm:py-6 lg:py-8">
+      {/* Header - Cleaner */}
+      <header className="glass-effect border-b border-white/15 relative z-10">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4 sm:py-6">
             <div className="flex items-center space-x-3 sm:space-x-4">
-                              <button
-                  onClick={() => navigate('/dashboard')}
-                  className="flex items-center gap-2 text-white hover:text-white text-opacity-90 hover:text-opacity-100 transition-all duration-500 text-sm sm:text-base lg:text-lg hover:scale-105"
-                >
-                <ArrowLeft size={20} className="sm:w-6 sm:h-6" />
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-2 text-white/85 hover:text-white transition-all duration-200 text-sm font-medium"
+              >
+                <ArrowLeft size={18} />
                 <span className="hidden sm:inline">Zurück</span>
               </button>
               <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center shadow-xl p-2 sm:p-3 border border-white/30">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-xl rounded-xl flex items-center justify-center shadow-lg p-2 sm:p-3 border border-white/30">
                   <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-white drop-shadow-lg">Admin Panel</h1>
-                  <p className="text-sm sm:text-base lg:text-lg text-white/80 font-medium hidden sm:block">Systemverwaltung</p>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-md">Admin Panel</h1>
+                  <p className="text-sm sm:text-base text-white/80 font-medium hidden sm:block">Systemverwaltung</p>
                 </div>
               </div>
             </div>
@@ -360,7 +370,7 @@ const AdminPanel = () => {
                 logout();
                 navigate('/login');
               }}
-              className="text-white hover:text-red-200 font-semibold transition-all duration-500 text-sm sm:text-base lg:text-lg hover:scale-105"
+              className="text-white/85 hover:text-red-200 font-medium transition-all duration-200 text-sm"
             >
               <span className="hidden sm:inline">Abmelden</span>
               <span className="sm:hidden">Logout</span>
@@ -369,34 +379,34 @@ const AdminPanel = () => {
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className="px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 sm:pt-8 relative z-10">
-        <div className="glass-effect rounded-3xl p-2 mb-6 sm:mb-8">
-          <nav className="flex space-x-2">
+      {/* Tabs - Cleaner */}
+      <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 relative z-10">
+        <div className="glass-effect rounded-2xl p-1 mb-6">
+          <nav className="flex space-x-1">
             <button
               onClick={() => setActiveTab('files')}
-              className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-2xl font-bold text-sm sm:text-base lg:text-lg transition-all duration-500 ${
+              className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-200 ${
                 activeTab === 'files'
-                  ? 'bg-white/90 backdrop-blur-sm text-[rgb(10,16,69)] shadow-xl'
-                  : 'text-white text-opacity-70 hover:text-opacity-100 hover:bg-white/10'
+                  ? 'bg-white/90 backdrop-blur-sm text-[rgb(10,16,69)] shadow-md'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
-              <div className="flex items-center justify-center gap-2 sm:gap-3">
-                <FileText size={18} className="sm:w-5 sm:h-5" />
+              <div className="flex items-center justify-center gap-2">
+                <FileText size={16} />
                 <span className="hidden sm:inline">Dateiverwaltung</span>
                 <span className="sm:hidden">Dateien</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-2xl font-bold text-sm sm:text-base lg:text-lg transition-all duration-500 ${
+              className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-200 ${
                 activeTab === 'users'
-                  ? 'bg-white/90 backdrop-blur-sm text-[rgb(10,16,69)] shadow-xl'
-                  : 'text-white text-opacity-70 hover:text-opacity-100 hover:bg-white/10'
+                  ? 'bg-white/90 backdrop-blur-sm text-[rgb(10,16,69)] shadow-md'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
-              <div className="flex items-center justify-center gap-2 sm:gap-3">
-                <Users size={18} className="sm:w-5 sm:h-5" />
+              <div className="flex items-center justify-center gap-2">
+                <Users size={16} />
                 <span className="hidden sm:inline">Benutzerverwaltung</span>
                 <span className="sm:hidden">Benutzer</span>
               </div>
@@ -405,20 +415,20 @@ const AdminPanel = () => {
         </div>
       </div>
 
-      {/* Content */}
-      <main className="px-4 sm:px-6 lg:px-8 xl:px-12 pb-6 sm:pb-8 relative z-10">
+      {/* Content - Cleaner */}
+      <main className="px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8 relative z-10">
         {loading ? (
-          <div className="flex justify-center py-16 sm:py-20">
-            <div className="glass-effect rounded-3xl p-6 sm:p-8 lg:p-10 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-2 border-white mx-auto mb-6"></div>
-              <p className="text-white font-semibold text-sm sm:text-base lg:text-lg">Lade Daten...</p>
+          <div className="flex justify-center py-12">
+            <div className="glass-effect rounded-2xl p-6 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+              <p className="text-white font-medium text-sm">Lade Daten...</p>
             </div>
           </div>
         ) : activeTab === 'files' ? (
           <div className="space-y-6 sm:space-y-8 lg:space-y-10">
-            {/* Upload Form */}
+            {/* Upload Form - Cleaner */}
             <div className="card">
-              <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-primary mb-6 sm:mb-8">Neue Datei hochladen</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-primary mb-6">Neue Datei hochladen</h2>
               <form onSubmit={handleFileUpload} className="space-y-6 sm:space-y-8">
                 <div>
                   <label className="block text-sm sm:text-base lg:text-lg font-bold text-primary mb-3 sm:mb-4">
@@ -547,10 +557,20 @@ const AdminPanel = () => {
                         <td className="px-4 py-5 sm:px-6 sm:py-6 whitespace-nowrap text-right">
                           <button
                             onClick={() => handleDeleteFile(file.id)}
-                            className="btn-danger flex items-center gap-2 text-xs sm:text-sm py-2 px-3 sm:py-2 sm:px-4 group-hover:scale-105 transition-transform duration-300"
+                            disabled={deletingFile === file.id}
+                            className="btn-danger flex items-center gap-2 text-xs sm:text-sm py-2 px-3 sm:py-2 sm:px-4 group-hover:scale-105 transition-transform duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Trash2 size={14} className="sm:w-4 sm:h-4" />
-                            <span className="hidden sm:inline">Löschen</span>
+                            {deletingFile === file.id ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                <span className="hidden sm:inline">Wird gelöscht...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                                <span className="hidden sm:inline">Löschen</span>
+                              </>
+                            )}
                           </button>
                         </td>
                       </tr>
