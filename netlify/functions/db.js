@@ -223,7 +223,10 @@ export async function getFilesForUser(userId) {
       WHERE fua.user_id = $1
       ORDER BY f.uploaded_at DESC
     `, [userId]);
-    return result.rows;
+    return result.rows.map(row => ({
+      ...row,
+      uploadedAt: row.uploadedat ? new Date(row.uploadedat).toISOString() : null
+    }));
   } finally {
     client.release();
   }
@@ -245,7 +248,8 @@ export async function getAllFiles() {
     `);
     return result.rows.map(row => ({
       ...row,
-      assigned_users: row.assigned_users.filter(user => user !== null)
+      assignedUsers: row.assigned_users.filter(user => user !== null),
+      uploadedAt: row.uploadedat ? new Date(row.uploadedat).toISOString() : null
     }));
   } finally {
     client.release();
