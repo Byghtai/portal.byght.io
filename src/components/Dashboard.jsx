@@ -111,7 +111,7 @@ const Dashboard = () => {
           <div className="flex justify-between items-center py-4 sm:py-6">
             <div className="flex items-center space-x-3 sm:space-x-4">
               <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/15 backdrop-blur-xl rounded-xl flex items-center justify-center shadow-md p-2 sm:p-3 border border-white/25">
+                <div className="w-16 h-16 sm:w-18 sm:h-18 bg-white/15 backdrop-blur-xl rounded-xl flex items-center justify-center shadow-md p-3 sm:p-4 border border-white/25">
                   <img src={ByghtLogo} alt="Byght Logo" className="w-full h-full object-contain" />
                 </div>
                 <div className="hidden sm:block">

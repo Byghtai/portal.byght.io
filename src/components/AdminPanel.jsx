@@ -356,8 +356,8 @@ const AdminPanel = () => {
                 <span className="hidden sm:inline">Zurück</span>
               </button>
               <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-xl rounded-xl flex items-center justify-center shadow-lg p-2 sm:p-3 border border-white/30">
-                  <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 backdrop-blur-xl rounded-xl flex items-center justify-center shadow-lg p-3 sm:p-4 border border-white/30">
+                  <Settings className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                 </div>
                 <div>
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-md">Admin Panel</h1>

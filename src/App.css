@@ -4,9 +4,9 @@
   width: 100%;
 }
 
-/* Logo Styles - More Subtle */
+/* Logo Styles - Größer */
 .logo {
-  height: 4rem;
+  height: 6rem;
   padding: 0.5rem;
   will-change: filter;
   transition: all 200ms ease-in-out;

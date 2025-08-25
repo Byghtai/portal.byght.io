@@ -76,7 +76,7 @@ const Setup = () => {
               </div>
               <button
                 onClick={createAdminUser}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="w-full flex justify-center py-3 px-6 border border-transparent rounded-xl shadow-md text-sm font-medium text-white bg-[#5E5D61] hover:bg-[#4E4D51] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5E5D61]/40 transition-all duration-200 hover:shadow-lg transform hover:scale-105"
               >
                 Admin-User erstellen
               </button>
@@ -98,7 +98,7 @@ const Setup = () => {
               <div className="mt-6">
                 <a
                   href="/"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-[#5E5D61] hover:bg-[#4E4D51] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5E5D61]/40 transition-all duration-200 hover:shadow-lg transform hover:scale-105"
                 >
                   Zum Login
                 </a>
@@ -117,7 +117,7 @@ const Setup = () => {
                     setStatus('idle');
                     setMessage('');
                   }}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-[#5E5D61] hover:bg-[#4E4D51] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5E5D61]/40 transition-all duration-200 hover:shadow-lg transform hover:scale-105"
                 >
                   Erneut versuchen
                 </button>
