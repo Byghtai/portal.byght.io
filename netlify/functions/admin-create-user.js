@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
 import { createUser, findUserByUsername } from './db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -62,6 +61,7 @@ export default async (req, context) => {
     }
 
     // Passwort hashen und neuen Benutzer erstellen
+    const bcrypt = await import('bcryptjs');
     const hashedPassword = await bcrypt.default.hash(password, 10);
     const newUser = await createUser(username, hashedPassword, isAdmin || false);
 

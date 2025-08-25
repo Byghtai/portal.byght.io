@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { findUserByUsername, initDatabase } from './db.js';
 
@@ -48,6 +47,7 @@ export default async (req, context) => {
     console.log('User found:', user.username, 'isAdmin:', user.is_admin);
 
     // Passwort verifizieren
+    const bcrypt = await import('bcryptjs');
     const isValidPassword = await bcrypt.default.compare(password, user.password_hash);
     if (!isValidPassword) {
       console.log('Invalid password for user:', username);

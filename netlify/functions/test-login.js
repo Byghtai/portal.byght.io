@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { findUserByUsername, initDatabase } from './db.js';
 
@@ -32,6 +31,7 @@ export default async (req, context) => {
     // Schritt 3: Passwort testen
     console.log('Teste Passwort...');
     const testPassword = 'admin123';
+    const bcrypt = await import('bcryptjs');
     const isValidPassword = await bcrypt.default.compare(testPassword, user.password_hash);
     console.log('Passwort gültig:', isValidPassword);
 

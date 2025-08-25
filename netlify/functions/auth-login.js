@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { findUserByUsername, initDatabase } from './db.js';
 
@@ -31,6 +30,7 @@ export default async (req, context) => {
     }
 
     // Passwort verifizieren
+    const bcrypt = await import('bcryptjs');
     const isValidPassword = await bcrypt.default.compare(password, user.password_hash);
     if (!isValidPassword) {
       return new Response(JSON.stringify({ error: 'Ungültige Anmeldedaten' }), {
