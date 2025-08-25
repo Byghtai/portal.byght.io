@@ -2,7 +2,10 @@ import { getStore } from "@netlify/blobs";
 import jwt from 'jsonwebtoken';
 import { deleteFile, getFileById } from './db.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set');
+}
 
 export default async (req, context) => {
   if (req.method !== 'DELETE') {
