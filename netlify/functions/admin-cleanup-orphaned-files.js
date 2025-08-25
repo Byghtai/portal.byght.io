@@ -72,15 +72,47 @@ export default async (req, context) => {
         try {
           console.log(`Versuche Waisen-Datei zu löschen: ${blobKey}`);
           
-          // Prüfen ob Blob noch existiert
-          const blobExists = await filesStore.get(blobKey);
-          if (blobExists) {
-            await filesStore.delete(blobKey);
+          // Blob löschen
+          await filesStore.delete(blobKey);
+          
+          // Kurz warten und prüfen ob wirklich gelöscht
+          await new Promise(resolve => setTimeout(resolve, 50));
+          
+          let stillExists = false;
+          try {
+            const checkBlob = await filesStore.get(blobKey);
+            stillExists = !!checkBlob;
+          } catch (e) {
+            // Blob nicht gefunden = erfolgreich gelöscht
+            stillExists = false;
+          }
+          
+          if (!stillExists) {
             deletedCount++;
             deletedBlobs.push(blobKey);
             console.log(`Waisen-Datei erfolgreich gelöscht: ${blobKey}`);
           } else {
-            console.warn(`Waisen-Datei existiert nicht mehr: ${blobKey}`);
+            // Zweiter Versuch
+            console.log(`Zweiter Löschversuch für: ${blobKey}`);
+            await filesStore.delete(blobKey);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Nochmal prüfen
+            try {
+              const checkBlob2 = await filesStore.get(blobKey);
+              if (!checkBlob2) {
+                deletedCount++;
+                deletedBlobs.push(blobKey);
+                console.log(`Waisen-Datei beim zweiten Versuch gelöscht: ${blobKey}`);
+              } else {
+                errors.push({ blobKey, error: 'Blob konnte nicht gelöscht werden' });
+                console.error(`Waisen-Datei konnte nicht gelöscht werden: ${blobKey}`);
+              }
+            } catch (e) {
+              deletedCount++;
+              deletedBlobs.push(blobKey);
+              console.log(`Waisen-Datei beim zweiten Versuch gelöscht: ${blobKey}`);
+            }
           }
         } catch (error) {
           console.error(`Fehler beim Löschen der Waisen-Datei ${blobKey}:`, error);

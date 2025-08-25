@@ -208,6 +208,27 @@ const AdminPanel = () => {
       });
 
       if (response.ok) {
+        const result = await response.json();
+        console.log('Löschung erfolgreich:', result);
+        
+        // Debug-Informationen anzeigen
+        if (result.debugInfo) {
+          console.log('Debug-Info:', {
+            'Blob existierte vorher': result.debugInfo.blobExistedBefore,
+            'Blob existiert nachher': result.debugInfo.blobExistsAfter,
+            'Blob wurde gelöscht': result.debugInfo.blobDeleted
+          });
+        }
+        
+        // Erfolgs-Feedback anzeigen
+        if (result.blobDeleted) {
+          console.log(`✅ Datei ${result.fileId} und Blob ${result.blobKey} wurden erfolgreich gelöscht`);
+        } else if (result.debugInfo?.blobExistedBefore) {
+          console.error(`⚠️ Datei ${result.fileId} wurde aus DB gelöscht, aber Blob ${result.blobKey} konnte nicht gelöscht werden!`);
+        } else {
+          console.warn(`ℹ️ Datei ${result.fileId} wurde aus DB gelöscht (kein Blob vorhanden)`);
+        }
+        
         fetchFiles();
       } else {
         const error = await response.json();

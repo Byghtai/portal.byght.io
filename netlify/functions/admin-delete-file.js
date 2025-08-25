@@ -69,20 +69,80 @@ export default async (req, context) => {
     
     // Datei aus Blob Storage löschen (VOR der DB-Löschung)
     let blobDeleted = false;
+    let blobExistedBefore = false;
+    let blobExistsAfter = false;
+    
     if (blobKey) {
       try {
         const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
         console.log(`Versuche Blob zu löschen: ${blobKey}`);
         
-        // Prüfen ob Blob existiert
-        const blobExists = await filesStore.get(blobKey);
-        if (blobExists) {
-          await filesStore.delete(blobKey);
-          blobDeleted = true;
-          console.log(`Datei erfolgreich aus Blob Storage gelöscht: ${blobKey}`);
-        } else {
-          console.warn(`Blob existiert nicht: ${blobKey}`);
+        // Prüfen ob Blob vor Löschung existiert
+        try {
+          const blobBefore = await filesStore.get(blobKey);
+          blobExistedBefore = !!blobBefore;
+          console.log(`Blob existiert vor Löschung: ${blobExistedBefore}`);
+        } catch (e) {
+          console.log(`Blob existiert nicht vor Löschung: ${blobKey}`);
+          blobExistedBefore = false;
         }
+        
+        // Blob löschen - mit explizitem await und try-catch
+        if (blobExistedBefore) {
+          try {
+            await filesStore.delete(blobKey);
+            console.log(`Blob-Löschbefehl ausgeführt für: ${blobKey}`);
+          } catch (deleteError) {
+            console.error(`Fehler beim ersten Löschversuch: ${deleteError.message}`);
+            // Trotzdem fortfahren und prüfen
+          }
+        }
+        
+        // Nur prüfen wenn Blob vorher existierte
+        if (blobExistedBefore) {
+          // Kurz warten, damit die Löschung wirksam wird
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Prüfen ob Blob nach Löschung noch existiert
+          try {
+            const blobAfter = await filesStore.get(blobKey);
+            blobExistsAfter = !!blobAfter;
+            console.log(`Blob existiert nach Löschung noch: ${blobExistsAfter}`);
+            
+            // Falls Blob noch existiert, nochmal versuchen zu löschen
+            if (blobExistsAfter) {
+              console.log(`Zweiter Löschversuch für hartnäckigen Blob: ${blobKey}`);
+              try {
+                await filesStore.delete(blobKey);
+                await new Promise(resolve => setTimeout(resolve, 100));
+              } catch (deleteError2) {
+                console.error(`Fehler beim zweiten Löschversuch: ${deleteError2.message}`);
+              }
+              
+              // Nochmal prüfen
+              try {
+                const blobAfterSecond = await filesStore.get(blobKey);
+                blobExistsAfter = !!blobAfterSecond;
+                console.log(`Blob existiert nach zweitem Löschversuch: ${blobExistsAfter}`);
+              } catch (e) {
+                blobExistsAfter = false;
+                console.log(`Blob nach zweitem Löschversuch erfolgreich entfernt`);
+              }
+            }
+          } catch (e) {
+            console.log(`Blob existiert nicht mehr nach Löschung: ${blobKey}`);
+            blobExistsAfter = false;
+          }
+          
+          blobDeleted = !blobExistsAfter;
+        } else {
+          // Blob existierte nicht, also als "gelöscht" markieren
+          blobDeleted = true;
+          console.log(`Blob existierte nicht, keine Löschung notwendig`);
+        }
+        
+        console.log(`Blob-Löschung Status - Existierte vorher: ${blobExistedBefore}, Existiert nachher: ${blobExistsAfter}, Gelöscht: ${blobDeleted}`);
+        
       } catch (blobError) {
         console.error('Fehler beim Löschen aus Blob Storage:', blobError);
         // Wir fahren trotz Blob-Fehler fort, da die DB-Löschung wichtiger ist
@@ -97,9 +157,19 @@ export default async (req, context) => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Datei erfolgreich gelöscht',
+      message: blobDeleted 
+        ? 'Datei und zugehörige Blob-Daten erfolgreich gelöscht' 
+        : blobExistedBefore 
+          ? 'Datei aus Datenbank gelöscht, aber Blob-Löschung fehlgeschlagen'
+          : 'Datei aus Datenbank gelöscht (kein Blob vorhanden)',
       blobDeleted: blobDeleted,
-      blobKey: blobKey
+      blobKey: blobKey,
+      fileId: fileId,
+      debugInfo: {
+        blobExistedBefore: blobExistedBefore,
+        blobExistsAfter: blobExistsAfter,
+        blobDeleted: blobDeleted
+      }
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
