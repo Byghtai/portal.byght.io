@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Download, FileText, LogOut, User, Folder, Calendar, HardDrive, Settings, AlertCircle, Menu, X, Search, Filter } from 'lucide-react';
+import { Download, FileText, LogOut, User, Folder, Calendar, HardDrive, Settings, AlertCircle, Menu, X, Search } from 'lucide-react';
 import ByghtLogo from '../assets/byght-logo.svg';
 import Cookies from 'js-cookie';
 
@@ -97,57 +97,39 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="min-h-screen gradient-bg relative overflow-hidden">
-      {/* Subtle Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 right-10 w-32 h-32 bg-white/2 rounded-full animate-float"></div>
-        <div className="absolute bottom-10 left-10 w-24 h-24 bg-white/2 rounded-full animate-float" style={{animationDelay: '1.5s'}}></div>
-        <div className="absolute top-1/3 left-1/2 w-16 h-16 bg-white/1 rounded-full animate-float" style={{animationDelay: '3s'}}></div>
-      </div>
-
-      {/* Header - Cleaner */}
-      <header className="glass-effect border-b border-white/10 relative z-10">
+    <div className="min-h-screen bg-byght-lightgray">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200">
         <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4 sm:py-6">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-16 h-16 sm:w-18 sm:h-18 bg-white/15 backdrop-blur-xl rounded-xl flex items-center justify-center shadow-md p-3 sm:p-4 border border-white/25">
-                  <img src={ByghtLogo} alt="Byght Logo" className="w-full h-full object-contain" />
-                </div>
-                <div className="hidden sm:block">
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-md">Byght Portal</h1>
-                  <p className="text-sm sm:text-base text-white/75 font-medium">Sicherer Dokumentenzugang</p>
-                </div>
-                <div className="sm:hidden">
-                  <h1 className="text-base font-bold text-white drop-shadow-md">Byght Portal</h1>
-                </div>
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-3">
+              <img src={ByghtLogo} alt="Byght Logo" className="h-10 w-auto" />
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-semibold text-byght-gray">Byght Portal</h1>
               </div>
             </div>
             
-            {/* Desktop Navigation - Cleaner */}
-            <div className="hidden sm:flex items-center space-x-3 lg:space-x-4">
+            {/* Desktop Navigation */}
+            <div className="hidden sm:flex items-center space-x-4">
               {isAdmin && (
                 <button
                   onClick={() => navigate('/admin')}
-                  className="flex items-center gap-2 text-white/85 hover:text-white font-medium transition-all duration-200 bg-white/8 hover:bg-white/15 px-3 py-2 rounded-lg text-sm backdrop-blur-sm border border-white/20"
+                  className="flex items-center gap-2 text-byght-gray hover:text-byght-turquoise transition-colors"
                 >
-                  <Settings size={16} />
-                  <span className="hidden lg:inline">Admin Panel</span>
-                  <span className="lg:hidden">Admin</span>
+                  <Settings size={18} />
+                  <span>Admin</span>
                 </button>
               )}
-              <div className="flex items-center gap-2 text-white/85">
-                <div className="w-8 h-8 bg-white/15 backdrop-blur-sm rounded-lg flex items-center justify-center border border-white/25">
-                  <User size={14} />
-                </div>
-                <span className="font-medium text-sm hidden sm:inline">{user?.username}</span>
+              <div className="flex items-center gap-2 text-byght-gray">
+                <User size={18} />
+                <span className="font-medium">{user?.username}</span>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 text-white/85 hover:text-red-200 font-medium transition-all duration-200 text-sm"
+                className="flex items-center gap-2 text-byght-gray hover:text-red-500 transition-colors"
               >
-                <LogOut size={16} />
-                <span className="hidden sm:inline">Abmelden</span>
+                <LogOut size={18} />
+                <span>Abmelden</span>
               </button>
             </div>
 
@@ -155,7 +137,7 @@ const Dashboard = () => {
             <div className="sm:hidden">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="text-white p-2 hover:bg-white/8 rounded-xl transition-all duration-300"
+                className="text-byght-gray p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -164,34 +146,32 @@ const Dashboard = () => {
 
           {/* Mobile Navigation Menu */}
           {mobileMenuOpen && (
-            <div className="sm:hidden pb-6 border-t border-white/15">
-              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 space-y-4 pt-6">
+            <div className="sm:hidden pb-4 border-t border-gray-200">
+              <div className="flex flex-col space-y-3 pt-4">
                 {isAdmin && (
                   <button
                     onClick={() => {
                       navigate('/admin');
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full sm:w-auto text-center sm:text-left transition-all duration-300 flex items-center justify-center gap-3 text-white hover:text-white text-opacity-85 hover:text-opacity-100 font-semibold transition-all duration-300 bg-white/8 hover:bg-white/15 px-6 py-4 rounded-2xl text-sm sm:text-base lg:text-lg backdrop-blur-sm border border-white/20"
+                    className="flex items-center gap-2 text-byght-gray hover:text-byght-turquoise transition-colors py-2"
                   >
-                    <Settings size={20} />
+                    <Settings size={18} />
                     Admin Panel
                   </button>
                 )}
-                <div className="flex items-center justify-center gap-4 text-white text-opacity-85 text-sm sm:text-base lg:text-lg">
-                  <div className="w-10 h-10 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/25">
-                    <User size={18} />
-                  </div>
-                  <span className="font-semibold">{user?.username}</span>
+                <div className="flex items-center gap-2 text-byght-gray py-2">
+                  <User size={18} />
+                  <span className="font-medium">{user?.username}</span>
                 </div>
                 <button
                   onClick={() => {
                     handleLogout();
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full sm:w-auto text-center sm:text-left transition-all duration-300 flex items-center justify-center gap-3 text-white hover:text-red-200 font-semibold transition-all duration-300 text-sm sm:text-base lg:text-lg"
+                  className="flex items-center gap-2 text-byght-gray hover:text-red-500 transition-colors py-2"
                 >
-                  <LogOut size={20} />
+                  <LogOut size={18} />
                   Abmelden
                 </button>
               </div>
@@ -200,26 +180,26 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* Main Content - Cleaner */}
-      <main className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative z-10">
-        <div className="mb-6 sm:mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-md">Ihre Dateien</h2>
-          <p className="text-sm sm:text-base text-white/85 font-medium">Hier finden Sie alle für Sie freigegebenen Dateien zum Download.</p>
+      {/* Main Content */}
+      <main className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold text-byght-gray mb-2">Ihre Dateien</h2>
+          <p className="text-gray-600">Hier finden Sie alle für Sie freigegebenen Dateien.</p>
         </div>
 
-        {/* Search Bar - Cleaner */}
+        {/* Search Bar */}
         {files.length > 0 && (
           <div className="mb-6">
-            <div className="relative max-w-sm">
+            <div className="relative max-w-md">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-white/50" />
+                <Search className="h-4 w-4 text-gray-400" />
               </div>
               <input
                 type="text"
                 placeholder="Dateien durchsuchen..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-white/15 backdrop-blur-sm border border-white/25 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/40 transition-all duration-200"
+                className="input-field pl-10"
               />
             </div>
           </div>
@@ -227,93 +207,89 @@ const Dashboard = () => {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="glass-effect rounded-2xl p-6 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-              <p className="text-white font-medium text-sm">Lade Dateien...</p>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-byght-turquoise mx-auto mb-4"></div>
+              <p className="text-gray-600">Lade Dateien...</p>
             </div>
           </div>
         ) : error ? (
-          <div className="card bg-red-500/15 backdrop-blur-sm border-red-400/25">
-            <div className="flex items-center gap-4 text-red-100">
-              <AlertCircle size={24} className="sm:w-6 sm:h-6 flex-shrink-0" />
-              <span className="font-semibold text-sm sm:text-base lg:text-lg">{error}</span>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center gap-3 text-red-700">
+              <AlertCircle size={20} />
+              <span>{error}</span>
             </div>
           </div>
         ) : files.length === 0 ? (
-          <div className="card text-center">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-r from-[rgb(255,179,0)]/80 to-[rgb(56,184,189)]/80 rounded-3xl flex items-center justify-center mx-auto mb-6 sm:mb-8 shadow-lg">
-              <Folder className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+          <div className="card text-center py-12">
+            <div className="w-16 h-16 bg-byght-turquoise/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Folder className="h-8 w-8 text-byght-turquoise" />
             </div>
-            <h3 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-primary mb-3">Keine Dateien verfügbar</h3>
-            <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-6 font-medium">
+            <h3 className="text-xl font-semibold text-byght-gray mb-2">Keine Dateien verfügbar</h3>
+            <p className="text-gray-600">
               Sobald Dateien für Sie freigegeben werden, erscheinen diese hier.
             </p>
-            <div className="w-16 h-1 sm:w-20 bg-gradient-to-r from-[rgb(255,179,0)]/80 to-[rgb(56,184,189)]/80 rounded-full mx-auto"></div>
           </div>
         ) : (
-          <div className="card">
-            <div className="overflow-x-auto -mx-4 sm:mx-0 rounded-2xl">
-              <table className="min-w-full divide-y divide-gray-200/30">
-                <thead>
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-4 sm:px-6 sm:py-5 text-left text-xs sm:text-sm lg:text-base font-bold text-primary uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Dateiname
                     </th>
-                    <th className="px-4 py-4 sm:px-6 sm:py-5 text-left text-xs sm:text-sm lg:text-base font-bold text-primary uppercase tracking-wider hidden sm:table-cell">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                       Größe
                     </th>
-                    <th className="px-4 py-4 sm:px-6 sm:py-5 text-left text-xs sm:text-sm lg:text-base font-bold text-primary uppercase tracking-wider hidden lg:table-cell">
-                      Hochgeladen am
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                      Hochgeladen
                     </th>
-                    <th className="px-4 py-4 sm:px-6 sm:py-5 text-left text-xs sm:text-sm lg:text-base font-bold text-primary uppercase tracking-wider hidden xl:table-cell">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">
                       Beschreibung
                     </th>
-                    <th className="px-4 py-4 sm:px-6 sm:py-5 text-right text-xs sm:text-sm lg:text-base font-bold text-primary uppercase tracking-wider">
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Aktionen
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200/30">
+                <tbody className="bg-white divide-y divide-gray-200">
                   {filteredFiles.map((file) => (
-                    <tr key={file.id} className="hover:bg-gray-50/30 transition-all duration-300 group">
-                      <td className="px-4 py-5 sm:px-6 sm:py-6 whitespace-nowrap">
+                    <tr key={file.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-[rgb(255,179,0)]/80 to-[rgb(56,184,189)]/80 rounded-2xl flex items-center justify-center mr-4 sm:mr-5 shadow-md group-hover:scale-110 transition-transform duration-300">
-                            <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                          <div className="w-10 h-10 bg-byght-turquoise/10 rounded-lg flex items-center justify-center mr-3">
+                            <FileText className="h-5 w-5 text-byght-turquoise" />
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="text-sm sm:text-base lg:text-lg font-bold text-primary block truncate">{file.filename}</span>
-                            <div className="sm:hidden mt-2">
-                              <span className="text-sm sm:text-base lg:text-lg text-gray-500">{formatFileSize(file.size)}</span>
-                              <span className="mx-2 text-gray-300">•</span>
-                              <span className="text-sm sm:text-base lg:text-lg text-gray-500">{formatDate(file.uploadedAt)}</span>
+                          <div>
+                            <div className="text-sm font-medium text-byght-gray">{file.filename}</div>
+                            <div className="sm:hidden text-xs text-gray-500 mt-1">
+                              {formatFileSize(file.size)} • {formatDate(file.uploadedAt)}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-5 sm:px-6 sm:py-6 whitespace-nowrap hidden sm:table-cell">
-                        <div className="flex items-center">
-                          <HardDrive className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3" />
-                          <span className="text-sm sm:text-base lg:text-lg text-gray-600 font-medium">{formatFileSize(file.size)}</span>
+                      <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <HardDrive className="h-4 w-4 text-gray-400 mr-2" />
+                          {formatFileSize(file.size)}
                         </div>
                       </td>
-                      <td className="px-4 py-5 sm:px-6 sm:py-6 whitespace-nowrap hidden lg:table-cell">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 mr-3" />
-                          <span className="text-sm sm:text-base lg:text-lg text-gray-600 font-medium">{formatDate(file.uploadedAt)}</span>
+                      <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                          {formatDate(file.uploadedAt)}
                         </div>
                       </td>
-                      <td className="px-4 py-5 sm:px-6 sm:py-6 hidden xl:table-cell">
-                        <span className="text-sm sm:text-base lg:text-lg text-gray-600 font-medium">{file.description || '-'}</span>
+                      <td className="px-6 py-4 hidden xl:table-cell">
+                        <span className="text-sm text-gray-600">{file.description || '-'}</span>
                       </td>
-                      <td className="px-4 py-5 sm:px-6 sm:py-6 whitespace-nowrap text-right">
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
                         <button
                           onClick={() => handleDownload(file.id, file.filename)}
-                          className="btn-primary flex items-center gap-2 text-xs sm:text-sm py-2 px-4 sm:py-3 sm:px-6 group-hover:scale-105 transition-transform duration-300"
+                          className="btn-primary inline-flex items-center gap-2 text-sm"
                         >
-                          <Download size={16} className="sm:w-5 sm:h-5" />
+                          <Download size={16} />
                           <span className="hidden sm:inline">Download</span>
-                          <span className="sm:hidden">DL</span>
                         </button>
                       </td>
                     </tr>

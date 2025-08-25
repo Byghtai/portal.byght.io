@@ -1,34 +1,15 @@
-/* Clean and Professional App Styles */
+/* Reduzierte App Styles */
 #root {
   min-height: 100vh;
   width: 100%;
 }
 
-/* Logo Styles - Größer */
+/* Logo Styles */
 .logo {
-  height: 6rem;
-  padding: 0.5rem;
-  will-change: filter;
-  transition: all 200ms ease-in-out;
+  height: 4rem;
+  transition: transform 200ms ease-in-out;
 }
 
 .logo:hover {
-  filter: drop-shadow(0 0 1rem rgba(255, 179, 0, 0.3));
   transform: scale(1.05);
-}
-
-/* Subtle Animation for Better UX */
-@keyframes logo-pulse {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.02);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .logo {
-    animation: logo-pulse 2s ease-in-out infinite alternate;
-  }
 }

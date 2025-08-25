@@ -39,6 +39,21 @@ export default async (req, context) => {
       });
     }
 
+    // Ablaufdatum für Standard-Benutzer prüfen
+    if (!user.isAdmin && user.expiry_date) {
+      const today = new Date();
+      const expiryDate = new Date(user.expiry_date);
+      
+      if (today > expiryDate) {
+        return new Response(JSON.stringify({ 
+          error: 'Ihr Benutzerkonto ist abgelaufen. Bitte kontaktieren Sie den Administrator.' 
+        }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     // JWT Token generieren
     const token = jwt.sign(
       { 

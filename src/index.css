@@ -1,92 +1,57 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply antialiased font-['Inter'] bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50;
+    @apply antialiased font-['Inter'] bg-byght-lightgray text-byght-gray;
   }
 }
 
 @layer components {
-  /* Modern Button Styles - Einheitlich in Grau */
+  /* Reduzierte Button Styles */
   .btn-primary {
-    @apply bg-[#5E5D61] hover:bg-[#4E4D51] text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#5E5D61]/40 focus:ring-offset-2 shadow-md hover:shadow-lg transform hover:scale-105 text-sm sm:text-base;
+    @apply bg-byght-turquoise hover:bg-byght-turquoise/90 text-white font-medium py-2.5 px-5 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-byght-turquoise/50 focus:ring-offset-2;
   }
   
   .btn-secondary {
-    @apply bg-[#5E5D61] hover:bg-[#4E4D51] text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#5E5D61]/40 focus:ring-offset-2 shadow-md hover:shadow-lg transform hover:scale-105 text-sm sm:text-base;
+    @apply bg-byght-gray hover:bg-byght-gray/90 text-white font-medium py-2.5 px-5 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-byght-gray/50 focus:ring-offset-2;
+  }
+  
+  .btn-accent {
+    @apply bg-byght-yellow hover:bg-byght-yellow/90 text-byght-gray font-medium py-2.5 px-5 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-byght-yellow/50 focus:ring-offset-2;
   }
   
   .btn-danger {
-    @apply bg-[#5E5D61] hover:bg-[#4E4D51] text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#5E5D61]/40 focus:ring-offset-2 shadow-md hover:shadow-lg transform hover:scale-105 text-sm sm:text-base;
+    @apply bg-red-500 hover:bg-red-600 text-white font-medium py-2.5 px-5 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2;
   }
   
-  /* Modern Input Fields - Cleaner & More Professional */
+  /* Reduzierte Input Fields */
   .input-field {
-    @apply w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E5D61]/30 focus:border-[#5E5D61] transition-all duration-200 bg-white shadow-sm hover:shadow-md focus:shadow-md text-sm sm:text-base placeholder-gray-400;
+    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-byght-turquoise/50 focus:border-byght-turquoise transition-colors duration-200 bg-white text-byght-gray;
   }
   
-  /* Modern Card Design - Cleaner & More Professional */
+  /* Reduzierte Card Design */
   .card {
-    @apply bg-white rounded-2xl shadow-lg p-6 sm:p-8 lg:p-10 border border-gray-100 hover:shadow-xl transition-all duration-200 hover:border-gray-200;
+    @apply bg-white rounded-lg shadow-sm p-6 border border-gray-200;
   }
   
-  /* Einfacher Hintergrund ohne Verlauf */
-  .gradient-bg {
-    background: #5E5D61;
-    position: relative;
-  }
-  
-  /* Enhanced Glass Effect - Cleaner & More Subtle */
-  .glass-effect {
-    @apply backdrop-blur-xl bg-white/10 border border-white/20 shadow-lg;
-  }
-  
-  /* Modern Text Colors */
-  .text-primary {
-    @apply text-[rgb(10,16,69)];
-  }
-  
-  .bg-primary {
-    @apply bg-[rgb(10,16,69)];
-  }
-  
-  .border-primary {
-    @apply border-[rgb(10,16,69)];
-  }
-  
-  /* Modern Animations */
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-8px); }
-  }
-  
-  .animate-float {
-    animation: float 4s ease-in-out infinite;
-  }
-  
-  /* Enhanced Shadows - More Subtle */
-  .shadow-3xl {
-    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.12);
-  }
-  
-  /* Modern Scrollbar - Cleaner */
+  /* Minimaler Scrollbar */
   ::-webkit-scrollbar {
-    width: 4px;
+    width: 6px;
+    height: 6px;
   }
   
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100 rounded-full;
+    @apply bg-gray-100;
   }
   
   ::-webkit-scrollbar-thumb {
-    background: #5E5D61;
-    @apply rounded-full;
+    @apply bg-byght-gray/50 rounded;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    background: #4E4D51;
+    @apply bg-byght-gray/70;
   }
 }

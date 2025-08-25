@@ -17,6 +17,7 @@ export async function initDatabase() {
         username VARCHAR(50) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         is_admin BOOLEAN DEFAULT FALSE,
+        expiry_date DATE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -91,7 +92,7 @@ export async function findUserByUsername(username) {
   const client = await pool.connect();
   try {
     const result = await client.query(
-      'SELECT id, username, password_hash, is_admin FROM users WHERE username = $1',
+      'SELECT id, username, password_hash, is_admin, expiry_date FROM users WHERE username = $1',
       [username]
     );
     if (result.rows[0]) {
@@ -99,7 +100,8 @@ export async function findUserByUsername(username) {
         id: result.rows[0].id,
         username: result.rows[0].username,
         password_hash: result.rows[0].password_hash,
-        isAdmin: result.rows[0].is_admin
+        isAdmin: result.rows[0].is_admin,
+        expiry_date: result.rows[0].expiry_date
       };
     }
     return null;
@@ -134,15 +136,27 @@ export async function findUserById(id) {
 export async function getAllUsers() {
   const client = await pool.connect();
   try {
-    const result = await client.query(
-      'SELECT id, username, is_admin, created_at FROM users ORDER BY created_at DESC'
-    );
+    const result = await client.query(`
+      SELECT 
+        u.id, 
+        u.username, 
+        u.is_admin, 
+        u.expiry_date, 
+        u.created_at,
+        COUNT(fua.file_id) as file_count
+      FROM users u
+      LEFT JOIN file_user_assignments fua ON u.id = fua.user_id
+      GROUP BY u.id, u.username, u.is_admin, u.expiry_date, u.created_at
+      ORDER BY u.created_at DESC
+    `);
     // Konvertiere snake_case zu camelCase für das Frontend
     return result.rows.map(row => ({
       id: row.id,
       username: row.username,
       isAdmin: row.is_admin,
-      createdAt: row.created_at
+      expiryDate: row.expiry_date,
+      createdAt: row.created_at,
+      fileCount: parseInt(row.file_count)
     }));
   } finally {
     client.release();
@@ -150,18 +164,19 @@ export async function getAllUsers() {
 }
 
 // Neuen Benutzer erstellen
-export async function createUser(username, passwordHash, isAdmin = false) {
+export async function createUser(username, passwordHash, isAdmin = false, expiryDate = null) {
   const client = await pool.connect();
   try {
     const result = await client.query(
-      'INSERT INTO users (username, password_hash, is_admin) VALUES ($1, $2, $3) RETURNING id, username, is_admin, created_at',
-      [username, passwordHash, isAdmin]
+      'INSERT INTO users (username, password_hash, is_admin, expiry_date) VALUES ($1, $2, $3, $4) RETURNING id, username, is_admin, expiry_date, created_at',
+      [username, passwordHash, isAdmin, expiryDate]
     );
     if (result.rows[0]) {
       return {
         id: result.rows[0].id,
         username: result.rows[0].username,
         isAdmin: result.rows[0].is_admin,
+        expiryDate: result.rows[0].expiry_date,
         createdAt: result.rows[0].created_at
       };
     }
@@ -176,6 +191,28 @@ export async function deleteUser(userId) {
   const client = await pool.connect();
   try {
     await client.query('DELETE FROM users WHERE id = $1', [userId]);
+  } finally {
+    client.release();
+  }
+}
+
+// Benutzer-Ablaufdatum aktualisieren
+export async function updateUserExpiryDate(userId, expiryDate) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'UPDATE users SET expiry_date = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, username, is_admin, expiry_date',
+      [expiryDate, userId]
+    );
+    if (result.rows[0]) {
+      return {
+        id: result.rows[0].id,
+        username: result.rows[0].username,
+        isAdmin: result.rows[0].is_admin,
+        expiryDate: result.rows[0].expiry_date
+      };
+    }
+    return null;
   } finally {
     client.release();
   }

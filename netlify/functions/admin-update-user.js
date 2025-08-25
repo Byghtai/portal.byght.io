@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { createUser, findUserByUsername } from './db.js';
+import { updateUserExpiryDate } from './db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -7,7 +7,7 @@ if (!JWT_SECRET) {
 }
 
 export default async (req, context) => {
-  if (req.method !== 'POST') {
+  if (req.method !== 'PUT') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
       headers: { 'Content-Type': 'application/json' }
@@ -42,35 +42,31 @@ export default async (req, context) => {
       });
     }
 
-    const { username, password, isAdmin, expiryDate } = await req.json();
+    const { userId, expiryDate } = await req.json();
 
-    if (!username || !password) {
-      return new Response(JSON.stringify({ error: 'Username and password required' }), {
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'User ID required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Prüfen ob Benutzername bereits existiert
-    const existingUser = await findUserByUsername(username);
-    if (existingUser) {
-      return new Response(JSON.stringify({ error: 'Username already exists' }), {
-        status: 400,
+    // Benutzer-Ablaufdatum aktualisieren
+    const updatedUser = await updateUserExpiryDate(userId, expiryDate);
+    
+    if (!updatedUser) {
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 404,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Passwort hashen und neuen Benutzer erstellen
-    const bcrypt = await import('bcryptjs');
-    const hashedPassword = await bcrypt.default.hash(password, 10);
-    const newUser = await createUser(username, hashedPassword, isAdmin || false, expiryDate);
-
-    return new Response(JSON.stringify({ user: newUser }), {
+    return new Response(JSON.stringify({ user: updatedUser }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error('Create user error:', error);
+    console.error('Update user error:', error);
     return new Response(JSON.stringify({ error: 'Server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
