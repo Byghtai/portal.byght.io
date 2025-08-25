@@ -1,39 +1,79 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply antialiased font-['Inter'];
+    @apply antialiased font-['Inter'] bg-gradient-to-br from-slate-50 to-blue-50;
+  }
+  
+  * {
+    @apply border-border;
   }
 }
 
 @layer components {
+  /* Modern Button Styles */
   .btn-primary {
-    @apply bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] hover:from-[rgb(245,169,0)] hover:to-[rgb(46,174,179)] text-white font-semibold py-2 px-4 sm:py-3 sm:px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[rgb(255,179,0)] focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-base;
+    @apply bg-gradient-to-r from-[rgb(255,179,0)] via-[rgb(255,189,20)] to-[rgb(56,184,189)] hover:from-[rgb(245,169,0)] hover:via-[rgb(245,179,10)] hover:to-[rgb(46,174,179)] text-white font-semibold py-3 px-6 rounded-2xl transition-all duration-500 focus:outline-none focus:ring-4 focus:ring-[rgb(255,179,0)] focus:ring-opacity-30 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 text-sm sm:text-base relative overflow-hidden;
+  }
+  
+  .btn-primary::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-white/20 to-transparent transform -skew-x-12 -translate-x-full transition-transform duration-700;
+  }
+  
+  .btn-primary:hover::before {
+    @apply translate-x-full;
   }
   
   .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-[rgb(10,16,69)] font-semibold py-2 px-4 sm:py-3 sm:px-6 rounded-xl border-2 border-[rgb(10,16,69)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[rgb(10,16,69)] focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-base;
+    @apply bg-white/80 backdrop-blur-sm hover:bg-white text-[rgb(10,16,69)] font-semibold py-3 px-6 rounded-2xl border-2 border-[rgb(10,16,69)] transition-all duration-500 focus:outline-none focus:ring-4 focus:ring-[rgb(10,16,69)] focus:ring-opacity-30 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 text-sm sm:text-base;
   }
   
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 sm:py-3 sm:px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-600 focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-base;
+    @apply bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-2xl transition-all duration-500 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-30 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 text-sm sm:text-base;
   }
   
+  /* Modern Input Fields */
   .input-field {
-    @apply w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-[rgb(255,179,0)] focus:ring-opacity-30 focus:border-[rgb(255,179,0)] transition-all duration-300 bg-white shadow-sm text-sm sm:text-base;
+    @apply w-full px-4 py-4 border-2 border-gray-200/50 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[rgb(255,179,0)] focus:ring-opacity-20 focus:border-[rgb(255,179,0)] transition-all duration-500 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl text-sm sm:text-base placeholder-gray-400;
   }
   
+  /* Modern Card Design */
   .card {
-    @apply bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 lg:p-8 border border-gray-100;
+    @apply bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-6 sm:p-8 lg:p-10 border border-white/20 hover:shadow-3xl transition-all duration-500 hover:-translate-y-1;
   }
   
+  /* Enhanced Gradient Background */
   .gradient-bg {
-    background: linear-gradient(135deg, rgb(255, 179, 0) 0%, rgb(56, 184, 189) 100%);
+    background: linear-gradient(135deg, 
+      rgb(255, 179, 0) 0%, 
+      rgb(255, 189, 20) 25%, 
+      rgb(56, 184, 189) 75%, 
+      rgb(46, 174, 179) 100%);
+    position: relative;
   }
   
+  .gradient-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  
+  /* Enhanced Glass Effect */
+  .glass-effect {
+    @apply backdrop-blur-2xl bg-white/10 border border-white/30 shadow-2xl;
+  }
+  
+  /* Modern Text Colors */
   .text-primary {
     @apply text-[rgb(10,16,69)];
   }
@@ -46,86 +86,114 @@
     @apply border-[rgb(10,16,69)];
   }
   
-  .glass-effect {
-    @apply backdrop-blur-md bg-white bg-opacity-90 border border-white border-opacity-20;
-  }
-  
-  /* Mobile-specific utilities */
+  /* Enhanced Mobile Utilities */
   .mobile-container {
-    @apply px-4 sm:px-6 lg:px-8;
+    @apply px-4 sm:px-6 lg:px-8 xl:px-12;
   }
   
   .mobile-header {
-    @apply py-4 sm:py-6;
+    @apply py-4 sm:py-6 lg:py-8;
   }
   
   .mobile-text {
-    @apply text-sm sm:text-base;
+    @apply text-sm sm:text-base lg:text-lg;
   }
   
   .mobile-title {
-    @apply text-xl sm:text-2xl lg:text-3xl;
+    @apply text-2xl sm:text-3xl lg:text-4xl xl:text-5xl;
   }
   
   .mobile-subtitle {
-    @apply text-lg sm:text-xl lg:text-2xl;
+    @apply text-xl sm:text-2xl lg:text-3xl xl:text-4xl;
   }
   
   .mobile-table {
-    @apply text-xs sm:text-sm;
+    @apply text-xs sm:text-sm lg:text-base;
   }
   
   .mobile-button {
-    @apply text-xs sm:text-sm py-2 px-3 sm:py-3 sm:px-4;
+    @apply text-xs sm:text-sm py-2 px-4 sm:py-3 sm:px-6;
   }
   
-  /* Mobile navigation */
+  /* Enhanced Mobile Navigation */
   .mobile-nav {
-    @apply flex flex-col sm:flex-row items-center gap-2 sm:gap-4;
+    @apply flex flex-col sm:flex-row items-center gap-3 sm:gap-4;
   }
   
   .mobile-nav-item {
-    @apply w-full sm:w-auto text-center sm:text-left;
+    @apply w-full sm:w-auto text-center sm:text-left transition-all duration-300;
   }
   
-  /* Mobile table responsive */
+  /* Enhanced Table Styles */
   .mobile-table-container {
-    @apply overflow-x-auto -mx-4 sm:mx-0;
+    @apply overflow-x-auto -mx-4 sm:mx-0 rounded-2xl;
   }
   
   .mobile-table-wrapper {
-    @apply min-w-full divide-y divide-gray-200;
+    @apply min-w-full divide-y divide-gray-200/50;
   }
   
-  /* Mobile form responsive */
+  /* Enhanced Form Grid */
   .mobile-form-grid {
-    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6;
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8;
   }
   
-  /* Mobile modal responsive */
+  /* Enhanced Modal */
   .mobile-modal {
-    @apply p-4 sm:p-6 max-w-sm sm:max-w-md w-full mx-4;
+    @apply p-6 sm:p-8 max-w-sm sm:max-w-md w-full mx-4 rounded-3xl;
   }
   
-  /* Mobile spacing */
+  /* Enhanced Spacing */
   .mobile-spacing {
-    @apply space-y-4 sm:space-y-6 lg:space-y-8;
+    @apply space-y-6 sm:space-y-8 lg:space-y-10;
   }
   
   .mobile-padding {
-    @apply p-4 sm:p-6 lg:p-8;
+    @apply p-6 sm:p-8 lg:p-10;
   }
   
-  /* Mobile logo sizes */
+  /* Enhanced Logo Sizes */
   .mobile-logo-small {
-    @apply w-8 h-8 sm:w-10 sm:h-10;
+    @apply w-10 h-10 sm:w-12 sm:h-12;
   }
   
   .mobile-logo-medium {
-    @apply w-12 h-12 sm:w-16 sm:h-16;
+    @apply w-14 h-14 sm:w-18 sm:h-18;
   }
   
   .mobile-logo-large {
-    @apply w-16 h-16 sm:w-20 sm:h-20;
+    @apply w-18 h-18 sm:w-24 sm:h-24;
+  }
+  
+  /* Modern Animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  /* Enhanced Shadows */
+  .shadow-3xl {
+    box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
+  }
+  
+  /* Modern Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100/50 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gradient-to-b from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gradient-to-b from-[rgb(245,169,0)] to-[rgb(46,174,179)];
   }
 }

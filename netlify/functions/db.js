@@ -88,7 +88,15 @@ export async function findUserByUsername(username) {
       'SELECT id, username, password_hash, is_admin FROM users WHERE username = $1',
       [username]
     );
-    return result.rows[0] || null;
+    if (result.rows[0]) {
+      return {
+        id: result.rows[0].id,
+        username: result.rows[0].username,
+        password_hash: result.rows[0].password_hash,
+        isAdmin: result.rows[0].is_admin
+      };
+    }
+    return null;
   } finally {
     client.release();
   }
@@ -102,7 +110,15 @@ export async function findUserById(id) {
       'SELECT id, username, is_admin, created_at FROM users WHERE id = $1',
       [id]
     );
-    return result.rows[0] || null;
+    if (result.rows[0]) {
+      return {
+        id: result.rows[0].id,
+        username: result.rows[0].username,
+        isAdmin: result.rows[0].is_admin,
+        createdAt: result.rows[0].created_at
+      };
+    }
+    return null;
   } finally {
     client.release();
   }
@@ -115,7 +131,13 @@ export async function getAllUsers() {
     const result = await client.query(
       'SELECT id, username, is_admin, created_at FROM users ORDER BY created_at DESC'
     );
-    return result.rows;
+    // Konvertiere snake_case zu camelCase für das Frontend
+    return result.rows.map(row => ({
+      id: row.id,
+      username: row.username,
+      isAdmin: row.is_admin,
+      createdAt: row.created_at
+    }));
   } finally {
     client.release();
   }
@@ -129,7 +151,15 @@ export async function createUser(username, passwordHash, isAdmin = false) {
       'INSERT INTO users (username, password_hash, is_admin) VALUES ($1, $2, $3) RETURNING id, username, is_admin, created_at',
       [username, passwordHash, isAdmin]
     );
-    return result.rows[0];
+    if (result.rows[0]) {
+      return {
+        id: result.rows[0].id,
+        username: result.rows[0].username,
+        isAdmin: result.rows[0].is_admin,
+        createdAt: result.rows[0].created_at
+      };
+    }
+    return null;
   } finally {
     client.release();
   }
