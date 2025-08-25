@@ -7,10 +7,6 @@
   body {
     @apply antialiased font-['Inter'] bg-gradient-to-br from-slate-50 to-blue-50;
   }
-  
-  * {
-    @apply border-border;
-  }
 }
 
 @layer components {
@@ -86,84 +82,7 @@
     @apply border-[rgb(10,16,69)];
   }
   
-  /* Enhanced Mobile Utilities */
-  .mobile-container {
-    @apply px-4 sm:px-6 lg:px-8 xl:px-12;
-  }
-  
-  .mobile-header {
-    @apply py-4 sm:py-6 lg:py-8;
-  }
-  
-  .mobile-text {
-    @apply text-sm sm:text-base lg:text-lg;
-  }
-  
-  .mobile-title {
-    @apply text-2xl sm:text-3xl lg:text-4xl xl:text-5xl;
-  }
-  
-  .mobile-subtitle {
-    @apply text-xl sm:text-2xl lg:text-3xl xl:text-4xl;
-  }
-  
-  .mobile-table {
-    @apply text-xs sm:text-sm lg:text-base;
-  }
-  
-  .mobile-button {
-    @apply text-xs sm:text-sm py-2 px-4 sm:py-3 sm:px-6;
-  }
-  
-  /* Enhanced Mobile Navigation */
-  .mobile-nav {
-    @apply flex flex-col sm:flex-row items-center gap-3 sm:gap-4;
-  }
-  
-  .mobile-nav-item {
-    @apply w-full sm:w-auto text-center sm:text-left transition-all duration-300;
-  }
-  
-  /* Enhanced Table Styles */
-  .mobile-table-container {
-    @apply overflow-x-auto -mx-4 sm:mx-0 rounded-2xl;
-  }
-  
-  .mobile-table-wrapper {
-    @apply min-w-full divide-y divide-gray-200/50;
-  }
-  
-  /* Enhanced Form Grid */
-  .mobile-form-grid {
-    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8;
-  }
-  
-  /* Enhanced Modal */
-  .mobile-modal {
-    @apply p-6 sm:p-8 max-w-sm sm:max-w-md w-full mx-4 rounded-3xl;
-  }
-  
-  /* Enhanced Spacing */
-  .mobile-spacing {
-    @apply space-y-6 sm:space-y-8 lg:space-y-10;
-  }
-  
-  .mobile-padding {
-    @apply p-6 sm:p-8 lg:p-10;
-  }
-  
-  /* Enhanced Logo Sizes */
-  .mobile-logo-small {
-    @apply w-10 h-10 sm:w-12 sm:h-12;
-  }
-  
-  .mobile-logo-medium {
-    @apply w-14 h-14 sm:w-18 sm:h-18;
-  }
-  
-  .mobile-logo-large {
-    @apply w-18 h-18 sm:w-24 sm:h-24;
-  }
+
   
   /* Modern Animations */
   @keyframes float {

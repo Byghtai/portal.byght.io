@@ -250,13 +250,13 @@ const AdminPanel = () => {
 
       {/* Header */}
       <header className="glass-effect border-b border-white/20 relative z-10">
-        <div className="mobile-container">
-          <div className="flex justify-between items-center mobile-header">
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12">
+          <div className="flex justify-between items-center py-4 sm:py-6 lg:py-8">
             <div className="flex items-center space-x-3 sm:space-x-4">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="flex items-center gap-2 text-white hover:text-white text-opacity-90 hover:text-opacity-100 transition-all duration-500 mobile-text hover:scale-105"
-              >
+                              <button
+                  onClick={() => navigate('/dashboard')}
+                  className="flex items-center gap-2 text-white hover:text-white text-opacity-90 hover:text-opacity-100 transition-all duration-500 text-sm sm:text-base lg:text-lg hover:scale-105"
+                >
                 <ArrowLeft size={20} className="sm:w-6 sm:h-6" />
                 <span className="hidden sm:inline">Zurück</span>
               </button>
@@ -265,8 +265,8 @@ const AdminPanel = () => {
                   <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="mobile-subtitle font-black text-white drop-shadow-lg">Admin Panel</h1>
-                  <p className="mobile-text text-white/80 font-medium hidden sm:block">Systemverwaltung</p>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-white drop-shadow-lg">Admin Panel</h1>
+                  <p className="text-sm sm:text-base lg:text-lg text-white/80 font-medium hidden sm:block">Systemverwaltung</p>
                 </div>
               </div>
             </div>
@@ -275,7 +275,7 @@ const AdminPanel = () => {
                 logout();
                 navigate('/login');
               }}
-              className="text-white hover:text-red-200 font-semibold transition-all duration-500 mobile-text hover:scale-105"
+              className="text-white hover:text-red-200 font-semibold transition-all duration-500 text-sm sm:text-base lg:text-lg hover:scale-105"
             >
               <span className="hidden sm:inline">Abmelden</span>
               <span className="sm:hidden">Logout</span>
@@ -285,12 +285,12 @@ const AdminPanel = () => {
       </header>
 
       {/* Tabs */}
-      <div className="mobile-container pt-6 sm:pt-8 relative z-10">
+      <div className="px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 sm:pt-8 relative z-10">
         <div className="glass-effect rounded-3xl p-2 mb-6 sm:mb-8">
           <nav className="flex space-x-2">
             <button
               onClick={() => setActiveTab('files')}
-              className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-2xl font-bold mobile-text transition-all duration-500 ${
+              className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-2xl font-bold text-sm sm:text-base lg:text-lg transition-all duration-500 ${
                 activeTab === 'files'
                   ? 'bg-white/90 backdrop-blur-sm text-[rgb(10,16,69)] shadow-xl'
                   : 'text-white text-opacity-70 hover:text-opacity-100 hover:bg-white/10'
@@ -304,7 +304,7 @@ const AdminPanel = () => {
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-2xl font-bold mobile-text transition-all duration-500 ${
+              className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-2xl font-bold text-sm sm:text-base lg:text-lg transition-all duration-500 ${
                 activeTab === 'users'
                   ? 'bg-white/90 backdrop-blur-sm text-[rgb(10,16,69)] shadow-xl'
                   : 'text-white text-opacity-70 hover:text-opacity-100 hover:bg-white/10'
@@ -321,22 +321,22 @@ const AdminPanel = () => {
       </div>
 
       {/* Content */}
-      <main className="mobile-container pb-6 sm:pb-8 relative z-10">
+      <main className="px-4 sm:px-6 lg:px-8 xl:px-12 pb-6 sm:pb-8 relative z-10">
         {loading ? (
           <div className="flex justify-center py-16 sm:py-20">
-            <div className="glass-effect rounded-3xl mobile-padding text-center">
+            <div className="glass-effect rounded-3xl p-6 sm:p-8 lg:p-10 text-center">
               <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-2 border-white mx-auto mb-6"></div>
-              <p className="text-white font-semibold mobile-text">Lade Daten...</p>
+              <p className="text-white font-semibold text-sm sm:text-base lg:text-lg">Lade Daten...</p>
             </div>
           </div>
         ) : activeTab === 'files' ? (
-          <div className="mobile-spacing">
+          <div className="space-y-6 sm:space-y-8 lg:space-y-10">
             {/* Upload Form */}
             <div className="card">
-              <h2 className="mobile-subtitle font-black text-primary mb-6 sm:mb-8">Neue Datei hochladen</h2>
+              <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-primary mb-6 sm:mb-8">Neue Datei hochladen</h2>
               <form onSubmit={handleFileUpload} className="space-y-6 sm:space-y-8">
                 <div>
-                  <label className="block mobile-text font-bold text-primary mb-3 sm:mb-4">
+                  <label className="block text-sm sm:text-base lg:text-lg font-bold text-primary mb-3 sm:mb-4">
                     Datei auswählen
                   </label>
                   <input
@@ -348,7 +348,7 @@ const AdminPanel = () => {
                 </div>
 
                 <div>
-                  <label className="block mobile-text font-bold text-primary mb-3 sm:mb-4">
+                  <label className="block text-sm sm:text-base lg:text-lg font-bold text-primary mb-3 sm:mb-4">
                     Beschreibung (optional)
                   </label>
                   <textarea
@@ -361,7 +361,7 @@ const AdminPanel = () => {
                 </div>
 
                 <div>
-                  <label className="block mobile-text font-bold text-primary mb-3 sm:mb-4">
+                  <label className="block text-sm sm:text-base lg:text-lg font-bold text-primary mb-3 sm:mb-4">
                     Benutzer auswählen
                   </label>
                   <div className="space-y-3 sm:space-y-4 max-h-40 sm:max-h-56 overflow-y-auto border-2 border-gray-200/50 rounded-2xl p-4 sm:p-5 bg-gray-50/50 backdrop-blur-sm">
@@ -379,7 +379,7 @@ const AdminPanel = () => {
                           }}
                           className="rounded border-gray-300 text-[rgb(255,179,0)] focus:ring-[rgb(255,179,0)]"
                         />
-                        <span className="mobile-text font-semibold text-primary">{user.username}</span>
+                        <span className="text-sm sm:text-base lg:text-lg font-semibold text-primary">{user.username}</span>
                       </label>
                     ))}
                   </div>
@@ -417,22 +417,22 @@ const AdminPanel = () => {
             {/* Files List */}
             <div className="card">
               <div className="mb-6 sm:mb-8">
-                <h2 className="mobile-subtitle font-black text-primary">Alle Dateien</h2>
+                <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-black text-primary">Alle Dateien</h2>
               </div>
-              <div className="mobile-table-container">
-                <table className="mobile-table-wrapper">
+              <div className="overflow-x-auto -mx-4 sm:mx-0 rounded-2xl">
+                <table className="min-w-full divide-y divide-gray-200/50">
                   <thead>
                     <tr>
-                      <th className="px-4 py-4 sm:px-6 sm:py-5 text-left mobile-table font-bold text-primary uppercase tracking-wider">
+                      <th className="px-4 py-4 sm:px-6 sm:py-5 text-left text-xs sm:text-sm lg:text-base font-bold text-primary uppercase tracking-wider">
                         Dateiname
                       </th>
-                      <th className="px-4 py-4 sm:px-6 sm:py-5 text-left mobile-table font-bold text-primary uppercase tracking-wider hidden sm:table-cell">
+                      <th className="px-4 py-4 sm:px-6 sm:py-5 text-left text-xs sm:text-sm lg:text-base font-bold text-primary uppercase tracking-wider hidden sm:table-cell">
                         Zugewiesen an
                       </th>
-                      <th className="px-4 py-4 sm:px-6 sm:py-5 text-left mobile-table font-bold text-primary uppercase tracking-wider hidden lg:table-cell">
+                      <th className="px-4 py-4 sm:px-6 sm:py-5 text-left text-xs sm:text-sm lg:text-base font-bold text-primary uppercase tracking-wider hidden lg:table-cell">
                         Hochgeladen am
                       </th>
-                      <th className="px-4 py-4 sm:px-6 sm:py-5 text-right mobile-table font-bold text-primary uppercase tracking-wider">
+                      <th className="px-4 py-4 sm:px-6 sm:py-5 text-right text-xs sm:text-sm lg:text-base font-bold text-primary uppercase tracking-wider">
                         Aktionen
                       </th>
                     </tr>
@@ -446,9 +446,9 @@ const AdminPanel = () => {
                               <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <span className="mobile-text font-bold text-primary block truncate">{file.filename}</span>
+                              <span className="text-sm sm:text-base lg:text-lg font-bold text-primary block truncate">{file.filename}</span>
                               <div className="sm:hidden mt-2">
-                                <span className="mobile-text text-gray-500">{file.assignedUsers?.join(', ') || 'Niemand'}</span>
+                                <span className="text-sm sm:text-base lg:text-lg text-gray-500">{file.assignedUsers?.join(', ') || 'Niemand'}</span>
                               </div>
                             </div>
                           </div>
@@ -462,7 +462,7 @@ const AdminPanel = () => {
                         <td className="px-4 py-5 sm:px-6 sm:py-6 whitespace-nowrap text-right">
                           <button
                             onClick={() => handleDeleteFile(file.id)}
-                            className="btn-danger flex items-center gap-2 mobile-button group-hover:scale-105 transition-transform duration-300"
+                            className="btn-danger flex items-center gap-2 text-xs sm:text-sm py-2 px-4 sm:py-3 sm:px-6 group-hover:scale-105 transition-transform duration-300"
                           >
                             <Trash2 size={16} className="sm:w-5 sm:h-5" />
                             <span className="hidden sm:inline">Löschen</span>
@@ -540,7 +540,7 @@ const AdminPanel = () => {
                     </div>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4">
-                    <button type="submit" className="btn-primary flex items-center gap-3 mobile-button">
+                    <button type="submit" className="btn-primary flex items-center gap-3 text-xs sm:text-sm py-2 px-4 sm:py-3 sm:px-6">
                       <Save size={18} className="sm:w-5 sm:h-5" />
                       Benutzer erstellen
                     </button>

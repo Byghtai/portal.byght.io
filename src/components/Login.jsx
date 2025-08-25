@@ -41,30 +41,30 @@ const Login = () => {
       <div className="w-full max-w-md sm:max-w-lg relative z-10">
         {/* Logo/Brand Section */}
         <div className="text-center mb-8 sm:mb-12">
-          <div className="inline-flex items-center justify-center mobile-logo-large bg-white/20 backdrop-blur-xl rounded-3xl shadow-2xl mb-6 sm:mb-8 p-4 sm:p-6 border border-white/30 animate-float">
+          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-24 sm:h-24 bg-white/20 backdrop-blur-xl rounded-3xl shadow-2xl mb-6 sm:mb-8 p-4 sm:p-6 border border-white/30 animate-float">
             <img src={ByghtLogo} alt="Byght Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="mobile-title font-black text-white mb-3 drop-shadow-lg">Byght Portal</h1>
-          <p className="mobile-text text-white/90 font-medium">Sicherer Zugang zu Ihren Dokumenten</p>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-white mb-3 drop-shadow-lg">Byght Portal</h1>
+          <p className="text-sm sm:text-base lg:text-lg text-white/90 font-medium">Sicherer Zugang zu Ihren Dokumenten</p>
         </div>
 
         {/* Login Form */}
-        <div className="glass-effect rounded-3xl mobile-padding shadow-2xl border border-white/20">
+        <div className="glass-effect rounded-3xl p-6 sm:p-8 lg:p-10 shadow-2xl border border-white/20">
           <div className="text-center mb-8 sm:mb-10">
-            <h2 className="mobile-subtitle font-bold text-white mb-3">Willkommen zurück</h2>
-            <p className="mobile-text text-white/80">Melden Sie sich an, um fortzufahren</p>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-white mb-3">Willkommen zurück</h2>
+            <p className="text-sm sm:text-base lg:text-lg text-white/80">Melden Sie sich an, um fortzufahren</p>
           </div>
 
           {error && (
             <div className="mb-6 sm:mb-8 p-4 sm:p-5 bg-red-500/20 backdrop-blur-sm border border-red-400/30 rounded-2xl flex items-center gap-3 text-red-100 animate-pulse">
               <AlertCircle size={20} className="sm:w-6 sm:h-6 flex-shrink-0" />
-              <span className="font-medium mobile-text">{error}</span>
+              <span className="font-medium text-sm sm:text-base lg:text-lg">{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
             <div className="space-y-2">
-              <label htmlFor="username" className="block mobile-text font-semibold text-white/90 mb-3">
+              <label htmlFor="username" className="block text-sm sm:text-base lg:text-lg font-semibold text-white/90 mb-3">
                 Benutzername
               </label>
               <div className="relative group">
@@ -84,7 +84,7 @@ const Login = () => {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="block mobile-text font-semibold text-white/90 mb-3">
+              <label htmlFor="password" className="block text-sm sm:text-base lg:text-lg font-semibold text-white/90 mb-3">
                 Passwort
               </label>
               <div className="relative group">
@@ -113,12 +113,12 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary py-4 sm:py-5 mobile-text font-bold mt-8"
+              className="w-full btn-primary py-4 sm:py-5 text-sm sm:text-base lg:text-lg font-bold mt-8"
             >
               {loading ? (
                 <div className="flex items-center justify-center gap-3">
                   <div className="animate-spin rounded-full h-5 w-5 sm:h-6 sm:w-6 border-b-2 border-white"></div>
-                  <span className="mobile-text">Anmelden...</span>
+                  <span className="text-sm sm:text-base lg:text-lg">Anmelden...</span>
                 </div>
               ) : (
                 'Anmelden'
@@ -126,7 +126,7 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="mt-8 sm:mt-10 text-center mobile-text text-white/60 font-medium">
+          <div className="mt-8 sm:mt-10 text-center text-sm sm:text-base lg:text-lg text-white/60 font-medium">
             © 2025 Byght GmbH - Alle Rechte vorbehalten
           </div>
         </div>
