@@ -28,6 +28,8 @@ const AdminPanel = () => {
   const [uploading, setUploading] = useState(false);
   const [newUser, setNewUser] = useState({ username: '', password: '', isAdmin: false });
   const [showNewUserForm, setShowNewUserForm] = useState(false);
+  const [showAdminDeleteConfirm, setShowAdminDeleteConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -160,8 +162,20 @@ const AdminPanel = () => {
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    if (!confirm('Möchten Sie diesen Benutzer wirklich löschen?')) return;
+  const handleDeleteUser = async (userId, forceDeleteAdmin = false) => {
+    const user = users.find(u => u.id === userId);
+    
+    // Spezielle Behandlung für Standard-Admin
+    if (user && user.username === 'admin') {
+      if (!forceDeleteAdmin) {
+        setUserToDelete(user);
+        setShowAdminDeleteConfirm(true);
+        return;
+      }
+    } else {
+      // Normale Bestätigung für andere Benutzer
+      if (!confirm('Möchten Sie diesen Benutzer wirklich löschen?')) return;
+    }
 
     try {
       const token = Cookies.get('auth_token');
@@ -171,15 +185,40 @@ const AdminPanel = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, forceDeleteAdmin }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
+        if (user && user.username === 'admin') {
+          alert('Standard-Admin-User erfolgreich gelöscht!');
+        }
         fetchUsers();
+      } else {
+        if (data.requiresConfirmation) {
+          setUserToDelete(user);
+          setShowAdminDeleteConfirm(true);
+        } else {
+          alert('Fehler beim Löschen: ' + data.error);
+        }
       }
     } catch (error) {
       alert('Fehler beim Löschen: ' + error.message);
     }
+  };
+
+  const confirmAdminDelete = async () => {
+    if (userToDelete) {
+      await handleDeleteUser(userToDelete.id, true);
+      setShowAdminDeleteConfirm(false);
+      setUserToDelete(null);
+    }
+  };
+
+  const cancelAdminDelete = () => {
+    setShowAdminDeleteConfirm(false);
+    setUserToDelete(null);
   };
 
   return (
@@ -487,7 +526,6 @@ const AdminPanel = () => {
                           <button
                             onClick={() => handleDeleteUser(user.id)}
                             className="text-red-600 hover:text-red-900"
-                            disabled={user.username === 'admin'}
                           >
                             <Trash2 size={18} />
                           </button>
@@ -496,6 +534,50 @@ const AdminPanel = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Admin Delete Confirmation Modal */}
+        {showAdminDeleteConfirm && userToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-red-100 p-2 rounded-full">
+                  <Trash2 className="text-red-600" size={24} />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Standard-Admin löschen
+                </h3>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-gray-700 mb-3">
+                  Sie sind dabei, den Standard-Admin-User <strong>"{userToDelete.username}"</strong> zu löschen.
+                </p>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-yellow-800 text-sm">
+                    <strong>Warnung:</strong> Diese Aktion kann nicht rückgängig gemacht werden. 
+                    Stellen Sie sicher, dass mindestens ein anderer Admin-User existiert.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={cancelAdminDelete}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={confirmAdminDelete}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium flex items-center gap-2"
+                >
+                  <Trash2 size={16} />
+                  Endgültig löschen
+                </button>
               </div>
             </div>
           </div>

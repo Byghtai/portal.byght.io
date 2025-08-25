@@ -42,7 +42,7 @@ export default async (req, context) => {
       });
     }
 
-    const { userId } = await req.json();
+    const { userId, forceDeleteAdmin } = await req.json();
 
     if (!userId) {
       return new Response(JSON.stringify({ error: 'User ID required' }), {
@@ -51,13 +51,43 @@ export default async (req, context) => {
       });
     }
 
-    // Prüfen ob es sich um den Standard-Admin handelt
+    // Benutzer finden, der gelöscht werden soll
     const userToDelete = await findUserById(userId);
-    if (userToDelete && userToDelete.username === 'admin') {
-      return new Response(JSON.stringify({ error: 'Cannot delete default admin user' }), {
-        status: 400,
+    if (!userToDelete) {
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 404,
         headers: { 'Content-Type': 'application/json' }
       });
+    }
+
+    // Prüfen ob es sich um den Standard-Admin handelt
+    if (userToDelete.username === 'admin') {
+      // Wenn forceDeleteAdmin nicht explizit auf true gesetzt ist, verhindern
+      if (!forceDeleteAdmin) {
+        return new Response(JSON.stringify({ 
+          error: 'Cannot delete default admin user without confirmation',
+          requiresConfirmation: true 
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // Prüfen ob es andere Admin-User gibt
+      const { getAllUsers } = await import('./db.js');
+      const allUsers = await getAllUsers();
+      const otherAdmins = allUsers.filter(user => 
+        user.is_admin && user.id !== userId && user.username !== 'admin'
+      );
+      
+      if (otherAdmins.length === 0) {
+        return new Response(JSON.stringify({ 
+          error: 'Cannot delete the last admin user. Please create another admin user first.' 
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     // Benutzer löschen (CASCADE löscht automatisch alle Datei-Zuordnungen)
