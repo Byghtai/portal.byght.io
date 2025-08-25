@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Download, FileText, LogOut, User, Folder, Calendar, HardDrive } from 'lucide-react';
+import { Download, FileText, LogOut, User, Folder, Calendar, HardDrive, Settings, AlertCircle } from 'lucide-react';
+import ByghtLogo from '../assets/byght-logo.svg';
 import Cookies from 'js-cookie';
 
 const Dashboard = () => {
@@ -89,30 +90,41 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen gradient-bg">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="glass-effect border-b border-white border-opacity-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-gray-800">Byght Download Portal</h1>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg p-2">
+                  <img src={ByghtLogo} alt="Byght Logo" className="w-full h-full object-contain" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-white">Byght Portal</h1>
+                  <p className="text-white text-opacity-80 text-sm">Sicherer Dokumentenzugang</p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               {isAdmin && (
                 <button
                   onClick={() => navigate('/admin')}
-                  className="text-gray-600 hover:text-gray-800 font-medium"
+                  className="flex items-center gap-2 text-white hover:text-white text-opacity-90 hover:text-opacity-100 font-medium transition-all duration-300 bg-white bg-opacity-10 hover:bg-opacity-20 px-4 py-2 rounded-xl"
                 >
+                  <Settings size={18} />
                   Admin Panel
                 </button>
               )}
-              <div className="flex items-center gap-2 text-gray-600">
-                <User size={18} />
-                <span>{user?.username}</span>
+              <div className="flex items-center gap-3 text-white text-opacity-90">
+                <div className="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                  <User size={16} />
+                </div>
+                <span className="font-medium">{user?.username}</span>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 text-red-600 hover:text-red-700 font-medium"
+                className="flex items-center gap-2 text-white hover:text-red-200 font-medium transition-all duration-300"
               >
                 <LogOut size={18} />
                 Abmelden
@@ -125,77 +137,90 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Ihre Dateien</h2>
-          <p className="text-gray-600">Hier finden Sie alle für Sie freigegebenen Dateien zum Download.</p>
+          <h2 className="text-3xl font-bold text-white mb-3">Ihre Dateien</h2>
+          <p className="text-white text-opacity-90 text-lg">Hier finden Sie alle für Sie freigegebenen Dateien zum Download.</p>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0066CC]"></div>
+          <div className="flex justify-center py-16">
+            <div className="bg-white bg-opacity-20 backdrop-blur-md rounded-2xl p-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+              <p className="text-white text-center">Lade Dateien...</p>
+            </div>
           </div>
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-            {error}
+          <div className="card bg-red-50 border-red-200">
+            <div className="flex items-center gap-3 text-red-700">
+              <AlertCircle size={24} />
+              <span className="font-medium">{error}</span>
+            </div>
           </div>
         ) : files.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <Folder className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <p className="text-gray-600">Keine Dateien verfügbar</p>
-            <p className="text-sm text-gray-500 mt-2">
+          <div className="card text-center">
+            <div className="w-20 h-20 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Folder className="h-10 w-10 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-primary mb-2">Keine Dateien verfügbar</h3>
+            <p className="text-gray-600 mb-4">
               Sobald Dateien für Sie freigegeben werden, erscheinen diese hier.
             </p>
+            <div className="w-16 h-1 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-full mx-auto"></div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="card">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-primary uppercase tracking-wider">
                       Dateiname
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-primary uppercase tracking-wider">
                       Größe
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-primary uppercase tracking-wider">
                       Hochgeladen am
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-bold text-primary uppercase tracking-wider">
                       Beschreibung
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-right text-xs font-bold text-primary uppercase tracking-wider">
                       Aktionen
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-100">
                   {files.map((file) => (
-                    <tr key={file.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    <tr key={file.id} className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="px-6 py-6 whitespace-nowrap">
                         <div className="flex items-center">
-                          <FileText className="h-5 w-5 text-gray-400 mr-3" />
-                          <span className="text-sm font-medium text-gray-900">{file.filename}</span>
+                          <div className="w-10 h-10 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-xl flex items-center justify-center mr-4">
+                            <FileText className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <span className="text-sm font-semibold text-primary">{file.filename}</span>
+                          </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-6 whitespace-nowrap">
                         <div className="flex items-center">
                           <HardDrive className="h-4 w-4 text-gray-400 mr-2" />
-                          {formatFileSize(file.size)}
+                          <span className="text-sm text-gray-600">{formatFileSize(file.size)}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-6 whitespace-nowrap">
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                          {formatDate(file.uploadedAt)}
+                          <span className="text-sm text-gray-600">{formatDate(file.uploadedAt)}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {file.description || '-'}
+                      <td className="px-6 py-6">
+                        <span className="text-sm text-gray-600">{file.description || '-'}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-6 py-6 whitespace-nowrap text-right">
                         <button
                           onClick={() => handleDownload(file.id, file.filename)}
-                          className="inline-flex items-center gap-2 text-[#0066CC] hover:text-[#0052A3]"
+                          className="btn-primary flex items-center gap-2"
                         >
                           <Download size={16} />
                           Download

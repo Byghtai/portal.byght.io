@@ -1,28 +1,52 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply antialiased;
+    @apply antialiased font-['Inter'];
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-[#0066CC] hover:bg-[#0052A3] text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#0066CC] focus:ring-offset-2;
+    @apply bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] hover:from-[rgb(245,169,0)] hover:to-[rgb(46,174,179)] text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[rgb(255,179,0)] focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
   }
   
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2;
+    @apply bg-white hover:bg-gray-50 text-[rgb(10,16,69)] font-semibold py-3 px-6 rounded-xl border-2 border-[rgb(10,16,69)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[rgb(10,16,69)] focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-600 focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
   }
   
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0066CC] focus:border-transparent;
+    @apply w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-[rgb(255,179,0)] focus:ring-opacity-30 focus:border-[rgb(255,179,0)] transition-all duration-300 bg-white shadow-sm;
   }
   
   .card {
-    @apply bg-white rounded-lg shadow-md p-6;
+    @apply bg-white rounded-2xl shadow-xl p-8 border border-gray-100;
+  }
+  
+  .gradient-bg {
+    background: linear-gradient(135deg, rgb(255, 179, 0) 0%, rgb(56, 184, 189) 100%);
+  }
+  
+  .text-primary {
+    @apply text-[rgb(10,16,69)];
+  }
+  
+  .bg-primary {
+    @apply bg-[rgb(10,16,69)];
+  }
+  
+  .border-primary {
+    @apply border-[rgb(10,16,69)];
+  }
+  
+  .glass-effect {
+    @apply backdrop-blur-md bg-white bg-opacity-90 border border-white border-opacity-20;
   }
 }
