@@ -23,6 +23,18 @@ export async function initDatabase() {
       )
     `);
 
+    // Prüfen ob expiry_date Spalte existiert und hinzufügen falls nicht
+    try {
+      await client.query('SELECT expiry_date FROM users LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "expiry_date" does not exist')) {
+        console.log('Füge expiry_date Spalte zur users Tabelle hinzu...');
+        await client.query('ALTER TABLE users ADD COLUMN expiry_date DATE');
+      } else {
+        throw error;
+      }
+    }
+
     // Files-Tabelle erstellen
     await client.query(`
       CREATE TABLE IF NOT EXISTS files (
@@ -91,17 +103,31 @@ export async function createAdminUserIfNotExists() {
 export async function findUserByUsername(username) {
   const client = await pool.connect();
   try {
-    const result = await client.query(
-      'SELECT id, username, password_hash, is_admin, expiry_date FROM users WHERE username = $1',
-      [username]
-    );
+    // Prüfen ob expiry_date Spalte existiert
+    let hasExpiryDate = true;
+    try {
+      await client.query('SELECT expiry_date FROM users LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "expiry_date" does not exist')) {
+        hasExpiryDate = false;
+      } else {
+        throw error;
+      }
+    }
+
+    // Query anpassen basierend auf Spaltenverfügbarkeit
+    const query = hasExpiryDate 
+      ? 'SELECT id, username, password_hash, is_admin, expiry_date FROM users WHERE username = $1'
+      : 'SELECT id, username, password_hash, is_admin FROM users WHERE username = $1';
+    
+    const result = await client.query(query, [username]);
     if (result.rows[0]) {
       return {
         id: result.rows[0].id,
         username: result.rows[0].username,
         password_hash: result.rows[0].password_hash,
         isAdmin: result.rows[0].is_admin,
-        expiry_date: result.rows[0].expiry_date
+        expiry_date: hasExpiryDate ? result.rows[0].expiry_date : null
       };
     }
     return null;
@@ -136,25 +162,49 @@ export async function findUserById(id) {
 export async function getAllUsers() {
   const client = await pool.connect();
   try {
-    const result = await client.query(`
-      SELECT 
-        u.id, 
-        u.username, 
-        u.is_admin, 
-        u.expiry_date, 
-        u.created_at,
-        COUNT(fua.file_id) as file_count
-      FROM users u
-      LEFT JOIN file_user_assignments fua ON u.id = fua.user_id
-      GROUP BY u.id, u.username, u.is_admin, u.expiry_date, u.created_at
-      ORDER BY u.created_at DESC
-    `);
+    // Prüfen ob expiry_date Spalte existiert
+    let hasExpiryDate = true;
+    try {
+      await client.query('SELECT expiry_date FROM users LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "expiry_date" does not exist')) {
+        hasExpiryDate = false;
+      } else {
+        throw error;
+      }
+    }
+
+    // Query anpassen basierend auf Spaltenverfügbarkeit
+    const query = hasExpiryDate 
+      ? `SELECT 
+          u.id, 
+          u.username, 
+          u.is_admin, 
+          u.expiry_date, 
+          u.created_at,
+          COUNT(fua.file_id) as file_count
+        FROM users u
+        LEFT JOIN file_user_assignments fua ON u.id = fua.user_id
+        GROUP BY u.id, u.username, u.is_admin, u.expiry_date, u.created_at
+        ORDER BY u.created_at DESC`
+      : `SELECT 
+          u.id, 
+          u.username, 
+          u.is_admin, 
+          u.created_at,
+          COUNT(fua.file_id) as file_count
+        FROM users u
+        LEFT JOIN file_user_assignments fua ON u.id = fua.user_id
+        GROUP BY u.id, u.username, u.is_admin, u.created_at
+        ORDER BY u.created_at DESC`;
+
+    const result = await client.query(query);
     // Konvertiere snake_case zu camelCase für das Frontend
     return result.rows.map(row => ({
       id: row.id,
       username: row.username,
       isAdmin: row.is_admin,
-      expiryDate: row.expiry_date,
+      expiryDate: hasExpiryDate ? row.expiry_date : null,
       createdAt: row.created_at,
       fileCount: parseInt(row.file_count)
     }));
@@ -167,16 +217,38 @@ export async function getAllUsers() {
 export async function createUser(username, passwordHash, isAdmin = false, expiryDate = null) {
   const client = await pool.connect();
   try {
-    const result = await client.query(
-      'INSERT INTO users (username, password_hash, is_admin, expiry_date) VALUES ($1, $2, $3, $4) RETURNING id, username, is_admin, expiry_date, created_at',
-      [username, passwordHash, isAdmin, expiryDate]
-    );
+    // Prüfen ob expiry_date Spalte existiert
+    let hasExpiryDate = true;
+    try {
+      await client.query('SELECT expiry_date FROM users LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "expiry_date" does not exist')) {
+        hasExpiryDate = false;
+      } else {
+        throw error;
+      }
+    }
+
+    // Query anpassen basierend auf Spaltenverfügbarkeit
+    let result;
+    if (hasExpiryDate) {
+      result = await client.query(
+        'INSERT INTO users (username, password_hash, is_admin, expiry_date) VALUES ($1, $2, $3, $4) RETURNING id, username, is_admin, expiry_date, created_at',
+        [username, passwordHash, isAdmin, expiryDate]
+      );
+    } else {
+      result = await client.query(
+        'INSERT INTO users (username, password_hash, is_admin) VALUES ($1, $2, $3) RETURNING id, username, is_admin, created_at',
+        [username, passwordHash, isAdmin]
+      );
+    }
+
     if (result.rows[0]) {
       return {
         id: result.rows[0].id,
         username: result.rows[0].username,
         isAdmin: result.rows[0].is_admin,
-        expiryDate: result.rows[0].expiry_date,
+        expiryDate: hasExpiryDate ? result.rows[0].expiry_date : null,
         createdAt: result.rows[0].created_at
       };
     }
@@ -200,6 +272,22 @@ export async function deleteUser(userId) {
 export async function updateUserExpiryDate(userId, expiryDate) {
   const client = await pool.connect();
   try {
+    // Prüfen ob expiry_date Spalte existiert
+    let hasExpiryDate = true;
+    try {
+      await client.query('SELECT expiry_date FROM users LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "expiry_date" does not exist')) {
+        hasExpiryDate = false;
+      } else {
+        throw error;
+      }
+    }
+
+    if (!hasExpiryDate) {
+      throw new Error('expiry_date Spalte existiert nicht in der Datenbank');
+    }
+
     const result = await client.query(
       'UPDATE users SET expiry_date = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, username, is_admin, expiry_date',
       [expiryDate, userId]
