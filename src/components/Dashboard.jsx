@@ -105,7 +105,7 @@ const Dashboard = () => {
             <div className="flex items-center space-x-3">
               <img src={ByghtLogo} alt="Byght Logo" className="h-10 w-auto" />
               <div className="hidden sm:block">
-                <h1 className="text-xl font-semibold text-byght-gray">Byght Portal</h1>
+                <h1 className="text-xl font-semibold text-byght-gray">Portal</h1>
               </div>
             </div>
             

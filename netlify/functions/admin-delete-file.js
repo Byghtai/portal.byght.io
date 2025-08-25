@@ -62,18 +62,25 @@ export default async (req, context) => {
       });
     }
     
+    // Blob-Key für spätere Löschung speichern
+    const blobKey = fileMetadata.blobKey;
+    
     // Datei aus der Datenbank löschen (inklusive aller Zuordnungen)
     await deleteFile(fileId);
     
     // Datei aus Blob Storage löschen (nach erfolgreicher DB-Löschung)
-    if (fileMetadata && fileMetadata.blobKey) {
+    if (blobKey) {
       try {
         const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
-        await filesStore.delete(fileMetadata.blobKey);
+        await filesStore.delete(blobKey);
+        console.log(`Datei erfolgreich aus Blob Storage gelöscht: ${blobKey}`);
       } catch (blobError) {
         console.error('Fehler beim Löschen aus Blob Storage:', blobError);
         // Wir fahren trotz Blob-Fehler fort, da die DB-Löschung erfolgreich war
+        // Aber wir loggen den Fehler für Debugging-Zwecke
       }
+    } else {
+      console.warn(`Kein Blob-Key für Datei ${fileId} gefunden`);
     }
 
     return new Response(JSON.stringify({ 

@@ -34,11 +34,10 @@ const Login = () => {
       <div className="w-full max-w-md">
         {/* Logo Section */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-sm mb-4 p-3">
+          <div className="inline-flex items-center justify-center w-32 h-32 bg-white rounded-2xl shadow-sm mb-4 p-3">
             <img src={ByghtLogo} alt="Byght Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-semibold text-byght-gray mb-1">Byght Portal</h1>
-          <p className="text-sm text-gray-600">Sicherer Zugang zu Ihren Dokumenten</p>
         </div>
 
         {/* Login Form */}

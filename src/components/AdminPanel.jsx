@@ -47,6 +47,7 @@ const AdminPanel = () => {
   const [loadingUserFiles, setLoadingUserFiles] = useState({});
   const [editingExpiryDate, setEditingExpiryDate] = useState({});
   const [updatingExpiryDate, setUpdatingExpiryDate] = useState({});
+  const [cleaningUp, setCleaningUp] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -215,6 +216,34 @@ const AdminPanel = () => {
       alert('Fehler beim Löschen: ' + error.message);
     } finally {
       setDeletingFile(null);
+    }
+  };
+
+  const handleCleanupOrphanedFiles = async () => {
+    if (!confirm('Möchten Sie wirklich alle Waisen-Dateien aus dem Blob Storage bereinigen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
+    
+    setCleaningUp(true);
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-cleanup-orphaned-files', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Bereinigung abgeschlossen!\n\nGelöschte Dateien: ${result.deletedCount}\nWaisen-Dateien gefunden: ${result.totalOrphaned}${result.errors ? '\n\nFehler aufgetreten: ' + result.errors.length : ''}`);
+      } else {
+        const error = await response.json();
+        alert('Fehler bei der Bereinigung: ' + error.error);
+      }
+    } catch (error) {
+      alert('Fehler bei der Bereinigung: ' + error.message);
+    } finally {
+      setCleaningUp(false);
     }
   };
 
@@ -528,7 +557,17 @@ const AdminPanel = () => {
             <div className="card">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-byght-gray">Hochgeladene Dateien</h2>
-                <span className="text-xs text-gray-600">{files.length} Datei(en)</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-600">{files.length} Datei(en)</span>
+                  <button
+                    onClick={handleCleanupOrphanedFiles}
+                    disabled={cleaningUp}
+                    className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Waisen-Dateien aus Blob Storage bereinigen"
+                  >
+                    {cleaningUp ? 'Bereinige...' : 'Bereinigen'}
+                  </button>
+                </div>
               </div>
               
               {files.length === 0 ? (
