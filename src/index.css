@@ -11,23 +11,23 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] hover:from-[rgb(245,169,0)] hover:to-[rgb(46,174,179)] text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[rgb(255,179,0)] focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+    @apply bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] hover:from-[rgb(245,169,0)] hover:to-[rgb(46,174,179)] text-white font-semibold py-2 px-4 sm:py-3 sm:px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[rgb(255,179,0)] focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-base;
   }
   
   .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-[rgb(10,16,69)] font-semibold py-3 px-6 rounded-xl border-2 border-[rgb(10,16,69)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[rgb(10,16,69)] focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+    @apply bg-white hover:bg-gray-50 text-[rgb(10,16,69)] font-semibold py-2 px-4 sm:py-3 sm:px-6 rounded-xl border-2 border-[rgb(10,16,69)] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[rgb(10,16,69)] focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-base;
   }
   
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-600 focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+    @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 sm:py-3 sm:px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-red-600 focus:ring-opacity-30 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-base;
   }
   
   .input-field {
-    @apply w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-[rgb(255,179,0)] focus:ring-opacity-30 focus:border-[rgb(255,179,0)] transition-all duration-300 bg-white shadow-sm;
+    @apply w-full px-3 py-2 sm:px-4 sm:py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-[rgb(255,179,0)] focus:ring-opacity-30 focus:border-[rgb(255,179,0)] transition-all duration-300 bg-white shadow-sm text-sm sm:text-base;
   }
   
   .card {
-    @apply bg-white rounded-2xl shadow-xl p-8 border border-gray-100;
+    @apply bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 lg:p-8 border border-gray-100;
   }
   
   .gradient-bg {
@@ -48,5 +48,84 @@
   
   .glass-effect {
     @apply backdrop-blur-md bg-white bg-opacity-90 border border-white border-opacity-20;
+  }
+  
+  /* Mobile-specific utilities */
+  .mobile-container {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+  
+  .mobile-header {
+    @apply py-4 sm:py-6;
+  }
+  
+  .mobile-text {
+    @apply text-sm sm:text-base;
+  }
+  
+  .mobile-title {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+  }
+  
+  .mobile-subtitle {
+    @apply text-lg sm:text-xl lg:text-2xl;
+  }
+  
+  .mobile-table {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .mobile-button {
+    @apply text-xs sm:text-sm py-2 px-3 sm:py-3 sm:px-4;
+  }
+  
+  /* Mobile navigation */
+  .mobile-nav {
+    @apply flex flex-col sm:flex-row items-center gap-2 sm:gap-4;
+  }
+  
+  .mobile-nav-item {
+    @apply w-full sm:w-auto text-center sm:text-left;
+  }
+  
+  /* Mobile table responsive */
+  .mobile-table-container {
+    @apply overflow-x-auto -mx-4 sm:mx-0;
+  }
+  
+  .mobile-table-wrapper {
+    @apply min-w-full divide-y divide-gray-200;
+  }
+  
+  /* Mobile form responsive */
+  .mobile-form-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6;
+  }
+  
+  /* Mobile modal responsive */
+  .mobile-modal {
+    @apply p-4 sm:p-6 max-w-sm sm:max-w-md w-full mx-4;
+  }
+  
+  /* Mobile spacing */
+  .mobile-spacing {
+    @apply space-y-4 sm:space-y-6 lg:space-y-8;
+  }
+  
+  .mobile-padding {
+    @apply p-4 sm:p-6 lg:p-8;
+  }
+  
+  /* Mobile logo sizes */
+  .mobile-logo-small {
+    @apply w-8 h-8 sm:w-10 sm:h-10;
+  }
+  
+  .mobile-logo-medium {
+    @apply w-12 h-12 sm:w-16 sm:h-16;
+  }
+  
+  .mobile-logo-large {
+    @apply w-16 h-16 sm:w-20 sm:h-20;
   }
 }

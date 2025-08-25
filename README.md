@@ -92,11 +92,19 @@ netlify deploy --prod
 
 ## 👤 Standard-Admin-Zugang
 
-Nach dem ersten Deployment:
-- **Username**: admin
-- **Passwort**: admin123
+Nach dem ersten Deployment musst du den Admin-User einmalig erstellen:
 
-⚠️ **WICHTIG**: Ändere das Admin-Passwort nach dem ersten Login!
+### Admin-User erstellen:
+1. Rufe nach dem Deployment folgende URL auf: `https://deine-domain.netlify.app/.netlify/functions/setup-admin`
+2. Oder führe einen POST-Request an diese URL aus
+3. Der Admin-User wird erstellt mit:
+   - **Username**: admin
+   - **Passwort**: admin123
+
+⚠️ **WICHTIG**: 
+- Der Admin-User wird nur einmal erstellt und nicht bei jedem Build neu geschrieben
+- Ändere das Admin-Passwort nach dem ersten Login!
+- Bewahre die Setup-URL sicher auf, falls du sie später brauchst
 
 ## 📁 Datei-Upload (Admin)
 

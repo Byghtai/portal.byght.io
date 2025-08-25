@@ -47,7 +47,19 @@ export async function initDatabase() {
       )
     `);
 
-    // Standard-Admin-Benutzer erstellen (falls nicht vorhanden)
+  } catch (error) {
+    console.error('Datenbank-Initialisierung fehlgeschlagen:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Admin-User erstellen (nur einmalig beim ersten Setup)
+export async function createAdminUserIfNotExists() {
+  const client = await pool.connect();
+  try {
+    // Prüfen ob Admin-User bereits existiert
     const adminCheck = await client.query('SELECT id FROM users WHERE username = $1', ['admin']);
     if (adminCheck.rows.length === 0) {
       const bcrypt = await import('bcryptjs');
@@ -57,10 +69,11 @@ export async function initDatabase() {
         ['admin', hashedPassword, true]
       );
       console.log('Standard-Admin-Benutzer erstellt');
+      return true;
     }
-
+    return false;
   } catch (error) {
-    console.error('Datenbank-Initialisierung fehlgeschlagen:', error);
+    console.error('Fehler beim Erstellen des Admin-Users:', error);
     throw error;
   } finally {
     client.release();

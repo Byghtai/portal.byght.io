@@ -86,10 +86,16 @@ Value: deine-netlify-site.netlify.app
 
 ## ✅ Schritt 5: Deployment testen
 
-### 5.1 Ersten Login testen
+### 5.1 Admin-User erstellen
+1. Rufe nach dem Deployment folgende URL auf: `https://portal.byght.io/.netlify/functions/setup-admin`
+2. Der Admin-User wird erstellt mit:
+   - **Username**: `admin`
+   - **Passwort**: `admin123`
+
+### 5.2 Ersten Login testen
 1. Gehe zu `https://portal.byght.io`
 2. Du solltest zur Login-Seite weitergeleitet werden
-3. Logge dich mit den Standard-Credentials ein:
+3. Logge dich mit den erstellten Credentials ein:
    - **Username**: `admin`
    - **Passwort**: `admin123`
 
