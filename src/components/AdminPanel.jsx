@@ -28,10 +28,10 @@ const AdminPanel = () => {
   const [files, setFiles] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [uploadFile, setUploadFile] = useState(null);
-  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [uploadFiles, setUploadFiles] = useState([]);
   const [description, setDescription] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const [newUser, setNewUser] = useState({ username: '', password: '', isAdmin: false });
   const [showNewUserForm, setShowNewUserForm] = useState(false);
   const [showAdminDeleteConfirm, setShowAdminDeleteConfirm] = useState(false);
@@ -93,41 +93,90 @@ const AdminPanel = () => {
 
   const handleFileUpload = async (e) => {
     e.preventDefault();
-    if (!uploadFile || selectedUsers.length === 0) {
-      alert('Bitte wählen Sie eine Datei und mindestens einen Benutzer aus.');
+    if (uploadFiles.length === 0) {
+      alert('Bitte wählen Sie mindestens eine Datei aus.');
       return;
     }
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append('file', uploadFile);
-    formData.append('users', JSON.stringify(selectedUsers));
-    formData.append('description', description);
+    let successCount = 0;
+    let errorCount = 0;
 
     try {
       const token = Cookies.get('auth_token');
-      const response = await fetch('/.netlify/functions/admin-upload-file', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      
+      for (const file of uploadFiles) {
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('users', JSON.stringify([]));
+          formData.append('description', description);
 
-      if (response.ok) {
-        alert('Datei erfolgreich hochgeladen!');
-        setUploadFile(null);
-        setSelectedUsers([]);
+          const response = await fetch('/.netlify/functions/admin-upload-file', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+          });
+
+          if (response.ok) {
+            successCount++;
+          } else {
+            errorCount++;
+            console.error(`Upload failed for ${file.name}`);
+          }
+        } catch (error) {
+          errorCount++;
+          console.error(`Upload error for ${file.name}:`, error);
+        }
+      }
+
+      if (successCount > 0) {
+        alert(`${successCount} Datei(en) erfolgreich hochgeladen!${errorCount > 0 ? ` ${errorCount} Datei(en) konnten nicht hochgeladen werden.` : ''}`);
+        setUploadFiles([]);
         setDescription('');
         fetchFiles();
       } else {
-        throw new Error('Upload fehlgeschlagen');
+        throw new Error('Alle Uploads fehlgeschlagen');
       }
     } catch (error) {
       alert('Fehler beim Upload: ' + error.message);
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const newFiles = Array.from(e.dataTransfer.files);
+      setUploadFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setUploadFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeFile = (index) => {
+    setUploadFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDeleteFile = async (fileId) => {
@@ -426,21 +475,72 @@ const AdminPanel = () => {
           </div>
         ) : activeTab === 'files' ? (
           <div className="space-y-6 sm:space-y-8 lg:space-y-10">
-            {/* Upload Form - Cleaner */}
+            {/* Upload Form - Drag & Drop */}
             <div className="card">
-              <h2 className="text-xl sm:text-2xl font-bold text-primary mb-6">Neue Datei hochladen</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-primary mb-6">Dateien hochladen</h2>
               <form onSubmit={handleFileUpload} className="space-y-6 sm:space-y-8">
-                <div>
-                  <label className="block text-sm sm:text-base lg:text-lg font-bold text-primary mb-3 sm:mb-4">
-                    Datei auswählen
-                  </label>
+                {/* Drag & Drop Zone */}
+                <div
+                  className={`relative border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center transition-all duration-300 ${
+                    dragActive 
+                      ? 'border-[rgb(255,179,0)] bg-[rgb(255,179,0)]/10 scale-105' 
+                      : 'border-gray-300 hover:border-[rgb(255,179,0)] hover:bg-gray-50/50'
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
                   <input
                     type="file"
-                    onChange={(e) => setUploadFile(e.target.files[0])}
-                    className="input-field"
-                    required
+                    multiple
+                    onChange={handleFileSelect}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    accept="*/*"
                   />
+                  <div className="flex flex-col items-center space-y-4">
+                    <div className="w-16 h-16 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-2xl flex items-center justify-center">
+                      <Upload className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-primary mb-2">
+                        Dateien hier ablegen oder klicken zum Auswählen
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Mehrere Dateien werden unterstützt
+                      </p>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Selected Files List */}
+                {uploadFiles.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-primary">Ausgewählte Dateien ({uploadFiles.length})</h3>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {uploadFiles.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-xl">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-lg flex items-center justify-center">
+                              <FileText className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-primary">{file.name}</p>
+                              <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(index)}
+                            className="text-red-500 hover:text-red-700 transition-colors"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm sm:text-base lg:text-lg font-bold text-primary mb-3 sm:mb-4">
@@ -451,42 +551,17 @@ const AdminPanel = () => {
                     onChange={(e) => setDescription(e.target.value)}
                     className="input-field"
                     rows="3"
-                    placeholder="Beschreibung der Datei..."
+                    placeholder="Beschreibung für alle ausgewählten Dateien..."
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm sm:text-base lg:text-lg font-bold text-primary mb-3 sm:mb-4">
-                    Benutzer auswählen
-                  </label>
-                  <div className="space-y-3 sm:space-y-4 max-h-40 sm:max-h-56 overflow-y-auto border-2 border-gray-200/50 rounded-2xl p-4 sm:p-5 bg-gray-50/50 backdrop-blur-sm">
-                    {users.filter(u => !u.isAdmin).map((user) => (
-                      <label key={user.id} className="flex items-center space-x-3 sm:space-x-4 cursor-pointer hover:bg-white/50 p-3 rounded-xl transition-all duration-300">
-                        <input
-                          type="checkbox"
-                          checked={selectedUsers.includes(user.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedUsers([...selectedUsers, user.id]);
-                            } else {
-                              setSelectedUsers(selectedUsers.filter(id => id !== user.id));
-                            }
-                          }}
-                          className="rounded border-gray-300 text-[rgb(255,179,0)] focus:ring-[rgb(255,179,0)]"
-                        />
-                        <span className="text-sm sm:text-base lg:text-lg font-semibold text-primary">{user.username}</span>
-                      </label>
-                    ))}
-                  </div>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={uploading}
-                  className="btn-primary flex items-center gap-3 mobile-button"
+                  disabled={uploading || uploadFiles.length === 0}
+                  className="btn-primary flex items-center gap-3 mobile-button disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Upload size={18} className="sm:w-5 sm:h-5" />
-                  {uploading ? 'Wird hochgeladen...' : 'Datei hochladen'}
+                  {uploading ? `Wird hochgeladen... (${uploadFiles.length} Datei${uploadFiles.length > 1 ? 'en' : ''})` : `${uploadFiles.length} Datei${uploadFiles.length > 1 ? 'en' : ''} hochladen`}
                 </button>
               </form>
             </div>

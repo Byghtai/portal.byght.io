@@ -57,13 +57,15 @@ export default async (req, context) => {
     }
 
     let assignedUsers = [];
-    try {
-      assignedUsers = JSON.parse(usersJson);
-    } catch (error) {
-      return new Response(JSON.stringify({ error: 'Invalid users data' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    if (usersJson) {
+      try {
+        assignedUsers = JSON.parse(usersJson);
+      } catch (error) {
+        return new Response(JSON.stringify({ error: 'Invalid users data' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     // Eindeutigen Blob-Key generieren
@@ -84,8 +86,10 @@ export default async (req, context) => {
       decoded.userId
     );
 
-    // Datei-Benutzer-Zuordnungen erstellen
-    await assignFileToUsers(fileId, assignedUsers);
+    // Datei-Benutzer-Zuordnungen erstellen (nur wenn Benutzer ausgewählt wurden)
+    if (assignedUsers && assignedUsers.length > 0) {
+      await assignFileToUsers(fileId, assignedUsers);
+    }
 
     return new Response(JSON.stringify({ 
       success: true,
