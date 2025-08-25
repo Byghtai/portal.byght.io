@@ -44,7 +44,7 @@ export default async (req, context) => {
       { 
         userId: user.id, 
         username: user.username,
-        isAdmin: user.is_admin 
+        isAdmin: user.isAdmin 
       },
       JWT_SECRET,
       { expiresIn: '7d' }
@@ -54,7 +54,7 @@ export default async (req, context) => {
       token,
       username: user.username,
       userId: user.id,
-      isAdmin: user.is_admin
+      isAdmin: user.isAdmin
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
