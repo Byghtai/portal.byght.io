@@ -16,7 +16,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import Cookies from 'js-cookie';
-import ChunkedUpload from './ChunkedUpload';
+
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -49,8 +49,6 @@ const AdminPanel = () => {
   const [editingExpiryDate, setEditingExpiryDate] = useState({});
   const [updatingExpiryDate, setUpdatingExpiryDate] = useState({});
   const [cleaningUp, setCleaningUp] = useState(false);
-  const [fixingConfluence, setFixingConfluence] = useState(false);
-  const [testingConfluence, setTestingConfluence] = useState(false);
   
   // New states for inline editing
   const [editingUsername, setEditingUsername] = useState({});
@@ -359,59 +357,7 @@ const AdminPanel = () => {
     }
   };
 
-  const handleFixConfluenceColumn = async () => {
-    if (!confirm('Do you want to fix the Confluence label column in the database? This will extend the column size to support longer values.')) return;
-    
-    setFixingConfluence(true);
-    try {
-      const token = Cookies.get('auth_token');
-      const response = await fetch('/.netlify/functions/admin-fix-confluence-column', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (response.ok) {
-        const result = await response.json();
-        alert(`Database fix completed!\n\n${result.message}`);
-      } else {
-        const error = await response.json();
-        alert('Error fixing database: ' + error.error);
-      }
-    } catch (error) {
-      alert('Error fixing database: ' + error.message);
-    } finally {
-      setFixingConfluence(false);
-    }
-  };
-
-  const handleTestConfluenceUpdate = async () => {
-    setTestingConfluence(true);
-    try {
-      const token = Cookies.get('auth_token');
-      const response = await fetch('/.netlify/functions/test-confluence-update', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        alert(`Test completed successfully!\n\nTest file: ${result.testFile}\nTest value: ${result.testValue}\nInitial column length: ${result.initialLength}\nFinal column length: ${result.finalLength}`);
-      } else {
-        const error = await response.json();
-        alert('Test failed: ' + (error.details || error.error));
-      }
-    } catch (error) {
-      alert('Test failed: ' + error.message);
-    } finally {
-      setTestingConfluence(false);
-    }
-  };
 
 
 
@@ -759,7 +705,7 @@ const AdminPanel = () => {
           if (error.details.includes('value too long for type')) {
             errorMessage = 'One of the labels is too long. Please use shorter values.';
           } else if (error.details.includes('column') && error.details.includes('does not exist')) {
-            errorMessage = 'Database issue detected. Please try the "Fix Confluence" button first.';
+            errorMessage = 'Database issue detected. Please contact an administrator.';
           }
         }
         
@@ -814,9 +760,9 @@ const AdminPanel = () => {
             if (error.details) {
               if (error.details.includes('value too long for type')) {
                 errorMessage = 'One of the labels is too long. Please use shorter values.';
-              } else if (error.details.includes('column') && error.details.includes('does not exist')) {
-                errorMessage = 'Database issue detected. Please try the "Fix Confluence" button first.';
-              }
+                          } else if (error.details.includes('column') && error.details.includes('does not exist')) {
+              errorMessage = 'Database issue detected. Please contact an administrator.';
+            }
             }
             
             // Spezielle Behandlung für Längenfehler
@@ -1002,19 +948,7 @@ const AdminPanel = () => {
               <span>Users</span>
             </div>
           </button>
-          <button
-            onClick={() => setActiveTab('chunked')}
-            className={`px-6 py-2.5 rounded-md font-medium transition-colors ${
-              activeTab === 'chunked'
-                ? 'bg-byght-turquoise text-white'
-                : 'text-byght-gray hover:bg-gray-100'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Upload size={18} />
-              <span>Large Files</span>
-            </div>
-          </button>
+
         </div>
 
         {loading ? (
@@ -1088,22 +1022,6 @@ const AdminPanel = () => {
                 <h2 className="text-lg font-semibold text-byght-gray">Uploaded Files</h2>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-600">{filteredFiles.length} of {files.length} file(s)</span>
-                  <button
-                    onClick={handleFixConfluenceColumn}
-                    disabled={fixingConfluence}
-                    className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Fix Confluence label column in database"
-                  >
-                    {fixingConfluence ? 'Fixing...' : 'Fix Confluence'}
-                  </button>
-                  <button
-                    onClick={handleTestConfluenceUpdate}
-                    disabled={testingConfluence}
-                    className="text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Test Confluence label update"
-                  >
-                    {testingConfluence ? 'Testing...' : 'Test Confluence'}
-                  </button>
                   <button
                     onClick={handleCleanupOrphanedFiles}
                     disabled={cleaningUp}
@@ -1306,8 +1224,6 @@ const AdminPanel = () => {
               )}
             </div>
           </div>
-        ) : activeTab === 'chunked' ? (
-          <ChunkedUpload />
         ) : (
           <div className="space-y-6">
             {/* User Creation Button */}

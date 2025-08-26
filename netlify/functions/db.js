@@ -166,10 +166,28 @@ export async function findUserByUsername(username) {
       }
     }
 
+    // Prüfen ob customer Spalte existiert
+    let hasCustomer = true;
+    try {
+      await client.query('SELECT customer FROM users LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "customer" does not exist')) {
+        hasCustomer = false;
+      } else {
+        throw error;
+      }
+    }
+
     // Query anpassen basierend auf Spaltenverfügbarkeit
-    const query = hasExpiryDate 
-      ? 'SELECT id, username, password_hash, is_admin, expiry_date FROM users WHERE username = $1'
-      : 'SELECT id, username, password_hash, is_admin FROM users WHERE username = $1';
+    let selectFields = 'id, username, password_hash, is_admin';
+    if (hasExpiryDate) {
+      selectFields += ', expiry_date';
+    }
+    if (hasCustomer) {
+      selectFields += ', customer';
+    }
+    
+    const query = `SELECT ${selectFields} FROM users WHERE username = $1`;
     
     const result = await client.query(query, [username]);
     if (result.rows[0]) {
@@ -178,10 +196,14 @@ export async function findUserByUsername(username) {
         username: result.rows[0].username,
         password_hash: result.rows[0].password_hash,
         isAdmin: result.rows[0].is_admin,
-        expiry_date: hasExpiryDate ? result.rows[0].expiry_date : null
+        expiry_date: hasExpiryDate ? result.rows[0].expiry_date : null,
+        customer: hasCustomer ? result.rows[0].customer : null
       };
     }
     return null;
+  } catch (error) {
+    console.error('Database error in findUserByUsername:', error);
+    throw error;
   } finally {
     client.release();
   }
@@ -285,6 +307,9 @@ export async function getAllUsers() {
       createdAt: row.created_at,
       fileCount: parseInt(row.file_count)
     }));
+  } catch (error) {
+    console.error('Database error in getAllUsers:', error);
+    throw error;
   } finally {
     client.release();
   }
@@ -348,6 +373,9 @@ export async function createUser(username, passwordHash, isAdmin = false, expiry
       };
     }
     return null;
+  } catch (error) {
+    console.error('Database error in createUser:', error);
+    throw error;
   } finally {
     client.release();
   }
