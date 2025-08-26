@@ -16,6 +16,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import Cookies from 'js-cookie';
+import TestUpload from './TestUpload';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -211,8 +212,20 @@ const AdminPanel = () => {
             languageLabel: ''
           });
         } else {
-          const error = await response.json();
-          alert(`Error uploading ${file.name}: ${error.error}`);
+          let errorMessage = 'Unknown error occurred';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (jsonError) {
+            // Wenn JSON-Parsing fehlschlägt, versuche den Text zu lesen
+            try {
+              const errorText = await response.text();
+              errorMessage = errorText || errorMessage;
+            } catch (textError) {
+              errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            }
+          }
+          alert(`Error uploading ${file.name}: ${errorMessage}`);
         }
       } catch (error) {
         alert(`Error uploading ${file.name}: ${error.message}`);
@@ -853,6 +866,19 @@ const AdminPanel = () => {
               <span>Users</span>
             </div>
           </button>
+          <button
+            onClick={() => setActiveTab('test')}
+            className={`px-6 py-2.5 rounded-md font-medium transition-colors ${
+              activeTab === 'test'
+                ? 'bg-byght-turquoise text-white'
+                : 'text-byght-gray hover:bg-gray-100'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Upload size={18} />
+              <span>Test Upload</span>
+            </div>
+          </button>
         </div>
 
         {loading ? (
@@ -1128,6 +1154,8 @@ const AdminPanel = () => {
               )}
             </div>
           </div>
+        ) : activeTab === 'test' ? (
+          <TestUpload />
         ) : (
           <div className="space-y-6">
             {/* User Creation Form */}

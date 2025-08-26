@@ -15,6 +15,9 @@ export default async (req, context) => {
     });
   }
 
+  console.log('Upload function called');
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+
   try {
     // Token und Admin-Status verifizieren
     const authHeader = req.headers.get('authorization');
@@ -44,9 +47,19 @@ export default async (req, context) => {
     }
 
     // Multipart Form Data parsen
+    console.log('Parsing FormData...');
     const formData = await req.formData();
+    console.log('FormData parsed successfully');
+    
     const file = formData.get('file');
     const usersJson = formData.get('users');
+    
+    console.log('File from FormData:', file ? {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    } : 'No file found');
+    console.log('Users JSON from FormData:', usersJson);
     // Labels werden nach dem Upload gesetzt
       const productLabel = null;
   const versionLabel = null;
@@ -76,22 +89,28 @@ export default async (req, context) => {
     const blobKey = `${Date.now()}-${file.name}`;
 
     // Datei in Netlify Blobs speichern
+    console.log('Storing file in Netlify Blobs...');
     const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
+    console.log('Blob store created, reading file buffer...');
     const fileBuffer = await file.arrayBuffer();
+    console.log('File buffer read, size:', fileBuffer.byteLength);
     await filesStore.set(blobKey, new Uint8Array(fileBuffer));
+    console.log('File stored in Blobs successfully');
 
     // Datei-Metadaten in der Datenbank speichern
+    console.log('Saving file metadata to database...');
     const fileId = await saveFileMetadata(
       file.name,
       file.size,
       file.type,
       blobKey,
       decoded.userId,
-          productLabel,
-    versionLabel,
-    languageLabel,
-    confluenceLabel
+      productLabel,
+      versionLabel,
+      languageLabel,
+      confluenceLabel
     );
+    console.log('File metadata saved, ID:', fileId);
 
     // Datei automatisch allen Admin-Benutzern zuweisen
     await assignFileToAllAdmins(fileId);
@@ -116,7 +135,11 @@ export default async (req, context) => {
     });
   } catch (error) {
     console.error('Upload error:', error);
-    return new Response(JSON.stringify({ error: 'Server error' }), {
+    return new Response(JSON.stringify({ 
+      error: 'Server error', 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });

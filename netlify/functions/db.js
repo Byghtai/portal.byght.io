@@ -4,6 +4,15 @@ import { Pool } from 'pg';
 const pool = new Pool({
   connectionString: process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }, // Für Netlify immer SSL verwenden
+  max: 20, // Maximale Anzahl von Verbindungen
+  idleTimeoutMillis: 30000, // Verbindungen nach 30 Sekunden schließen
+  connectionTimeoutMillis: 2000, // Verbindungs-Timeout nach 2 Sekunden
+});
+
+// Verbindungsfehler abfangen
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1);
 });
 
 // Datenbank-Tabellen initialisieren
@@ -447,6 +456,7 @@ export async function updateUserDetails(userId, updates) {
 export async function saveFileMetadata(filename, fileSize, mimeType, blobKey, uploadedBy, productLabel = null, versionLabel = null, languageLabel = null, confluenceLabel = null) {
   const client = await pool.connect();
   try {
+    console.log('Saving file metadata:', { filename, fileSize, mimeType, blobKey, uploadedBy });
     // Prüfen ob Label-Spalten existieren
     let hasProductLabel = true;
     let hasVersionLabel = true;
@@ -530,7 +540,11 @@ export async function saveFileMetadata(filename, fileSize, mimeType, blobKey, up
     `;
     
     const result = await client.query(query, values);
+    console.log('File metadata saved successfully, ID:', result.rows[0].id);
     return result.rows[0].id;
+  } catch (error) {
+    console.error('Error saving file metadata:', error);
+    throw error;
   } finally {
     client.release();
   }
