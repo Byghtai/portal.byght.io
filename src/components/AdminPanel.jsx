@@ -19,6 +19,7 @@ import Cookies from 'js-cookie';
 import TestUpload from './TestUpload';
 import ZipDebugTest from './ZipDebugTest';
 import BasicFileTest from './BasicFileTest';
+import ChunkedUpload from './ChunkedUpload';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -1039,6 +1040,19 @@ const AdminPanel = () => {
               <span>Basic Test</span>
             </div>
           </button>
+          <button
+            onClick={() => setActiveTab('chunked')}
+            className={`px-6 py-2.5 rounded-md font-medium transition-colors ${
+              activeTab === 'chunked'
+                ? 'bg-byght-turquoise text-white'
+                : 'text-byght-gray hover:bg-gray-100'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Upload size={18} />
+              <span>Large Files</span>
+            </div>
+          </button>
         </div>
 
         {loading ? (
@@ -1336,6 +1350,8 @@ const AdminPanel = () => {
           <ZipDebugTest />
         ) : activeTab === 'basic' ? (
           <BasicFileTest />
+        ) : activeTab === 'chunked' ? (
+          <ChunkedUpload />
         ) : (
           <div className="space-y-6">
             {/* User Creation Button */}
