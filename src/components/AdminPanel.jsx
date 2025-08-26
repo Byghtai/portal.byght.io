@@ -1376,7 +1376,7 @@ const AdminPanel = () => {
                 <h2 className="text-xl font-semibold text-byght-gray">Manage Users</h2>
                 <button
                   onClick={() => setShowNewUserModal(true)}
-                  className="btn-secondary"
+                  className="btn-secondary flex items-center whitespace-nowrap py-3 px-6"
                 >
                   <Plus size={18} />
                   <span className="ml-2">Create New User</span>
@@ -1464,8 +1464,8 @@ const AdminPanel = () => {
                                 />
                                 <button
                                   onClick={() => {
-                                    const newValue = editingUsernameValue[user.id] || user.username;
-                                    if (newValue && newValue.trim() !== user.username) {
+                                    const newValue = editingUsernameValue[user.id] || '';
+                                    if (newValue.trim() !== user.username && newValue.trim() !== '') {
                                       handleUpdateUsername(user.id, newValue);
                                     } else {
                                       setEditingUsername({ ...editingUsername, [user.id]: false });
@@ -1518,7 +1518,7 @@ const AdminPanel = () => {
                                 />
                                 <button
                                   onClick={() => {
-                                    const newValue = editingCompanyValue[user.id] || user.customer || '';
+                                    const newValue = editingCompanyValue[user.id] || '';
                                     if (newValue.trim() !== (user.customer || '')) {
                                       handleUpdateCompany(user.id, newValue);
                                     } else {
