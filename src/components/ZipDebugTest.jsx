@@ -37,7 +37,24 @@ const ZipDebugTest = () => {
         body: formData,
       });
 
-      const data = await response.json();
+      // Versuche zuerst den Response-Text zu lesen
+      const responseText = await response.text();
+      console.log('Response status:', response.status);
+      console.log('Response text:', responseText);
+      
+      // Versuche JSON zu parsen, falls möglich
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        // Wenn JSON-Parsing fehlschlägt, erstelle ein Error-Objekt mit dem Text
+        data = {
+          error: 'Server response is not valid JSON',
+          details: responseText,
+          statusCode: response.status,
+          statusText: response.statusText
+        };
+      }
       
       if (response.ok) {
         setResult(data);
@@ -45,7 +62,11 @@ const ZipDebugTest = () => {
         setError(data);
       }
     } catch (err) {
-      setError({ error: err.message });
+      console.error('Debug test error:', err);
+      setError({ 
+        error: err.message,
+        details: 'Failed to communicate with server. Check console for details.'
+      });
     } finally {
       setLoading(false);
     }

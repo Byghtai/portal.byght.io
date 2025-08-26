@@ -7,6 +7,10 @@ if (!JWT_SECRET) {
 }
 
 export default async (req, context) => {
+  console.log('=== ZIP DEBUG FUNCTION START ===');
+  console.log('Method:', req.method);
+  console.log('Context:', context ? 'Available' : 'Not available');
+  
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
@@ -44,19 +48,39 @@ export default async (req, context) => {
 
     console.log('=== ZIP DEBUG UPLOAD START ===');
     console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    console.log('Content-Type:', req.headers.get('content-type'));
     
     // FormData parsen mit detailliertem Error Handling
     let formData;
     try {
       console.log('Parsing FormData...');
+      
+      // Prüfe ob Content-Type korrekt ist
+      const contentType = req.headers.get('content-type');
+      if (!contentType || !contentType.includes('multipart/form-data')) {
+        console.warn('Warning: Content-Type is not multipart/form-data:', contentType);
+      }
+      
       formData = await req.formData();
       console.log('FormData parsed successfully');
+      
+      // Log alle FormData Einträge
+      console.log('FormData entries:');
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`  ${key}: File(name=${value.name}, size=${value.size}, type=${value.type})`);
+        } else {
+          console.log(`  ${key}: ${value}`);
+        }
+      }
     } catch (formError) {
       console.error('FormData parsing error:', formError);
+      console.error('FormData error stack:', formError.stack);
       return new Response(JSON.stringify({ 
         error: 'FormData parsing failed',
         details: formError.message,
-        stack: formError.stack
+        stack: formError.stack,
+        contentType: req.headers.get('content-type')
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -135,6 +159,11 @@ export default async (req, context) => {
       try {
         console.log('Test 3: Storing in Netlify Blobs...');
         blobTest.attempted = true;
+        
+        // Prüfe ob context.site.id verfügbar ist
+        if (!context || !context.site || !context.site.id) {
+          throw new Error('Netlify context.site.id not available - are you running locally?');
+        }
         
         const filesStore = getStore({ name: 'test-debug', siteID: context.site.id });
         const testKey = `test_${Date.now()}_${file.name}`;
