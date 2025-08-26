@@ -37,7 +37,7 @@ const ChunkedUpload = () => {
 
     try {
       const token = Cookies.get('auth_token');
-      const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+             const chunkSize = 3 * 1024 * 1024; // 3MB chunks
       const totalChunks = Math.ceil(file.size / chunkSize);
 
       console.log(`Starting chunked upload: ${file.name} (${file.size} bytes, ${totalChunks} chunks)`);
@@ -153,7 +153,7 @@ const ChunkedUpload = () => {
     <div className="p-6 bg-white rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-4">Chunked Upload (Large Files)</h2>
       <p className="text-gray-600 mb-4">
-        Upload large files by splitting them into chunks. This bypasses the 6MB Netlify Functions limit.
+                 Upload large files by splitting them into 3MB chunks. This safely bypasses the 6MB Netlify Functions limit.
       </p>
       
       <div className="mb-4">
@@ -177,7 +177,7 @@ const ChunkedUpload = () => {
             <div>Name: {file.name}</div>
             <div>Size: {formatFileSize(file.size)}</div>
             <div>Type: {file.type || 'Unknown'}</div>
-            <div>Chunks: {Math.ceil(file.size / (5 * 1024 * 1024))} (5MB each)</div>
+                         <div>Chunks: {Math.ceil(file.size / (3 * 1024 * 1024))} (3MB each)</div>
           </div>
         )}
       </div>

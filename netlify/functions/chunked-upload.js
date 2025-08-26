@@ -113,7 +113,7 @@ export default async (req, context) => {
         fileName: file.name,
         fileSize: file.size,
         fileType: file.type,
-        totalChunks: Math.ceil(file.size / (5 * 1024 * 1024)), // 5MB Chunks
+                 totalChunks: Math.ceil(file.size / (3 * 1024 * 1024)), // 3MB Chunks
         uploadedChunks: 0,
         metadata: metadata,
         createdAt: new Date().toISOString()
@@ -127,7 +127,7 @@ export default async (req, context) => {
         success: true,
         sessionId: sessionId,
         totalChunks: sessionData.totalChunks,
-        chunkSize: 5 * 1024 * 1024
+                 chunkSize: 3 * 1024 * 1024
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
