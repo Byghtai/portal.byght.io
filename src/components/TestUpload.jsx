@@ -7,6 +7,7 @@ const TestUpload = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [testingDb, setTestingDb] = useState(false);
+  const [analyzingZip, setAnalyzingZip] = useState(false);
 
   const handleFileSelect = (e) => {
     const selectedFile = e.target.files[0];
@@ -114,6 +115,60 @@ const TestUpload = () => {
     }
   };
 
+  const handleAnalyzeZip = async () => {
+    if (!file) {
+      alert('Please select a file first');
+      return;
+    }
+
+    setAnalyzingZip(true);
+    setResult(null);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const token = Cookies.get('auth_token');
+      console.log('Analyzing ZIP file:', file.name, file.size, file.type);
+      
+      const response = await fetch('/.netlify/functions/test-zip-upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+
+      if (response.ok) {
+        try {
+          const data = JSON.parse(responseText);
+          setResult(data);
+        } catch (jsonError) {
+          setError(`JSON parsing failed: ${jsonError.message}. Response: ${responseText}`);
+        }
+      } else {
+        try {
+          const errorData = JSON.parse(responseText);
+          setError(errorData.error || 'ZIP analysis failed');
+        } catch (jsonError) {
+          setError(`HTTP ${response.status}: ${responseText}`);
+        }
+      }
+    } catch (error) {
+      console.error('ZIP analysis error:', error);
+      setError(error.message);
+    } finally {
+      setAnalyzingZip(false);
+    }
+  };
+
   const handleRealUpload = async () => {
     if (!file) {
       alert('Please select a file first');
@@ -206,6 +261,14 @@ const TestUpload = () => {
           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
         >
           {uploading ? 'Testing...' : 'Test Upload'}
+        </button>
+        
+        <button
+          onClick={handleAnalyzeZip}
+          disabled={!file || analyzingZip}
+          className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50"
+        >
+          {analyzingZip ? 'Analyzing...' : 'Analyze ZIP'}
         </button>
         
         <button

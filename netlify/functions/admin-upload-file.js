@@ -85,8 +85,9 @@ export default async (req, context) => {
       }
     }
 
-    // Eindeutigen Blob-Key generieren
-    const blobKey = `${Date.now()}-${file.name}`;
+    // Eindeutigen Blob-Key generieren (mit sicherer Dateinamen-Behandlung)
+    const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const blobKey = `${Date.now()}-${safeFileName}`;
 
     // Datei in Netlify Blobs speichern
     console.log('Storing file in Netlify Blobs...');
@@ -94,27 +95,78 @@ export default async (req, context) => {
     console.log('Blob store created, reading file buffer...');
     
     try {
-      const fileBuffer = await file.arrayBuffer();
-      console.log('File buffer read, size:', fileBuffer.byteLength);
-      
-      // Prüfen ob die Datei zu groß ist (Netlify hat Limits)
-      if (fileBuffer.byteLength > 100 * 1024 * 1024) { // 100MB Limit
-        return new Response(JSON.stringify({ 
-          error: 'File too large',
-          details: `File size ${fileBuffer.byteLength} bytes exceeds the 100MB limit`
-        }), {
-          status: 413,
-          headers: { 'Content-Type': 'application/json' }
-        });
+      // Zusätzliche Validierung für ZIP-Dateien
+      if (file.type === 'application/zip' || file.name.toLowerCase().endsWith('.zip')) {
+        console.log('Processing ZIP file with enhanced validation...');
+        
+        // Prüfen ob die ZIP-Datei gültig ist
+        try {
+          const fileBuffer = await file.arrayBuffer();
+          console.log('ZIP file buffer read, size:', fileBuffer.byteLength);
+          
+          // Prüfen ob die Datei zu groß ist (Netlify hat Limits)
+          if (fileBuffer.byteLength > 100 * 1024 * 1024) { // 100MB Limit
+            return new Response(JSON.stringify({ 
+              error: 'File too large',
+              details: `File size ${fileBuffer.byteLength} bytes exceeds the 100MB limit`
+            }), {
+              status: 413,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          }
+          
+          // Prüfen ZIP-Header (PK\x03\x04)
+          const uint8Array = new Uint8Array(fileBuffer);
+          if (uint8Array.length >= 4) {
+            const header = uint8Array.slice(0, 4);
+            const headerString = String.fromCharCode(...header);
+            console.log('ZIP header check:', headerString, headerString === 'PK\x03\x04');
+            
+            if (headerString !== 'PK\x03\x04') {
+              console.warn('Warning: File does not have valid ZIP header, but continuing...');
+            }
+          }
+          
+          await filesStore.set(blobKey, uint8Array);
+          console.log('ZIP file stored in Blobs successfully');
+        } catch (zipError) {
+          console.error('Error processing ZIP file:', zipError);
+          return new Response(JSON.stringify({ 
+            error: 'Error processing ZIP file',
+            details: zipError.message,
+            fileType: file.type,
+            fileName: file.name
+          }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      } else {
+        // Normale Dateiverarbeitung für andere Dateitypen
+        const fileBuffer = await file.arrayBuffer();
+        console.log('File buffer read, size:', fileBuffer.byteLength);
+        
+        // Prüfen ob die Datei zu groß ist (Netlify hat Limits)
+        if (fileBuffer.byteLength > 100 * 1024 * 1024) { // 100MB Limit
+          return new Response(JSON.stringify({ 
+            error: 'File too large',
+            details: `File size ${fileBuffer.byteLength} bytes exceeds the 100MB limit`
+          }), {
+            status: 413,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        
+        await filesStore.set(blobKey, new Uint8Array(fileBuffer));
+        console.log('File stored in Blobs successfully');
       }
-      
-      await filesStore.set(blobKey, new Uint8Array(fileBuffer));
-      console.log('File stored in Blobs successfully');
     } catch (bufferError) {
       console.error('Error reading file buffer:', bufferError);
       return new Response(JSON.stringify({ 
         error: 'Error reading file',
-        details: bufferError.message
+        details: bufferError.message,
+        fileType: file.type,
+        fileName: file.name
       }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
