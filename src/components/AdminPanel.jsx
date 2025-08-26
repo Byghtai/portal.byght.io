@@ -55,6 +55,7 @@ const AdminPanel = () => {
   const [editingCompany, setEditingCompany] = useState({});
   const [editingUsernameValue, setEditingUsernameValue] = useState({});
   const [editingCompanyValue, setEditingCompanyValue] = useState({});
+  const [migrating, setMigrating] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordModalUserId, setPasswordModalUserId] = useState(null);
   const [newPassword, setNewPassword] = useState('');
@@ -569,6 +570,39 @@ const AdminPanel = () => {
     }
   };
 
+  const handleMigrateCustomerColumn = async () => {
+    if (!confirm('This will add the customer column to the database if it doesn\'t exist. Continue?')) {
+      return;
+    }
+    
+    setMigrating(true);
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-migrate-customer-column', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        alert('Migration completed: ' + result.message);
+        // Refresh users to see if customer field is now working
+        await fetchUsers();
+      } else {
+        const error = await response.json();
+        alert('Migration failed: ' + error.error);
+      }
+    } catch (error) {
+      console.error('Migration error:', error);
+      alert('Migration failed: ' + error.message);
+    } finally {
+      setMigrating(false);
+    }
+  };
+
   const validatePassword = (password) => {
     if (!password || password.length < 12) {
       return { isValid: false, message: 'Password must be at least 12 characters long' };
@@ -904,6 +938,14 @@ const AdminPanel = () => {
                 <span>Back</span>
               </button>
               <h1 className="text-xl font-semibold text-byght-gray">Admin Panel</h1>
+              <button
+                onClick={handleMigrateCustomerColumn}
+                disabled={migrating}
+                className="ml-4 px-3 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50"
+                title="Fix customer column database issue"
+              >
+                {migrating ? 'Migrating...' : 'Fix Customer Column'}
+              </button>
             </div>
             <button
               onClick={() => {

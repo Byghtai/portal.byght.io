@@ -16,7 +16,9 @@ export default async (req, context) => {
 
   try {
     // Initialize database (creates tables if not present)
+    console.log('Initializing database on login...');
     await initDatabase();
+    console.log('Database initialization completed');
 
     const { username, password } = await req.json();
 

@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { getAllUsers } from './db.js';
+import { getAllUsers, initDatabase } from './db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -42,6 +42,9 @@ export default async (req, context) => {
       });
     }
 
+    // Initialize database first to ensure all columns exist
+    await initDatabase();
+    
     // Alle Benutzer aus der Datenbank abrufen
     const users = await getAllUsers();
 
