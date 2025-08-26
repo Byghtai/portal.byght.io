@@ -35,7 +35,7 @@ const AdminPanel = () => {
     customer: '',
     expiryDate: new Date(Date.now() + 4 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 4 weeks from today
   });
-  const [showNewUserForm, setShowNewUserForm] = useState(false);
+  const [showNewUserModal, setShowNewUserModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
   // States for user-file assignment management
@@ -55,10 +55,11 @@ const AdminPanel = () => {
   // New states for inline editing
   const [editingUsername, setEditingUsername] = useState({});
   const [editingCompany, setEditingCompany] = useState({});
+  const [editingUsernameValue, setEditingUsernameValue] = useState({});
+  const [editingCompanyValue, setEditingCompanyValue] = useState({});
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordModalUserId, setPasswordModalUserId] = useState(null);
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [updatingUser, setUpdatingUser] = useState({});
@@ -445,7 +446,7 @@ const AdminPanel = () => {
           customer: '',
           expiryDate: new Date(Date.now() + 4 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         });
-        setShowNewUserForm(false);
+        setShowNewUserModal(false);
         fetchUsers();
       } else {
         const error = await response.json();
@@ -552,6 +553,11 @@ const AdminPanel = () => {
   };
 
   const handleUpdateUsername = async (userId, newUsername) => {
+    if (!newUsername || newUsername.trim() === '') {
+      alert('Username cannot be empty');
+      return;
+    }
+    
     setUpdatingUser({ ...updatingUser, [userId]: true });
     try {
       const token = Cookies.get('auth_token');
@@ -563,13 +569,14 @@ const AdminPanel = () => {
         },
         body: JSON.stringify({
           userId,
-          username: newUsername,
+          username: newUsername.trim(),
         }),
       });
 
       if (response.ok) {
         setEditingUsername({ ...editingUsername, [userId]: false });
         await fetchUsers();
+        alert('Username successfully updated');
       } else {
         const error = await response.json();
         alert('Error updating username: ' + error.error);
@@ -593,13 +600,14 @@ const AdminPanel = () => {
         },
         body: JSON.stringify({
           userId,
-          customer: newCompany,
+          customer: newCompany.trim(),
         }),
       });
 
       if (response.ok) {
         setEditingCompany({ ...editingCompany, [userId]: false });
         await fetchUsers();
+        alert('Company successfully updated');
       } else {
         const error = await response.json();
         alert('Error updating company: ' + error.error);
@@ -638,11 +646,6 @@ const AdminPanel = () => {
   };
 
   const handlePasswordReset = async () => {
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match');
-      return;
-    }
-
     const validation = validatePassword(newPassword);
     if (!validation.isValid) {
       setPasswordError(validation.message);
@@ -666,7 +669,6 @@ const AdminPanel = () => {
       if (response.ok) {
         setShowPasswordModal(false);
         setNewPassword('');
-        setConfirmPassword('');
         setPasswordError('');
         alert('Password successfully updated');
       } else {
@@ -682,7 +684,6 @@ const AdminPanel = () => {
     setPasswordModalUserId(userId);
     setShowPasswordModal(true);
     setNewPassword('');
-    setConfirmPassword('');
     setPasswordError('');
   };
 
@@ -1305,115 +1306,18 @@ const AdminPanel = () => {
           <TestUpload />
         ) : (
           <div className="space-y-6">
-            {/* User Creation Form */}
+            {/* User Creation Button */}
             <div className="card">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-byght-gray">Create New User</h2>
+                <h2 className="text-xl font-semibold text-byght-gray">Manage Users</h2>
                 <button
-                  onClick={() => setShowNewUserForm(!showNewUserForm)}
+                  onClick={() => setShowNewUserModal(true)}
                   className="btn-secondary"
                 >
-                  {showNewUserForm ? <X size={18} /> : <Plus size={18} />}
+                  <Plus size={18} />
+                  <span className="ml-2">Create New User</span>
                 </button>
               </div>
-              
-              {showNewUserForm && (
-                <form onSubmit={handleCreateUser} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      value={newUser.username}
-                      onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                      className="input-field"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={newUser.password}
-                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                        className="input-field pr-10"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                    <div className="mt-1">
-                      <p className="text-xs text-gray-600">Requirements:</p>
-                      <ul className="text-xs text-gray-500 mt-1 space-y-0.5">
-                        <li className={`${newUser.password.length >= 12 ? 'text-green-600' : ''}`}>
-                          • At least 12 characters
-                        </li>
-                        <li className={`${newUser.password && (/[A-Z]/.test(newUser.password) + /[a-z]/.test(newUser.password) + /\d/.test(newUser.password) + /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newUser.password)) >= 3 ? 'text-green-600' : ''}`}>
-                          • At least 3 of: uppercase, lowercase, numbers, special characters
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Customer (optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={newUser.customer}
-                      onChange={(e) => setNewUser({ ...newUser, customer: e.target.value })}
-                      className="input-field"
-                      placeholder="Customer name"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="isAdmin"
-                      checked={newUser.isAdmin}
-                      onChange={(e) => setNewUser({ ...newUser, isAdmin: e.target.checked })}
-                      className="h-4 w-4 text-byght-turquoise focus:ring-byght-turquoise border-gray-300 rounded"
-                    />
-                    <label htmlFor="isAdmin" className="ml-2 text-sm text-byght-gray">
-                      Administrator rights
-                    </label>
-                  </div>
-                  
-                  {!newUser.isAdmin && (
-                    <div>
-                      <label className="block text-sm font-medium text-byght-gray mb-1">
-                        Expiry date (Standard user)
-                      </label>
-                      <input
-                        type="date"
-                        value={newUser.expiryDate}
-                        onChange={(e) => setNewUser({ ...newUser, expiryDate: e.target.value })}
-                        className="input-field"
-                        min={new Date().toISOString().split('T')[0]}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Standard users can only log in until this date
-                      </p>
-                    </div>
-                  )}
-                  
-                  <button type="submit" className="btn-primary w-full sm:w-auto">
-                    Create User
-                  </button>
-                </form>
-              )}
             </div>
 
             {/* Users List */}
@@ -1489,18 +1393,19 @@ const AdminPanel = () => {
                               <div className="flex items-center space-x-1">
                                 <input
                                   type="text"
-                                  defaultValue={user.username}
+                                  value={editingUsernameValue[user.id] || user.username}
+                                  onChange={(e) => setEditingUsernameValue({ ...editingUsernameValue, [user.id]: e.target.value })}
                                   className="text-sm border border-gray-300 rounded px-2 py-1 w-32"
-                                  data-username-id={user.id}
                                   autoFocus
                                 />
                                 <button
                                   onClick={() => {
-                                    const input = document.querySelector(`input[data-username-id="${user.id}"]`);
-                                    if (input && input.value && input.value !== user.username) {
-                                      handleUpdateUsername(user.id, input.value);
+                                    const newValue = editingUsernameValue[user.id] || user.username;
+                                    if (newValue && newValue.trim() !== user.username) {
+                                      handleUpdateUsername(user.id, newValue);
                                     } else {
                                       setEditingUsername({ ...editingUsername, [user.id]: false });
+                                      setEditingUsernameValue({ ...editingUsernameValue, [user.id]: '' });
                                     }
                                   }}
                                   disabled={updatingUser[user.id]}
@@ -1510,7 +1415,10 @@ const AdminPanel = () => {
                                   <Check size={14} />
                                 </button>
                                 <button
-                                  onClick={() => setEditingUsername({ ...editingUsername, [user.id]: false })}
+                                  onClick={() => {
+                                    setEditingUsername({ ...editingUsername, [user.id]: false });
+                                    setEditingUsernameValue({ ...editingUsernameValue, [user.id]: '' });
+                                  }}
                                   className="text-gray-500 hover:text-gray-700"
                                   title="Cancel"
                                 >
@@ -1521,7 +1429,10 @@ const AdminPanel = () => {
                               <div className="flex items-center space-x-2">
                                 <span className="text-sm font-medium text-byght-gray">{user.username}</span>
                                 <button
-                                  onClick={() => setEditingUsername({ ...editingUsername, [user.id]: true })}
+                                  onClick={() => {
+                                    setEditingUsername({ ...editingUsername, [user.id]: true });
+                                    setEditingUsernameValue({ ...editingUsernameValue, [user.id]: user.username });
+                                  }}
                                   className="text-gray-400 hover:text-byght-turquoise opacity-0 group-hover:opacity-100 transition-opacity"
                                   title="Edit username"
                                 >
@@ -1536,16 +1447,19 @@ const AdminPanel = () => {
                               <div className="flex items-center space-x-1">
                                 <input
                                   type="text"
-                                  defaultValue={user.customer || ''}
+                                  value={editingCompanyValue[user.id] || user.customer || ''}
+                                  onChange={(e) => setEditingCompanyValue({ ...editingCompanyValue, [user.id]: e.target.value })}
                                   className="text-sm border border-gray-300 rounded px-2 py-1 w-32"
-                                  data-company-id={user.id}
                                   autoFocus
                                 />
                                 <button
                                   onClick={() => {
-                                    const input = document.querySelector(`input[data-company-id="${user.id}"]`);
-                                    if (input) {
-                                      handleUpdateCompany(user.id, input.value);
+                                    const newValue = editingCompanyValue[user.id] || user.customer || '';
+                                    if (newValue.trim() !== (user.customer || '')) {
+                                      handleUpdateCompany(user.id, newValue);
+                                    } else {
+                                      setEditingCompany({ ...editingCompany, [user.id]: false });
+                                      setEditingCompanyValue({ ...editingCompanyValue, [user.id]: '' });
                                     }
                                   }}
                                   disabled={updatingUser[user.id]}
@@ -1555,7 +1469,10 @@ const AdminPanel = () => {
                                   <Check size={14} />
                                 </button>
                                 <button
-                                  onClick={() => setEditingCompany({ ...editingCompany, [user.id]: false })}
+                                  onClick={() => {
+                                    setEditingCompany({ ...editingCompany, [user.id]: false });
+                                    setEditingCompanyValue({ ...editingCompanyValue, [user.id]: '' });
+                                  }}
                                   className="text-gray-500 hover:text-gray-700"
                                   title="Cancel"
                                 >
@@ -1566,7 +1483,10 @@ const AdminPanel = () => {
                               <div className="flex items-center space-x-2">
                                 <span className="text-sm text-gray-600">{user.customer || '-'}</span>
                                 <button
-                                  onClick={() => setEditingCompany({ ...editingCompany, [user.id]: true })}
+                                  onClick={() => {
+                                    setEditingCompany({ ...editingCompany, [user.id]: true });
+                                    setEditingCompanyValue({ ...editingCompanyValue, [user.id]: user.customer || '' });
+                                  }}
                                   className="text-gray-400 hover:text-byght-turquoise opacity-0 group-hover:opacity-100 transition-opacity"
                                   title="Edit company"
                                 >
@@ -1884,7 +1804,6 @@ const AdminPanel = () => {
                     onClick={() => {
                       setShowPasswordModal(false);
                       setNewPassword('');
-                      setConfirmPassword('');
                       setPasswordError('');
                     }}
                     className="text-gray-400 hover:text-gray-600"
@@ -1925,21 +1844,7 @@ const AdminPanel = () => {
                     </div>
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Confirm Password
-                    </label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => {
-                        setConfirmPassword(e.target.value);
-                        setPasswordError('');
-                      }}
-                      className="input-field"
-                      placeholder="Confirm new password"
-                    />
-                  </div>
+
                   
                   <div className="mt-2">
                     <p className="text-xs text-gray-600 font-medium">Password Requirements:</p>
@@ -1950,9 +1855,7 @@ const AdminPanel = () => {
                       <li className={`${newPassword && (/[A-Z]/.test(newPassword) + /[a-z]/.test(newPassword) + /\d/.test(newPassword) + /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) >= 3 ? 'text-green-600' : ''}`}>
                         • At least 3 of: uppercase, lowercase, numbers, special characters
                       </li>
-                      <li className={`${newPassword && confirmPassword && newPassword === confirmPassword ? 'text-green-600' : ''}`}>
-                        • Passwords match
-                      </li>
+
                     </ul>
                   </div>
                 </div>
@@ -1962,7 +1865,6 @@ const AdminPanel = () => {
                     onClick={() => {
                       setShowPasswordModal(false);
                       setNewPassword('');
-                      setConfirmPassword('');
                       setPasswordError('');
                     }}
                     className="btn-secondary"
@@ -2111,6 +2013,150 @@ const AdminPanel = () => {
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create New User Modal */}
+        {showNewUserModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-byght-gray">
+                    Create New User
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowNewUserModal(false);
+                      setNewUser({ 
+                        username: '', 
+                        password: '', 
+                        isAdmin: false,
+                        customer: '',
+                        expiryDate: new Date(Date.now() + 4 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                      });
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <form onSubmit={handleCreateUser} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.username}
+                      onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                      className="input-field"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={newUser.password}
+                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                        className="input-field pr-10"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    <div className="mt-1">
+                      <p className="text-xs text-gray-600">Requirements:</p>
+                      <ul className="text-xs text-gray-500 mt-1 space-y-0.5">
+                        <li className={`${newUser.password.length >= 12 ? 'text-green-600' : ''}`}>
+                          • At least 12 characters
+                        </li>
+                        <li className={`${newUser.password && (/[A-Z]/.test(newUser.password) + /[a-z]/.test(newUser.password) + /\d/.test(newUser.password) + /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newUser.password)) >= 3 ? 'text-green-600' : ''}`}>
+                          • At least 3 of: uppercase, lowercase, numbers, special characters
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Customer (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.customer}
+                      onChange={(e) => setNewUser({ ...newUser, customer: e.target.value })}
+                      className="input-field"
+                      placeholder="Customer name"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="isAdmin"
+                      checked={newUser.isAdmin}
+                      onChange={(e) => setNewUser({ ...newUser, isAdmin: e.target.checked })}
+                      className="h-4 w-4 text-byght-turquoise focus:ring-byght-turquoise border-gray-300 rounded"
+                    />
+                    <label htmlFor="isAdmin" className="ml-2 text-sm text-byght-gray">
+                      Administrator rights
+                    </label>
+                  </div>
+                  
+                  {!newUser.isAdmin && (
+                    <div>
+                      <label className="block text-sm font-medium text-byght-gray mb-1">
+                        Expiry date (Standard user)
+                      </label>
+                      <input
+                        type="date"
+                        value={newUser.expiryDate}
+                        onChange={(e) => setNewUser({ ...newUser, expiryDate: e.target.value })}
+                        className="input-field"
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Standard users can only log in until this date
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-end gap-2 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowNewUserModal(false);
+                        setNewUser({ 
+                          username: '', 
+                          password: '', 
+                          isAdmin: false,
+                          customer: '',
+                          expiryDate: new Date(Date.now() + 4 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                        });
+                      }}
+                      className="btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn-primary">
+                      Create User
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>
