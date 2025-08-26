@@ -15,38 +15,38 @@ export default async (req, context) => {
   }
 
   try {
-    // Datenbank initialisieren (erstellt Tabellen falls nicht vorhanden)
+    // Initialize database (creates tables if not present)
     await initDatabase();
 
     const { username, password } = await req.json();
 
-    // Benutzer in der Datenbank suchen
+    // Search for user in database
     const user = await findUserByUsername(username);
     if (!user) {
-      return new Response(JSON.stringify({ error: 'Ungültige Anmeldedaten' }), {
+      return new Response(JSON.stringify({ error: 'Invalid login credentials' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Passwort verifizieren
+    // Verify password
     const bcrypt = await import('bcryptjs');
     const isValidPassword = await bcrypt.default.compare(password, user.password_hash);
     if (!isValidPassword) {
-      return new Response(JSON.stringify({ error: 'Ungültige Anmeldedaten' }), {
+      return new Response(JSON.stringify({ error: 'Invalid login credentials' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Ablaufdatum für Standard-Benutzer prüfen
+    // Check expiry date for standard users
     if (!user.isAdmin && user.expiry_date) {
       const today = new Date();
       const expiryDate = new Date(user.expiry_date);
       
       if (today > expiryDate) {
         return new Response(JSON.stringify({ 
-          error: 'Ihr Benutzerkonto ist abgelaufen. Bitte kontaktieren Sie den Administrator.' 
+          error: 'Your user account has expired. Please contact the administrator.' 
         }), {
           status: 403,
           headers: { 'Content-Type': 'application/json' }
@@ -54,7 +54,7 @@ export default async (req, context) => {
       }
     }
 
-    // JWT Token generieren
+    // Generate JWT token
     const token = jwt.sign(
       { 
         userId: user.id, 

@@ -13,6 +13,11 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Filter states
+  const [filterProduct, setFilterProduct] = useState('');
+  const [filterVersion, setFilterVersion] = useState('');
+  const [filterLanguage, setFilterLanguage] = useState('');
 
   useEffect(() => {
     fetchUserFiles();
@@ -28,7 +33,7 @@ const Dashboard = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Fehler beim Abrufen der Dateien');
+        throw new Error('Error fetching files');
       }
 
       const data = await response.json();
@@ -50,7 +55,7 @@ const Dashboard = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Download fehlgeschlagen');
+        throw new Error('Download failed');
       }
 
       const blob = await response.blob();
@@ -63,7 +68,7 @@ const Dashboard = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      alert('Fehler beim Download: ' + error.message);
+      alert('Error downloading: ' + error.message);
     }
   };
 
@@ -82,7 +87,7 @@ const Dashboard = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('de-DE', {
+    return date.toLocaleDateString('en-US', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -91,10 +96,22 @@ const Dashboard = () => {
     });
   };
 
-  const filteredFiles = files.filter(file =>
-    file.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (file.description && file.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredFiles = files.filter(file => {
+    const matchesSearch = !searchTerm || 
+      file.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (file.description && file.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesProduct = !filterProduct || file.productLabel === filterProduct;
+    const matchesVersion = !filterVersion || file.versionLabel === filterVersion;
+    const matchesLanguage = !filterLanguage || file.languageLabel === filterLanguage;
+    
+    return matchesSearch && matchesProduct && matchesVersion && matchesLanguage;
+  });
+
+  // Get unique values for filter dropdowns
+  const uniqueProducts = [...new Set(files.map(f => f.productLabel).filter(Boolean))];
+  const uniqueVersions = [...new Set(files.map(f => f.versionLabel).filter(Boolean))];
+  const uniqueLanguages = [...new Set(files.map(f => f.languageLabel).filter(Boolean))];
 
   return (
     <div className="min-h-screen bg-byght-lightgray">
@@ -129,7 +146,7 @@ const Dashboard = () => {
                 className="flex items-center gap-2 text-byght-gray hover:text-red-500 transition-colors"
               >
                 <LogOut size={18} />
-                <span>Abmelden</span>
+                <span>Logout</span>
               </button>
             </div>
 
@@ -172,7 +189,7 @@ const Dashboard = () => {
                   className="flex items-center gap-2 text-byght-gray hover:text-red-500 transition-colors py-2"
                 >
                   <LogOut size={18} />
-                  Abmelden
+                  Logout
                 </button>
               </div>
             </div>
@@ -183,25 +200,107 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
         <div className="mb-6">
-          <h2 className="text-2xl font-semibold text-byght-gray mb-2">Ihre Dateien</h2>
-          <p className="text-gray-600">Hier finden Sie alle für Sie freigegebenen Dateien.</p>
+          <h2 className="text-2xl font-semibold text-byght-gray mb-2">Your Files</h2>
+          <p className="text-gray-600">
+            Here you will find all files that have been made available to you.
+            {files.length > 0 && (
+              <span className="ml-2 text-sm text-gray-500">
+                ({filteredFiles.length} of {files.length} files)
+              </span>
+            )}
+          </p>
         </div>
 
-        {/* Search Bar */}
+        {/* Search and Filter Bar */}
         {files.length > 0 && (
-          <div className="mb-6">
+          <div className="mb-6 space-y-4">
             <div className="relative max-w-md">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-gray-400" />
               </div>
               <input
                 type="text"
-                placeholder="Dateien durchsuchen..."
+                placeholder="Search files..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="input-field pl-10"
               />
             </div>
+
+            {/* Filter Section */}
+            {(uniqueProducts.length > 0 || uniqueVersions.length > 0 || uniqueLanguages.length > 0) && (
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {uniqueProducts.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Produkt
+                      </label>
+                      <select
+                        value={filterProduct}
+                        onChange={(e) => setFilterProduct(e.target.value)}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                      >
+                        <option value="">Alle Produkte</option>
+                        {uniqueProducts.map(product => (
+                          <option key={product} value={product}>{product}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {uniqueVersions.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Version
+                      </label>
+                      <select
+                        value={filterVersion}
+                        onChange={(e) => setFilterVersion(e.target.value)}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                      >
+                        <option value="">Alle Versionen</option>
+                        {uniqueVersions.map(version => (
+                          <option key={version} value={version}>{version}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {uniqueLanguages.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Sprache
+                      </label>
+                      <select
+                        value={filterLanguage}
+                        onChange={(e) => setFilterLanguage(e.target.value)}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                      >
+                        <option value="">Alle Sprachen</option>
+                        {uniqueLanguages.map(language => (
+                          <option key={language} value={language}>{language}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="flex items-end">
+                    <button
+                      onClick={() => {
+                        setSearchTerm('');
+                        setFilterProduct('');
+                        setFilterVersion('');
+                        setFilterLanguage('');
+                      }}
+                      className="w-full px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
+                    >
+                      Filter zurücksetzen
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -209,7 +308,7 @@ const Dashboard = () => {
           <div className="flex justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-byght-turquoise mx-auto mb-4"></div>
-              <p className="text-gray-600">Lade Dateien...</p>
+              <p className="text-gray-600">Loading files...</p>
             </div>
           </div>
         ) : error ? (
@@ -219,14 +318,19 @@ const Dashboard = () => {
               <span>{error}</span>
             </div>
           </div>
-        ) : files.length === 0 ? (
+        ) : filteredFiles.length === 0 ? (
           <div className="card text-center py-12">
             <div className="w-16 h-16 bg-byght-turquoise/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <Folder className="h-8 w-8 text-byght-turquoise" />
             </div>
-            <h3 className="text-xl font-semibold text-byght-gray mb-2">Keine Dateien verfügbar</h3>
+            <h3 className="text-xl font-semibold text-byght-gray mb-2">
+              {files.length === 0 ? 'No files available' : 'No files match the current filters'}
+            </h3>
             <p className="text-gray-600">
-              Sobald Dateien für Sie freigegeben werden, erscheinen diese hier.
+              {files.length === 0 
+                ? 'Once files are made available to you, they will appear here.'
+                : 'Try adjusting your search or filter criteria.'
+              }
             </p>
           </div>
         ) : (
@@ -236,19 +340,22 @@ const Dashboard = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Dateiname
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                      Größe
+                      Filename
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                      Hochgeladen
+                      Labels
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                      Size
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">
-                      Beschreibung
+                      Uploaded
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden 2xl:table-cell">
+                      Description
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Aktionen
+                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -268,19 +375,38 @@ const Dashboard = () => {
                           </div>
                         </div>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {file.productLabel && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              {file.productLabel}
+                            </span>
+                          )}
+                          {file.versionLabel && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              v{file.versionLabel}
+                            </span>
+                          )}
+                          {file.languageLabel && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                              {file.languageLabel}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
                         <div className="flex items-center text-sm text-gray-600">
                           <HardDrive className="h-4 w-4 text-gray-400 mr-2" />
                           {formatFileSize(file.size)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                      <td className="px-6 py-4 whitespace-nowrap hidden xl:table-cell">
                         <div className="flex items-center text-sm text-gray-600">
                           <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                           {formatDate(file.uploadedAt)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 hidden xl:table-cell">
+                      <td className="px-6 py-4 hidden 2xl:table-cell">
                         <span className="text-sm text-gray-600">{file.description || '-'}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">

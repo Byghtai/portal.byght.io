@@ -28,7 +28,7 @@ export async function initDatabase() {
       await client.query('SELECT expiry_date FROM users LIMIT 1');
     } catch (error) {
       if (error.message.includes('column "expiry_date" does not exist')) {
-        console.log('Füge expiry_date Spalte zur users Tabelle hinzu...');
+        console.log('Adding expiry_date column to users table...');
         await client.query('ALTER TABLE users ADD COLUMN expiry_date DATE');
       } else {
         throw error;
@@ -45,9 +45,26 @@ export async function initDatabase() {
         description TEXT,
         blob_key VARCHAR(255) NOT NULL,
         uploaded_by INTEGER REFERENCES users(id),
-        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        product_label VARCHAR(50),
+        version_label VARCHAR(20),
+        language_label VARCHAR(20)
       )
     `);
+
+    // Prüfen ob Label-Spalten existieren und hinzufügen falls nicht
+    try {
+      await client.query('SELECT product_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "product_label" does not exist')) {
+        console.log('Adding label columns to files table...');
+        await client.query('ALTER TABLE files ADD COLUMN product_label VARCHAR(50)');
+        await client.query('ALTER TABLE files ADD COLUMN version_label VARCHAR(20)');
+        await client.query('ALTER TABLE files ADD COLUMN language_label VARCHAR(20)');
+      } else {
+        throw error;
+      }
+    }
 
     // File-User-Zuordnungstabelle erstellen
     await client.query(`
@@ -67,7 +84,7 @@ export async function initDatabase() {
     `);
 
   } catch (error) {
-    console.error('Datenbank-Initialisierung fehlgeschlagen:', error);
+    console.error('Database initialization failed:', error);
     throw error;
   } finally {
     client.release();
@@ -87,12 +104,12 @@ export async function createAdminUserIfNotExists() {
         'INSERT INTO users (username, password_hash, is_admin) VALUES ($1, $2, $3)',
         ['admin', hashedPassword, true]
       );
-      console.log('Standard-Admin-Benutzer erstellt');
+      console.log('Default admin user created');
       return true;
     }
     return false;
   } catch (error) {
-    console.error('Fehler beim Erstellen des Admin-Users:', error);
+    console.error('Error creating admin user:', error);
     throw error;
   } finally {
     client.release();
@@ -307,13 +324,13 @@ export async function updateUserExpiryDate(userId, expiryDate) {
 }
 
 // Datei-Metadaten speichern
-export async function saveFileMetadata(filename, fileSize, mimeType, description, blobKey, uploadedBy) {
+export async function saveFileMetadata(filename, fileSize, mimeType, description, blobKey, uploadedBy, productLabel = null, versionLabel = null, languageLabel = null) {
   const client = await pool.connect();
   try {
     const result = await client.query(
-      `INSERT INTO files (filename, file_size, mime_type, description, blob_key, uploaded_by) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [filename, fileSize, mimeType, description, blobKey, uploadedBy]
+      `INSERT INTO files (filename, file_size, mime_type, description, blob_key, uploaded_by, product_label, version_label, language_label) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+      [filename, fileSize, mimeType, description, blobKey, uploadedBy, productLabel, versionLabel, languageLabel]
     );
     return result.rows[0].id;
   } finally {
@@ -343,11 +360,12 @@ export async function getAllFiles() {
     const result = await client.query(`
       SELECT f.id, f.filename, f.file_size as size, f.mime_type as mimeType, 
              f.description, f.uploaded_at as uploadedAt, f.blob_key as blobKey,
+             f.product_label as productLabel, f.version_label as versionLabel, f.language_label as languageLabel,
              array_agg(u.username) as assigned_users
       FROM files f
       LEFT JOIN file_user_assignments fua ON f.id = fua.file_id
       LEFT JOIN users u ON fua.user_id = u.id
-      GROUP BY f.id, f.filename, f.file_size, f.mime_type, f.description, f.uploaded_at, f.blob_key
+      GROUP BY f.id, f.filename, f.file_size, f.mime_type, f.description, f.uploaded_at, f.blob_key, f.product_label, f.version_label, f.language_label
       ORDER BY f.uploaded_at DESC
     `);
     return result.rows.map(row => ({
@@ -490,7 +508,8 @@ export async function getFilesForUser(userId) {
       // Admins bekommen alle Dateien
       const result = await client.query(`
         SELECT f.id, f.filename, f.file_size as size, f.mime_type as mimeType, 
-               f.description, f.uploaded_at as uploadedAt, f.blob_key as blobKey
+               f.description, f.uploaded_at as uploadedAt, f.blob_key as blobKey,
+               f.product_label as productLabel, f.version_label as versionLabel, f.language_label as languageLabel
         FROM files f
         ORDER BY f.uploaded_at DESC
       `);
@@ -502,7 +521,8 @@ export async function getFilesForUser(userId) {
       // Standard-Benutzer bekommen nur zugewiesene Dateien
       const result = await client.query(`
         SELECT f.id, f.filename, f.file_size as size, f.mime_type as mimeType, 
-               f.description, f.uploaded_at as uploadedAt, f.blob_key as blobKey
+               f.description, f.uploaded_at as uploadedAt, f.blob_key as blobKey,
+               f.product_label as productLabel, f.version_label as versionLabel, f.language_label as languageLabel
         FROM files f
         INNER JOIN file_user_assignments fua ON f.id = fua.file_id
         WHERE fua.user_id = $1

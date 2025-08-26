@@ -47,35 +47,35 @@ export default async (req, context) => {
     const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
     
     try {
-      console.log('Starte Bereinigung von Waisen-Dateien...');
+      console.log('Starting cleanup of orphaned files...');
       
-      // Alle Blob-Keys aus dem Blob Storage abrufen
+      // Get all blob keys from blob storage
       const blobs = await filesStore.list();
       const blobKeys = blobs.blobs.map(blob => blob.key);
-      console.log(`Gefundene Blobs: ${blobKeys.length}`);
+      console.log(`Found blobs: ${blobKeys.length}`);
       
-      // Alle Blob-Keys aus der Datenbank abrufen
+      // Get all blob keys from database
       const result = await client.query('SELECT blob_key FROM files');
       const dbBlobKeys = result.rows.map(row => row.blob_key);
-      console.log(`Gefundene DB-Einträge: ${dbBlobKeys.length}`);
+      console.log(`Found DB entries: ${dbBlobKeys.length}`);
       
-      // Waisen-Dateien finden (Blob-Keys, die nicht in der DB sind)
+      // Find orphaned files (blob keys that are not in the DB)
       const orphanedBlobKeys = blobKeys.filter(key => !dbBlobKeys.includes(key));
-      console.log(`Gefundene Waisen-Dateien: ${orphanedBlobKeys.length}`);
+      console.log(`Found orphaned files: ${orphanedBlobKeys.length}`);
       
       let deletedCount = 0;
       const errors = [];
       const deletedBlobs = [];
       
-      // Waisen-Dateien aus dem Blob Storage löschen
+      // Delete orphaned files from blob storage
       for (const blobKey of orphanedBlobKeys) {
         try {
-          console.log(`Versuche Waisen-Datei zu löschen: ${blobKey}`);
+          console.log(`Attempting to delete orphaned file: ${blobKey}`);
           
-          // Blob löschen
+          // Delete blob
           await filesStore.delete(blobKey);
           
-          // Kurz warten und prüfen ob wirklich gelöscht
+          // Wait briefly and check if really deleted
           await new Promise(resolve => setTimeout(resolve, 50));
           
           let stillExists = false;
@@ -83,48 +83,48 @@ export default async (req, context) => {
             const checkBlob = await filesStore.get(blobKey);
             stillExists = !!checkBlob;
           } catch (e) {
-            // Blob nicht gefunden = erfolgreich gelöscht
+            // Blob not found = successfully deleted
             stillExists = false;
           }
           
           if (!stillExists) {
             deletedCount++;
             deletedBlobs.push(blobKey);
-            console.log(`Waisen-Datei erfolgreich gelöscht: ${blobKey}`);
+            console.log(`Orphaned file successfully deleted: ${blobKey}`);
           } else {
-            // Zweiter Versuch
-            console.log(`Zweiter Löschversuch für: ${blobKey}`);
+            // Second attempt
+            console.log(`Second deletion attempt for: ${blobKey}`);
             await filesStore.delete(blobKey);
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            // Nochmal prüfen
+            // Check again
             try {
               const checkBlob2 = await filesStore.get(blobKey);
               if (!checkBlob2) {
                 deletedCount++;
                 deletedBlobs.push(blobKey);
-                console.log(`Waisen-Datei beim zweiten Versuch gelöscht: ${blobKey}`);
+                console.log(`Orphaned file deleted on second attempt: ${blobKey}`);
               } else {
-                errors.push({ blobKey, error: 'Blob konnte nicht gelöscht werden' });
-                console.error(`Waisen-Datei konnte nicht gelöscht werden: ${blobKey}`);
+                errors.push({ blobKey, error: 'Blob could not be deleted' });
+                console.error(`Orphaned file could not be deleted: ${blobKey}`);
               }
             } catch (e) {
               deletedCount++;
               deletedBlobs.push(blobKey);
-              console.log(`Waisen-Datei beim zweiten Versuch gelöscht: ${blobKey}`);
+              console.log(`Orphaned file deleted on second attempt: ${blobKey}`);
             }
           }
         } catch (error) {
-          console.error(`Fehler beim Löschen der Waisen-Datei ${blobKey}:`, error);
+          console.error(`Error deleting orphaned file ${blobKey}:`, error);
           errors.push({ blobKey, error: error.message });
         }
       }
       
-      console.log(`Bereinigung abgeschlossen. Gelöscht: ${deletedCount}/${orphanedBlobKeys.length}`);
+      console.log(`Cleanup completed. Deleted: ${deletedCount}/${orphanedBlobKeys.length}`);
       
       return new Response(JSON.stringify({ 
         success: true,
-        message: `Bereinigung abgeschlossen`,
+        message: `Cleanup completed`,
         summary: {
           totalBlobs: blobKeys.length,
           totalDbFiles: dbBlobKeys.length,

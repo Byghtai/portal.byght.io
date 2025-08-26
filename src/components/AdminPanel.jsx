@@ -26,18 +26,21 @@ const AdminPanel = () => {
   const [loading, setLoading] = useState(true);
   const [uploadFiles, setUploadFiles] = useState([]);
   const [description, setDescription] = useState('');
+  const [productLabel, setProductLabel] = useState('');
+  const [versionLabel, setVersionLabel] = useState('');
+  const [languageLabel, setLanguageLabel] = useState('');
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [newUser, setNewUser] = useState({ 
     username: '', 
     password: '', 
     isAdmin: false,
-    expiryDate: new Date(Date.now() + 4 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 4 Wochen ab heute
+    expiryDate: new Date(Date.now() + 4 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 4 weeks from today
   });
   const [showNewUserForm, setShowNewUserForm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  // States für Benutzer-Datei-Zuweisungsverwaltung
+  // States for user-file assignment management
   const [editingUser, setEditingUser] = useState(null);
   const [showEditUserFiles, setShowEditUserFiles] = useState(false);
   const [editSelectedFiles, setEditSelectedFiles] = useState([]);
@@ -48,6 +51,19 @@ const AdminPanel = () => {
   const [editingExpiryDate, setEditingExpiryDate] = useState({});
   const [updatingExpiryDate, setUpdatingExpiryDate] = useState({});
   const [cleaningUp, setCleaningUp] = useState(false);
+  
+  // File editing states
+  const [editingFile, setEditingFile] = useState(null);
+  const [showEditFileModal, setShowEditFileModal] = useState(false);
+  const [editFileLabels, setEditFileLabels] = useState({ productLabel: '', versionLabel: '', languageLabel: '' });
+  const [updatingFile, setUpdatingFile] = useState(false);
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterProduct, setFilterProduct] = useState('');
+  const [filterVersion, setFilterVersion] = useState('');
+  const [filterLanguage, setFilterLanguage] = useState('');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
 
 
   useEffect(() => {
@@ -87,7 +103,7 @@ const AdminPanel = () => {
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users || []);
-        // Lade Dateien für alle Benutzer
+        // Load files for all users
         await fetchAllUserFiles(data.users || []);
       }
     } catch (error) {
@@ -130,7 +146,7 @@ const AdminPanel = () => {
   const handleFileUpload = async (e) => {
     e.preventDefault();
     if (uploadFiles.length === 0) {
-      alert('Bitte wählen Sie mindestens eine Datei aus.');
+      alert('Please select at least one file.');
       return;
     }
 
@@ -140,6 +156,9 @@ const AdminPanel = () => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('description', description);
+      formData.append('productLabel', productLabel);
+      formData.append('versionLabel', versionLabel);
+      formData.append('languageLabel', languageLabel);
 
       try {
         const token = Cookies.get('auth_token');
@@ -153,15 +172,18 @@ const AdminPanel = () => {
 
         if (!response.ok) {
           const error = await response.json();
-          alert(`Fehler beim Hochladen von ${file.name}: ${error.error}`);
+          alert(`Error uploading ${file.name}: ${error.error}`);
         }
       } catch (error) {
-        alert(`Fehler beim Hochladen von ${file.name}: ${error.message}`);
+        alert(`Error uploading ${file.name}: ${error.message}`);
       }
     }
 
     setUploadFiles([]);
     setDescription('');
+    setProductLabel('');
+    setVersionLabel('');
+    setLanguageLabel('');
     setUploading(false);
     fetchFiles();
   };
@@ -193,7 +215,7 @@ const AdminPanel = () => {
   };
 
   const handleDeleteFile = async (fileId) => {
-    if (!confirm('Möchten Sie diese Datei wirklich löschen?')) return;
+    if (!confirm('Do you really want to delete this file?')) return;
     
     setDeletingFile(fileId);
     try {
@@ -209,40 +231,40 @@ const AdminPanel = () => {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Löschung erfolgreich:', result);
+        console.log('Deletion successful:', result);
         
-        // Debug-Informationen anzeigen
+        // Show debug information
         if (result.debugInfo) {
           console.log('Debug-Info:', {
-            'Blob existierte vorher': result.debugInfo.blobExistedBefore,
-            'Blob existiert nachher': result.debugInfo.blobExistsAfter,
-            'Blob wurde gelöscht': result.debugInfo.blobDeleted
+            'Blob existed before': result.debugInfo.blobExistedBefore,
+            'Blob exists after': result.debugInfo.blobExistsAfter,
+            'Blob was deleted': result.debugInfo.blobDeleted
           });
         }
         
-        // Erfolgs-Feedback anzeigen
+        // Show success feedback
         if (result.blobDeleted) {
-          console.log(`✅ Datei ${result.fileId} und Blob ${result.blobKey} wurden erfolgreich gelöscht`);
+          console.log(`✅ File ${result.fileId} and blob ${result.blobKey} were successfully deleted`);
         } else if (result.debugInfo?.blobExistedBefore) {
-          console.error(`⚠️ Datei ${result.fileId} wurde aus DB gelöscht, aber Blob ${result.blobKey} konnte nicht gelöscht werden!`);
+          console.error(`⚠️ File ${result.fileId} was deleted from DB, but blob ${result.blobKey} could not be deleted!`);
         } else {
-          console.warn(`ℹ️ Datei ${result.fileId} wurde aus DB gelöscht (kein Blob vorhanden)`);
+          console.warn(`ℹ️ File ${result.fileId} was deleted from DB (no blob present)`);
         }
         
         fetchFiles();
       } else {
         const error = await response.json();
-        alert('Fehler beim Löschen: ' + error.error);
+        alert('Error deleting: ' + error.error);
       }
     } catch (error) {
-      alert('Fehler beim Löschen: ' + error.message);
+      alert('Error deleting: ' + error.message);
     } finally {
       setDeletingFile(null);
     }
   };
 
   const handleCleanupOrphanedFiles = async () => {
-    if (!confirm('Möchten Sie wirklich alle Waisen-Dateien aus dem Blob Storage bereinigen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
+    if (!confirm('Do you really want to clean up all orphaned files from blob storage? This action cannot be undone.')) return;
     
     setCleaningUp(true);
     try {
@@ -257,13 +279,13 @@ const AdminPanel = () => {
 
       if (response.ok) {
         const result = await response.json();
-        alert(`Bereinigung abgeschlossen!\n\nGelöschte Dateien: ${result.deletedCount}\nWaisen-Dateien gefunden: ${result.totalOrphaned}${result.errors ? '\n\nFehler aufgetreten: ' + result.errors.length : ''}`);
+        alert(`Cleanup completed!\n\nDeleted files: ${result.deletedCount}\nOrphaned files found: ${result.totalOrphaned}${result.errors ? '\n\nErrors occurred: ' + result.errors.length : ''}`);
       } else {
         const error = await response.json();
-        alert('Fehler bei der Bereinigung: ' + error.error);
+        alert('Error during cleanup: ' + error.error);
       }
     } catch (error) {
-      alert('Fehler bei der Bereinigung: ' + error.message);
+      alert('Error during cleanup: ' + error.message);
     } finally {
       setCleaningUp(false);
     }
@@ -295,15 +317,15 @@ const AdminPanel = () => {
         fetchUsers();
       } else {
         const error = await response.json();
-        alert('Fehler beim Erstellen: ' + error.error);
+        alert('Error creating: ' + error.error);
       }
     } catch (error) {
-      alert('Fehler beim Erstellen: ' + error.message);
+      alert('Error creating: ' + error.message);
     }
   };
 
   const handleDeleteUser = async (userId, username) => {
-    if (!confirm(`Möchten Sie den Benutzer "${username}" wirklich löschen?`)) return;
+    if (!confirm(`Do you really want to delete user "${username}"?`)) return;
     
     try {
       const token = Cookies.get('auth_token');
@@ -320,10 +342,10 @@ const AdminPanel = () => {
         fetchUsers();
       } else {
         const error = await response.json();
-        alert('Fehler beim Löschen: ' + error.error);
+        alert('Error deleting: ' + error.error);
       }
     } catch (error) {
-      alert('Fehler beim Löschen: ' + error.message);
+      alert('Error deleting: ' + error.message);
     }
   };
 
@@ -352,15 +374,15 @@ const AdminPanel = () => {
       if (response.ok) {
         setShowEditUserFiles(false);
         setEditingUser(null);
-        // Aktualisiere die Benutzerliste
+        // Update user list
         await fetchUsers();
-        alert('Dateizuweisungen erfolgreich aktualisiert');
+        alert('File assignments successfully updated');
       } else {
         const error = await response.json();
-        alert('Fehler beim Aktualisieren: ' + error.error);
+        alert('Error updating: ' + error.error);
       }
     } catch (error) {
-      alert('Fehler beim Aktualisieren: ' + error.message);
+      alert('Error updating: ' + error.message);
     } finally {
       setUpdatingUserFiles(false);
     }
@@ -385,15 +407,59 @@ const AdminPanel = () => {
       if (response.ok) {
         setEditingExpiryDate({ ...editingExpiryDate, [userId]: false });
         await fetchUsers();
-        alert('Ablaufdatum erfolgreich aktualisiert');
+        alert('Expiry date successfully updated');
       } else {
         const error = await response.json();
-        alert('Fehler beim Aktualisieren: ' + error.error);
+        alert('Error updating: ' + error.error);
       }
     } catch (error) {
-      alert('Fehler beim Aktualisieren: ' + error.message);
+      alert('Error updating: ' + error.message);
     } finally {
       setUpdatingExpiryDate({ ...updatingExpiryDate, [userId]: false });
+    }
+  };
+
+  const handleEditFile = (file) => {
+    setEditingFile(file);
+    setEditFileLabels({
+      productLabel: file.productLabel || '',
+      versionLabel: file.versionLabel || '',
+      languageLabel: file.languageLabel || ''
+    });
+    setShowEditFileModal(true);
+  };
+
+  const handleUpdateFileLabels = async () => {
+    setUpdatingFile(true);
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-update-file-labels', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileId: editingFile.id,
+          productLabel: editFileLabels.productLabel || null,
+          versionLabel: editFileLabels.versionLabel || null,
+          languageLabel: editFileLabels.languageLabel || null,
+        }),
+      });
+
+      if (response.ok) {
+        setShowEditFileModal(false);
+        setEditingFile(null);
+        await fetchFiles();
+        alert('File labels successfully updated');
+      } else {
+        const error = await response.json();
+        alert('Error updating: ' + error.error);
+      }
+    } catch (error) {
+      alert('Error updating: ' + error.message);
+    } finally {
+      setUpdatingFile(false);
     }
   };
 
@@ -407,7 +473,7 @@ const AdminPanel = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('de-DE', {
+    return date.toLocaleDateString('en-US', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -417,9 +483,9 @@ const AdminPanel = () => {
   };
 
   const formatExpiryDate = (dateString) => {
-    if (!dateString) return 'Kein Ablaufdatum';
+    if (!dateString) return 'No expiry date';
     const date = new Date(dateString);
-    return date.toLocaleDateString('de-DE', {
+    return date.toLocaleDateString('en-US', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -430,6 +496,31 @@ const AdminPanel = () => {
     if (!expiryDate) return false;
     return new Date(expiryDate) < new Date();
   };
+
+  // Filter functions
+  const filteredFiles = files.filter(file => {
+    const matchesSearch = !searchTerm || 
+      file.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (file.description && file.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesProduct = !filterProduct || file.productLabel === filterProduct;
+    const matchesVersion = !filterVersion || file.versionLabel === filterVersion;
+    const matchesLanguage = !filterLanguage || file.languageLabel === filterLanguage;
+    
+    return matchesSearch && matchesProduct && matchesVersion && matchesLanguage;
+  });
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = !userSearchTerm || 
+      user.username.toLowerCase().includes(userSearchTerm.toLowerCase());
+    
+    return matchesSearch;
+  });
+
+  // Get unique values for filter dropdowns
+  const uniqueProducts = [...new Set(files.map(f => f.productLabel).filter(Boolean))];
+  const uniqueVersions = [...new Set(files.map(f => f.versionLabel).filter(Boolean))];
+  const uniqueLanguages = [...new Set(files.map(f => f.languageLabel).filter(Boolean))];
 
   const getDaysUntilExpiry = (expiryDate) => {
     if (!expiryDate) return null;
@@ -452,7 +543,7 @@ const AdminPanel = () => {
                 className="flex items-center gap-2 text-byght-gray hover:text-byght-turquoise transition-colors"
               >
                 <ArrowLeft size={18} />
-                <span>Zurück</span>
+                <span>Back</span>
               </button>
               <h1 className="text-xl font-semibold text-byght-gray">Admin Panel</h1>
             </div>
@@ -463,7 +554,7 @@ const AdminPanel = () => {
               }}
               className="text-byght-gray hover:text-red-500 transition-colors"
             >
-              Abmelden
+              Logout
             </button>
           </div>
         </div>
@@ -483,7 +574,7 @@ const AdminPanel = () => {
           >
             <div className="flex items-center gap-2">
               <FileText size={18} />
-              <span>Dateien</span>
+              <span>Files</span>
             </div>
           </button>
           <button
@@ -496,7 +587,7 @@ const AdminPanel = () => {
           >
             <div className="flex items-center gap-2">
               <Users size={18} />
-              <span>Benutzer</span>
+              <span>Users</span>
             </div>
           </button>
         </div>
@@ -505,14 +596,14 @@ const AdminPanel = () => {
           <div className="flex justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-byght-turquoise mx-auto mb-4"></div>
-              <p className="text-gray-600">Lade Daten...</p>
+              <p className="text-gray-600">Loading data...</p>
             </div>
           </div>
         ) : activeTab === 'files' ? (
           <div className="space-y-6">
             {/* File Upload Form */}
             <div className="card">
-              <h2 className="text-xl font-semibold text-byght-gray mb-4">Neue Datei hochladen</h2>
+              <h2 className="text-xl font-semibold text-byght-gray mb-4">Upload New File</h2>
               <form onSubmit={handleFileUpload} className="space-y-4">
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
@@ -535,15 +626,15 @@ const AdminPanel = () => {
                   <label htmlFor="file-upload" className="cursor-pointer">
                     <Upload className="mx-auto h-10 w-10 text-gray-400 mb-3" />
                     <p className="text-sm font-medium text-byght-gray mb-1">
-                      Dateien hier ablegen oder klicken zum Auswählen
+                      Drop files here or click to select
                     </p>
-                    <p className="text-xs text-gray-500">Mehrere Dateien möglich</p>
+                    <p className="text-xs text-gray-500">Multiple files possible</p>
                   </label>
                 </div>
 
                 {uploadFiles.length > 0 && (
                   <div className="mt-4 p-3 bg-byght-turquoise/10 rounded-lg border border-byght-turquoise/20">
-                    <p className="font-medium text-byght-turquoise mb-2 text-sm">Ausgewählte Dateien:</p>
+                    <p className="font-medium text-byght-turquoise mb-2 text-sm">Selected files:</p>
                     <ul className="space-y-1">
                       {uploadFiles.map((file, index) => (
                         <li key={index} className="text-sm text-gray-600">
@@ -556,15 +647,69 @@ const AdminPanel = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-byght-gray mb-1">
-                    Beschreibung (optional)
+                    Description (optional)
                   </label>
                   <input
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="input-field"
-                    placeholder="Kurze Beschreibung der Datei(en)"
+                    placeholder="Brief description of the file(s)"
                   />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Produkt (optional)
+                    </label>
+                    <select
+                      value={productLabel}
+                      onChange={(e) => setProductLabel(e.target.value)}
+                      className="input-field"
+                    >
+                      <option value="">Kein Produkt</option>
+                      <option value="IMS SmartKit">IMS SmartKit</option>
+                      <option value="ISMS SmartKit">ISMS SmartKit</option>
+                      <option value="DSMS SmartKit">DSMS SmartKit</option>
+                      <option value="Addon">Addon</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Version (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={versionLabel}
+                      onChange={(e) => {
+                        // Nur Zahlen und Punkte erlauben
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        setVersionLabel(value);
+                      }}
+                      className="input-field"
+                      placeholder="z.B. 1.2.3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Sprache (optional)
+                    </label>
+                    <select
+                      value={languageLabel}
+                      onChange={(e) => setLanguageLabel(e.target.value)}
+                      className="input-field"
+                    >
+                      <option value="">Keine Sprache</option>
+                      <option value="EN">EN</option>
+                      <option value="DE">DE</option>
+                      <option value="EN/DE">EN/DE</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
                 </div>
 
                 <button
@@ -572,7 +717,7 @@ const AdminPanel = () => {
                   disabled={uploading || uploadFiles.length === 0}
                   className="btn-primary w-full sm:w-auto"
                 >
-                  {uploading ? 'Lade hoch...' : 'Hochladen'}
+                  {uploading ? 'Uploading...' : 'Upload'}
                 </button>
               </form>
             </div>
@@ -580,49 +725,153 @@ const AdminPanel = () => {
             {/* Files List */}
             <div className="card">
               <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-semibold text-byght-gray">Hochgeladene Dateien</h2>
+                <h2 className="text-lg font-semibold text-byght-gray">Uploaded Files</h2>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-600">{files.length} Datei(en)</span>
+                  <span className="text-xs text-gray-600">{filteredFiles.length} of {files.length} file(s)</span>
                   <button
                     onClick={handleCleanupOrphanedFiles}
                     disabled={cleaningUp}
                     className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Waisen-Dateien aus Blob Storage bereinigen"
+                    title="Clean up orphaned files from blob storage"
                   >
-                    {cleaningUp ? 'Bereinige...' : 'Blob bereinigen'}
+                    {cleaningUp ? 'Cleaning...' : 'Clean blobs'}
                   </button>
                 </div>
               </div>
+
+              {/* Filter Section */}
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Suche
+                    </label>
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                      placeholder="Dateiname oder Beschreibung..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Produkt
+                    </label>
+                    <select
+                      value={filterProduct}
+                      onChange={(e) => setFilterProduct(e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                    >
+                      <option value="">Alle Produkte</option>
+                      {uniqueProducts.map(product => (
+                        <option key={product} value={product}>{product}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Version
+                    </label>
+                    <select
+                      value={filterVersion}
+                      onChange={(e) => setFilterVersion(e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                    >
+                      <option value="">Alle Versionen</option>
+                      {uniqueVersions.map(version => (
+                        <option key={version} value={version}>{version}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Sprache
+                    </label>
+                    <select
+                      value={filterLanguage}
+                      onChange={(e) => setFilterLanguage(e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                    >
+                      <option value="">Alle Sprachen</option>
+                      {uniqueLanguages.map(language => (
+                        <option key={language} value={language}>{language}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-end">
+                    <button
+                      onClick={() => {
+                        setSearchTerm('');
+                        setFilterProduct('');
+                        setFilterVersion('');
+                        setFilterLanguage('');
+                      }}
+                      className="w-full px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
+                    >
+                      Filter zurücksetzen
+                    </button>
+                  </div>
+                </div>
+              </div>
               
-              {files.length === 0 ? (
-                <p className="text-gray-600 text-center py-6">Keine Dateien vorhanden</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Dateiname
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                          Größe
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                          Datum
-                        </th>
-                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Aktionen
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {files.map((file) => (
+                              {filteredFiles.length === 0 ? (
+                  <p className="text-gray-600 text-center py-6">
+                    {files.length === 0 ? 'No files available' : 'No files match the current filters'}
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Filename
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                            Labels
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                            Size
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                            Date
+                          </th>
+                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredFiles.map((file) => (
                         <tr key={file.id} className="hover:bg-gray-50">
                           <td className="px-3 py-2 whitespace-nowrap">
                             <div className="text-xs font-medium text-byght-gray truncate max-w-xs">{file.filename}</div>
                             {file.description && (
                               <div className="text-xs text-gray-500 truncate max-w-xs">{file.description}</div>
                             )}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap hidden lg:table-cell">
+                            <div className="flex flex-wrap gap-1">
+                              {file.productLabel && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                  {file.productLabel}
+                                </span>
+                              )}
+                              {file.versionLabel && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                  v{file.versionLabel}
+                                </span>
+                              )}
+                              {file.languageLabel && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                  {file.languageLabel}
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap hidden sm:table-cell">
                             <span className="text-xs text-gray-600">{formatFileSize(file.size)}</span>
@@ -631,14 +880,23 @@ const AdminPanel = () => {
                             <span className="text-xs text-gray-600">{formatDate(file.uploadedAt)}</span>
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap text-right">
-                            <button
-                              onClick={() => handleDeleteFile(file.id)}
-                              disabled={deletingFile === file.id}
-                              className="text-red-500 hover:text-red-700 transition-colors p-1"
-                              title="Löschen"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            <div className="flex justify-end space-x-1">
+                              <button
+                                onClick={() => handleEditFile(file)}
+                                className="text-byght-turquoise hover:text-byght-turquoise/80 transition-colors p-1"
+                                title="Edit labels"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteFile(file.id)}
+                                disabled={deletingFile === file.id}
+                                className="text-red-500 hover:text-red-700 transition-colors p-1"
+                                title="Delete"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -653,7 +911,7 @@ const AdminPanel = () => {
             {/* User Creation Form */}
             <div className="card">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-byght-gray">Neuen Benutzer erstellen</h2>
+                <h2 className="text-xl font-semibold text-byght-gray">Create New User</h2>
                 <button
                   onClick={() => setShowNewUserForm(!showNewUserForm)}
                   className="btn-secondary"
@@ -666,7 +924,7 @@ const AdminPanel = () => {
                 <form onSubmit={handleCreateUser} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Benutzername
+                      Username
                     </label>
                     <input
                       type="text"
@@ -679,7 +937,7 @@ const AdminPanel = () => {
                   
                   <div>
                     <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Passwort
+                      Password
                     </label>
                     <div className="relative">
                       <input
@@ -708,14 +966,14 @@ const AdminPanel = () => {
                       className="h-4 w-4 text-byght-turquoise focus:ring-byght-turquoise border-gray-300 rounded"
                     />
                     <label htmlFor="isAdmin" className="ml-2 text-sm text-byght-gray">
-                      Administrator-Rechte
+                      Administrator rights
                     </label>
                   </div>
                   
                   {!newUser.isAdmin && (
                     <div>
                       <label className="block text-sm font-medium text-byght-gray mb-1">
-                        Ablaufdatum (Standard-Benutzer)
+                        Expiry date (Standard user)
                       </label>
                       <input
                         type="date"
@@ -725,13 +983,13 @@ const AdminPanel = () => {
                         min={new Date().toISOString().split('T')[0]}
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Standard-Benutzer können sich nur bis zu diesem Datum anmelden
+                        Standard users can only log in until this date
                       </p>
                     </div>
                   )}
                   
                   <button type="submit" className="btn-primary w-full sm:w-auto">
-                    Benutzer erstellen
+                    Create User
                   </button>
                 </form>
               )}
@@ -740,15 +998,41 @@ const AdminPanel = () => {
             {/* Users List */}
             <div className="card">
               <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-semibold text-byght-gray">Benutzer verwalten</h2>
-                <span className="text-xs text-gray-600">{users.length} Benutzer</span>
+                <h2 className="text-lg font-semibold text-byght-gray">Manage Users</h2>
+                <span className="text-xs text-gray-600">{filteredUsers.length} of {users.length} users</span>
+              </div>
+
+              {/* User Search */}
+              <div className="mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    className="w-full px-4 py-2 pl-10 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-byght-turquoise focus:border-transparent"
+                    placeholder="Nach Benutzernamen suchen..."
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Users size={16} className="text-gray-400" />
+                  </div>
+                  {userSearchTerm && (
+                    <button
+                      onClick={() => setUserSearchTerm('')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
               
-              {users.length === 0 ? (
-                <p className="text-gray-600 text-center py-6">Keine Benutzer vorhanden</p>
+              {filteredUsers.length === 0 ? (
+                <p className="text-gray-600 text-center py-6">
+                  {users.length === 0 ? 'No users available' : 'No users match the current search'}
+                </p>
               ) : (
                 <div className="space-y-2">
-                  {users.map((user) => (
+                  {filteredUsers.map((user) => (
                     <div key={user.id} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center space-x-3">
@@ -759,7 +1043,7 @@ const AdminPanel = () => {
                             </span>
                           ) : (
                             <span className="px-1.5 py-0.5 text-xs font-medium rounded-full bg-gray-200 text-gray-700">
-                              Benutzer
+                              User
                             </span>
                           )}
                         </div>
@@ -768,7 +1052,7 @@ const AdminPanel = () => {
                             <button
                               onClick={() => handleEditUserFiles(user)}
                               className="text-byght-turquoise hover:text-byght-turquoise/80 transition-colors p-1"
-                              title="Dateien zuweisen"
+                              title="Assign files"
                             >
                               <Edit2 size={14} />
                             </button>
@@ -776,18 +1060,18 @@ const AdminPanel = () => {
                           <button
                             onClick={() => handleDeleteUser(user.id, user.username)}
                             className="text-red-500 hover:text-red-700 transition-colors p-1"
-                            title="Löschen"
+                            title="Delete"
                           >
                             <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
                       
-                      {/* Ablaufdatum für Standard-Benutzer */}
+                      {/* Expiry date for standard users */}
                       {!user.isAdmin && (
                         <div className="mb-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-gray-600">Ablaufdatum:</span>
+                            <span className="text-xs font-medium text-gray-600">Expiry date:</span>
                             {editingExpiryDate[user.id] ? (
                               <div className="flex items-center space-x-2">
                                 <input
@@ -806,14 +1090,14 @@ const AdminPanel = () => {
                                   }}
                                   disabled={updatingExpiryDate[user.id]}
                                   className="text-green-600 hover:text-green-700 transition-colors p-1"
-                                  title="Speichern"
+                                  title="Save"
                                 >
                                   <Check size={12} />
                                 </button>
                                 <button
                                   onClick={() => setEditingExpiryDate({ ...editingExpiryDate, [user.id]: false })}
                                   className="text-gray-500 hover:text-gray-700 transition-colors p-1"
-                                  title="Abbrechen"
+                                  title="Cancel"
                                 >
                                   <X size={12} />
                                 </button>
@@ -830,14 +1114,14 @@ const AdminPanel = () => {
                                   {formatExpiryDate(user.expiryDate)}
                                   {!isUserExpired(user.expiryDate) && getDaysUntilExpiry(user.expiryDate) !== null && (
                                     <span className="ml-1">
-                                      ({getDaysUntilExpiry(user.expiryDate)} Tage)
+                                      ({getDaysUntilExpiry(user.expiryDate)} days)
                                     </span>
                                   )}
                                 </span>
                                 <button
                                   onClick={() => setEditingExpiryDate({ ...editingExpiryDate, [user.id]: true })}
                                   className="text-byght-turquoise hover:text-byght-turquoise/80 transition-colors p-1"
-                                  title="Ablaufdatum bearbeiten"
+                                  title="Edit expiry date"
                                 >
                                   <Edit2 size={12} />
                                 </button>
@@ -846,27 +1130,27 @@ const AdminPanel = () => {
                           </div>
                           {isUserExpired(user.expiryDate) && (
                             <div className="text-xs text-red-600 font-medium mt-1">
-                              ⚠️ Benutzer ist abgelaufen und kann sich nicht mehr anmelden
+                              ⚠️ User has expired and can no longer log in
                             </div>
                           )}
                         </div>
                       )}
                       
-                      {/* Zugewiesene Dateien */}
+                      {/* Assigned files */}
                       <div className="mt-2">
                         {loadingUserFiles[user.id] ? (
                           <div className="flex items-center space-x-2">
                             <div className="animate-spin rounded-full h-3 w-3 border-b border-byght-turquoise"></div>
-                            <span className="text-xs text-gray-500">Lade Dateien...</span>
+                            <span className="text-xs text-gray-500">Loading files...</span>
                           </div>
                         ) : user.isAdmin ? (
                           <div className="text-xs text-gray-600 italic">
-                            Admins sind immer alle Dateien zugewiesen
+                            Admins always have access to all files
                           </div>
                         ) : userFiles[user.id] && userFiles[user.id].length > 0 ? (
                           <div>
                             <div className="text-xs font-medium text-gray-600 mb-1">
-                              Zugewiesene Dateien ({userFiles[user.id].length}):
+                              Assigned files ({userFiles[user.id].length}):
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
                               {userFiles[user.id].map((file) => (
@@ -879,7 +1163,7 @@ const AdminPanel = () => {
                           </div>
                         ) : (
                           <div className="text-xs text-gray-500 italic">
-                            Keine Dateien zugewiesen
+                            No files assigned
                           </div>
                         )}
                       </div>
@@ -898,7 +1182,7 @@ const AdminPanel = () => {
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-byght-gray">
-                    Dateizuweisungen für {editingUser.username}
+                    File assignments for {editingUser.username}
                   </h3>
                   <button
                     onClick={() => setShowEditUserFiles(false)}
@@ -933,14 +1217,104 @@ const AdminPanel = () => {
                     onClick={() => setShowEditUserFiles(false)}
                     className="btn-secondary"
                   >
-                    Abbrechen
+                    Cancel
                   </button>
                   <button
                     onClick={handleUpdateUserFiles}
                     disabled={updatingUserFiles}
                     className="btn-primary"
                   >
-                    {updatingUserFiles ? 'Speichern...' : 'Speichern'}
+                    {updatingUserFiles ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit File Labels Modal */}
+        {showEditFileModal && editingFile && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-byght-gray">
+                    Labels bearbeiten: {editingFile.filename}
+                  </h3>
+                  <button
+                    onClick={() => setShowEditFileModal(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Produkt
+                    </label>
+                    <select
+                      value={editFileLabels.productLabel}
+                      onChange={(e) => setEditFileLabels({ ...editFileLabels, productLabel: e.target.value })}
+                      className="input-field"
+                    >
+                      <option value="">Kein Produkt</option>
+                      <option value="IMS SmartKit">IMS SmartKit</option>
+                      <option value="ISMS SmartKit">ISMS SmartKit</option>
+                      <option value="DSMS SmartKit">DSMS SmartKit</option>
+                      <option value="Addon">Addon</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Version
+                    </label>
+                    <input
+                      type="text"
+                      value={editFileLabels.versionLabel}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.]/g, '');
+                        setEditFileLabels({ ...editFileLabels, versionLabel: value });
+                      }}
+                      className="input-field"
+                      placeholder="z.B. 1.2.3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Sprache
+                    </label>
+                    <select
+                      value={editFileLabels.languageLabel}
+                      onChange={(e) => setEditFileLabels({ ...editFileLabels, languageLabel: e.target.value })}
+                      className="input-field"
+                    >
+                      <option value="">Keine Sprache</option>
+                      <option value="EN">EN</option>
+                      <option value="DE">DE</option>
+                      <option value="EN/DE">EN/DE</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-2 mt-6">
+                  <button
+                    onClick={() => setShowEditFileModal(false)}
+                    className="btn-secondary"
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    onClick={handleUpdateFileLabels}
+                    disabled={updatingFile}
+                    className="btn-primary"
+                  >
+                    {updatingFile ? 'Speichern...' : 'Speichern'}
                   </button>
                 </div>
               </div>

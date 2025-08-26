@@ -48,6 +48,9 @@ export default async (req, context) => {
     const file = formData.get('file');
     const usersJson = formData.get('users');
     const description = formData.get('description') || '';
+    const productLabel = formData.get('productLabel') || null;
+    const versionLabel = formData.get('versionLabel') || null;
+    const languageLabel = formData.get('languageLabel') || null;
 
     if (!file) {
       return new Response(JSON.stringify({ error: 'No file provided' }), {
@@ -83,7 +86,10 @@ export default async (req, context) => {
       file.type,
       description,
       blobKey,
-      decoded.userId
+      decoded.userId,
+      productLabel,
+      versionLabel,
+      languageLabel
     );
 
     // Datei automatisch allen Admin-Benutzern zuweisen

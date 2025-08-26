@@ -1,190 +1,190 @@
-# 🚀 Deployment-Anleitung für Byght Portal
+# 🚀 Deployment Guide for Byght Portal
 
-Diese Anleitung führt dich durch das Deployment der Anwendung auf Netlify mit Neon PostgreSQL.
+This guide walks you through deploying the application on Netlify with Neon PostgreSQL.
 
-## 📋 Voraussetzungen
+## 📋 Prerequisites
 
 - GitHub Account
-- Netlify Account (kostenlos)
-- Neon PostgreSQL Account (kostenlos)
+- Netlify Account (free)
+- Neon PostgreSQL Account (free)
 
-## 🗄️ Schritt 1: Neon PostgreSQL Datenbank einrichten
+## 🗄️ Step 1: Set up Neon PostgreSQL Database
 
-### 1.1 Neon Account erstellen
-1. Gehe zu [neon.tech](https://neon.tech)
-2. Klicke auf "Sign Up" und erstelle ein kostenloses Konto
-3. Verifiziere deine E-Mail-Adresse
+### 1.1 Create Neon Account
+1. Go to [neon.tech](https://neon.tech)
+2. Click "Sign Up" and create a free account
+3. Verify your email address
 
-### 1.2 Neues Projekt erstellen
-1. Nach dem Login klicke auf "Create New Project"
-2. Wähle einen Projektnamen (z.B. "byght-portal")
-3. Wähle eine Region (z.B. "Frankfurt" für bessere Performance in Deutschland)
-4. Klicke auf "Create Project"
+### 1.2 Create New Project
+1. After login, click "Create New Project"
+2. Choose a project name (e.g., "byght-portal")
+3. Choose a region (e.g., "Frankfurt" for better performance in Germany)
+4. Click "Create Project"
 
-### 1.3 Verbindungs-URL kopieren
-1. Nach der Projekterstellung siehst du die Verbindungs-URL
-2. Kopiere die URL (sie sieht so aus: `postgresql://username:password@host:port/database`)
-3. **Wichtig**: Speichere diese URL sicher - du brauchst sie für Netlify
+### 1.3 Copy Connection URL
+1. After project creation, you'll see the connection URL
+2. Copy the URL (it looks like: `postgresql://username:password@host:port/database`)
+3. **Important**: Save this URL securely - you'll need it for Netlify
 
-## 🌐 Schritt 2: Netlify Site erstellen
+## 🌐 Step 2: Create Netlify Site
 
-### 2.1 GitHub Repository verbinden
-1. Gehe zu [netlify.com](https://netlify.com) und logge dich ein
-2. Klicke auf "Add new site" → "Import an existing project"
-3. Wähle "GitHub" als Git-Provider
-4. Wähle dein Repository `portal.byght.io` aus
-5. Klicke auf "Deploy site"
+### 2.1 Connect GitHub Repository
+1. Go to [netlify.com](https://netlify.com) and log in
+2. Click "Add new site" → "Import an existing project"
+3. Choose "GitHub" as Git provider
+4. Select your repository `portal.byght.io`
+5. Click "Deploy site"
 
-### 2.2 Build-Einstellungen konfigurieren
-Netlify sollte automatisch die richtigen Einstellungen erkennen:
+### 2.2 Configure Build Settings
+Netlify should automatically detect the correct settings:
 - **Build command**: `npm run build`
 - **Publish directory**: `dist`
 - **Node version**: `18`
 
-Falls nicht, stelle diese Einstellungen manuell ein.
+If not, set these manually.
 
-## 🔧 Schritt 3: Umgebungsvariablen setzen
+## 🔧 Step 3: Set Environment Variables
 
-### 3.1 JWT Secret generieren
-Generiere ein sicheres JWT Secret:
+### 3.1 Generate JWT Secret
+Generate a secure JWT secret:
 ```bash
-# In der Kommandozeile ausführen:
+# Execute in command line:
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
-### 3.2 Umgebungsvariablen in Netlify hinzufügen
-1. Gehe zu deiner Netlify Site
-2. Klicke auf "Site settings" → "Environment variables"
-3. Füge folgende Variablen hinzu:
+### 3.2 Add Environment Variables in Netlify
+1. Go to your Netlify site
+2. Click "Site settings" → "Environment variables"
+3. Add the following variables:
 
-| Variable | Wert | Beschreibung |
+| Variable | Value | Description |
 |----------|------|--------------|
-| `JWT_SECRET` | `dein-generiertes-jwt-secret` | Sichere JWT-Signierung |
-| `DATABASE_URL` | `deine-neon-postgresql-url` | Neon Datenbank-Verbindung |
+| `JWT_SECRET` | `your-generated-jwt-secret` | Secure JWT signing |
+| `DATABASE_URL` | `your-neon-postgresql-url` | Neon database connection |
 
-### 3.2.1 Beispiel für Umgebungsvariablen:
+### 3.2.1 Example Environment Variables:
 ```
 JWT_SECRET=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
 DATABASE_URL=postgresql://username:password@ep-cool-name-123456.eu-west-2.aws.neon.tech/neondb
 ```
 
-## 🌍 Schritt 4: Custom Domain konfigurieren
+## 🌍 Step 4: Configure Custom Domain
 
-### 4.1 Domain hinzufügen
-1. Gehe zu "Domain settings" in deiner Netlify Site
-2. Klicke auf "Add custom domain"
-3. Gib `portal.byght.io` ein
-4. Folge den DNS-Anweisungen
+### 4.1 Add Domain
+1. Go to "Domain settings" in your Netlify site
+2. Click "Add custom domain"
+3. Enter `portal.byght.io`
+4. Follow the DNS instructions
 
-### 4.2 DNS-Einstellungen
-Füge folgende DNS-Records bei deinem Domain-Provider hinzu:
+### 4.2 DNS Settings
+Add the following DNS records at your domain provider:
 ```
 Type: CNAME
 Name: portal
-Value: deine-netlify-site.netlify.app
+Value: your-netlify-site.netlify.app
 ```
 
-## ✅ Schritt 5: Deployment testen
+## ✅ Step 5: Test Deployment
 
-### 5.1 Admin-User erstellen
-1. Rufe nach dem Deployment folgende URL auf: `https://portal.byght.io/.netlify/functions/setup-admin`
-2. Der Admin-User wird erstellt mit:
+### 5.1 Create Admin User
+1. After deployment, visit this URL: `https://portal.byght.io/.netlify/functions/setup-admin`
+2. The admin user will be created with:
    - **Username**: `admin`
-   - **Passwort**: `admin123`
+   - **Password**: `admin123`
 
-### 5.2 Ersten Login testen
-1. Gehe zu `https://portal.byght.io`
-2. Du solltest zur Login-Seite weitergeleitet werden
-3. Logge dich mit den erstellten Credentials ein:
+### 5.2 Test First Login
+1. Go to `https://portal.byght.io`
+2. You should be redirected to the login page
+3. Log in with the created credentials:
    - **Username**: `admin`
-   - **Passwort**: `admin123`
+   - **Password**: `admin123`
 
-### 5.2 Datenbank-Tabellen prüfen
-Die Tabellen werden automatisch beim ersten Login erstellt. Du kannst sie in der Neon Console überprüfen:
-1. Gehe zu deinem Neon Projekt
-2. Klicke auf "SQL Editor"
-3. Führe aus: `SELECT * FROM users;`
+### 5.2 Check Database Tables
+Tables are created automatically on first login. You can check them in the Neon Console:
+1. Go to your Neon project
+2. Click "SQL Editor"
+3. Execute: `SELECT * FROM users;`
 
-### 5.3 Admin-Panel testen
-1. Nach dem Login siehst du den "Admin Panel" Button
-2. Klicke darauf und teste:
-   - Neuen Benutzer erstellen
-   - Datei hochladen
-   - Datei einem Benutzer zuweisen
+### 5.3 Test Admin Panel
+1. After login, you'll see the "Admin Panel" button
+2. Click it and test:
+   - Create new user
+   - Upload file
+   - Assign file to user
 
-## 🔒 Schritt 6: Sicherheit
+## 🔒 Step 6: Security
 
-### 6.1 Admin-Passwort ändern
-1. Logge dich als Admin ein
-2. Gehe zum Admin Panel
-3. Erstelle einen neuen Admin-Benutzer
-4. Logge dich mit dem neuen Admin aus und wieder ein
-5. Lösche den Standard-Admin-Benutzer
+### 6.1 Change Admin Password
+1. Log in as admin
+2. Go to Admin Panel
+3. Create a new admin user
+4. Log out and log back in with the new admin
+5. Delete the default admin user
 
-### 6.2 SSL-Zertifikat prüfen
-Netlify stellt automatisch SSL-Zertifikate bereit. Prüfe, dass `https://portal.byght.io` funktioniert.
+### 6.2 Check SSL Certificate
+Netlify provides SSL certificates automatically. Verify that `https://portal.byght.io` works.
 
 ## 🚨 Troubleshooting
 
 ### Problem: "Database connection failed"
-- Prüfe die `DATABASE_URL` in den Netlify-Umgebungsvariablen
-- Stelle sicher, dass die Neon-Datenbank läuft
-- Prüfe die Firewall-Einstellungen
+- Check the `DATABASE_URL` in Netlify environment variables
+- Make sure the Neon database is running
+- Check firewall settings
 
 ### Problem: "JWT verification failed"
-- Generiere ein neues JWT_SECRET
-- Stelle sicher, dass es in den Umgebungsvariablen gesetzt ist
-- Deploye die Site neu
+- Generate a new JWT_SECRET
+- Make sure it's set in environment variables
+- Redeploy the site
 
 ### Problem: "File upload failed"
-- Prüfe die Netlify Blobs-Konfiguration
-- Stelle sicher, dass die Site-ID korrekt ist
-- Prüfe die Netlify Functions-Logs
+- Check Netlify Blobs configuration
+- Make sure the site ID is correct
+- Check Netlify Functions logs
 
 ## 📊 Monitoring
 
 ### Netlify Functions Logs
-1. Gehe zu deiner Netlify Site
-2. Klicke auf "Functions"
-3. Überprüfe die Logs für Fehler
+1. Go to your Netlify site
+2. Click "Functions"
+3. Check logs for errors
 
 ### Neon Database Monitoring
-1. Gehe zu deinem Neon Projekt
-2. Klicke auf "Metrics"
-3. Überwache die Datenbank-Performance
+1. Go to your Neon project
+2. Click "Metrics"
+3. Monitor database performance
 
 ## 🔄 Updates
 
-### Code-Änderungen deployen
-1. Pushe Änderungen zu GitHub
-2. Netlify deployt automatisch
-3. Prüfe die Deployment-Logs
+### Deploy Code Changes
+1. Push changes to GitHub
+2. Netlify deploys automatically
+3. Check deployment logs
 
-### Datenbank-Migrationen
-Die Datenbank-Schema wird automatisch beim ersten Login erstellt. Für Schema-Änderungen:
-1. Ändere die SQL-Statements in `netlify/functions/db.js`
-2. Deploye die Änderungen
-3. Die Tabellen werden beim nächsten Login aktualisiert
+### Database Migrations
+The database schema is created automatically on first login. For schema changes:
+1. Modify SQL statements in `netlify/functions/db.js`
+2. Deploy changes
+3. Tables will be updated on next login
 
-## 💰 Kosten
+## 💰 Costs
 
-### Kostenlose Limits
-- **Neon**: 3 Projekte, 0.5 GB Speicher, 10 GB Transfer
-- **Netlify**: 100 GB Bandwidth, 300 Build Minutes/Monat
-- **Netlify Functions**: 125.000 Aufrufe/Monat
+### Free Limits
+- **Neon**: 3 projects, 0.5 GB storage, 10 GB transfer
+- **Netlify**: 100 GB bandwidth, 300 build minutes/month
+- **Netlify Functions**: 125,000 calls/month
 
-### Upgrade-Optionen
-- **Neon Pro**: $10/Monat für mehr Speicher und Performance
-- **Netlify Pro**: $19/Monat für mehr Bandwidth und Build-Minuten
+### Upgrade Options
+- **Neon Pro**: $10/month for more storage and performance
+- **Netlify Pro**: $19/month for more bandwidth and build minutes
 
 ---
 
-## 🎉 Fertig!
+## 🎉 Done!
 
-Deine Byght Portal-Anwendung läuft jetzt auf:
+Your Byght Portal application is now running at:
 - **URL**: https://portal.byght.io
-- **Datenbank**: Neon PostgreSQL
+- **Database**: Neon PostgreSQL
 - **Hosting**: Netlify
-- **Dateispeicherung**: Netlify Blobs
+- **File Storage**: Netlify Blobs
 
-Die Anwendung ist bereit für den produktiven Einsatz!
+The application is ready for production use!

@@ -7,7 +7,7 @@ const Setup = () => {
 
   const createAdminUser = async () => {
     setStatus('loading');
-    setMessage('Erstelle Admin-User...');
+    setMessage('Creating admin user...');
 
     try {
       const response = await fetch('/.netlify/functions/setup-admin', {
@@ -24,11 +24,11 @@ const Setup = () => {
         setMessage(data.message);
       } else {
         setStatus('error');
-        setMessage(data.error || 'Fehler beim Erstellen des Admin-Users');
+        setMessage(data.error || 'Error creating admin user');
       }
     } catch (error) {
       setStatus('error');
-      setMessage('Netzwerkfehler: ' + error.message);
+      setMessage('Network error: ' + error.message);
     }
   };
 
@@ -45,7 +45,7 @@ const Setup = () => {
             Byght Portal Setup
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Erstelle den Admin-User für das Portal
+            Create the admin user for the portal
           </p>
         </div>
 
@@ -54,8 +54,8 @@ const Setup = () => {
             <div className="space-y-6">
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-4">
-                  Klicke auf den Button unten, um den Admin-User zu erstellen.
-                  Dieser Schritt ist nur einmalig erforderlich.
+                  Click the button below to create the admin user.
+                  This step is only required once.
                 </p>
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
                   <div className="flex">
@@ -64,11 +64,11 @@ const Setup = () => {
                     </div>
                     <div className="ml-3">
                       <h3 className="text-sm font-medium text-blue-800">
-                        Admin-Credentials
+                        Admin Credentials
                       </h3>
                       <div className="mt-2 text-sm text-blue-700">
                         <p><strong>Username:</strong> admin</p>
-                        <p><strong>Passwort:</strong> admin123</p>
+                        <p><strong>Password:</strong> admin123</p>
                       </div>
                     </div>
                   </div>
@@ -78,7 +78,7 @@ const Setup = () => {
                 onClick={createAdminUser}
                 className="w-full flex justify-center py-3 px-6 border border-transparent rounded-xl shadow-md text-sm font-medium text-white bg-[#5E5D61] hover:bg-[#4E4D51] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5E5D61]/40 transition-all duration-200 hover:shadow-lg transform hover:scale-105"
               >
-                Admin-User erstellen
+                Create Admin User
               </button>
             </div>
           )}
@@ -93,14 +93,14 @@ const Setup = () => {
           {status === 'success' && (
             <div className="text-center">
               <CheckCircle className="mx-auto h-8 w-8 text-green-600" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Erfolgreich!</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">Success!</h3>
               <p className="mt-1 text-sm text-gray-600">{message}</p>
               <div className="mt-6">
                 <a
                   href="/"
                   className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-[#5E5D61] hover:bg-[#4E4D51] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5E5D61]/40 transition-all duration-200 hover:shadow-lg transform hover:scale-105"
                 >
-                  Zum Login
+                  Go to Login
                 </a>
               </div>
             </div>
@@ -109,7 +109,7 @@ const Setup = () => {
           {status === 'error' && (
             <div className="text-center">
               <AlertCircle className="mx-auto h-8 w-8 text-red-600" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Fehler</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">Error</h3>
               <p className="mt-1 text-sm text-gray-600">{message}</p>
               <div className="mt-6">
                 <button
@@ -119,7 +119,7 @@ const Setup = () => {
                   }}
                   className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-[#5E5D61] hover:bg-[#4E4D51] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#5E5D61]/40 transition-all duration-200 hover:shadow-lg transform hover:scale-105"
                 >
-                  Erneut versuchen
+                  Try Again
                 </button>
               </div>
             </div>
@@ -128,7 +128,7 @@ const Setup = () => {
 
         <div className="text-center">
           <p className="text-xs text-gray-500">
-            ⚠️ Bewahre diese Setup-URL sicher auf, falls du sie später brauchst
+            ⚠️ Keep this setup URL safe in case you need it later
           </p>
         </div>
       </div>

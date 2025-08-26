@@ -1,179 +1,179 @@
 # Byght Download Portal
 
-Ein modernes Download-Portal für Kunden, entwickelt mit React, Vite und Netlify Functions.
+A modern download portal for customers, developed with React, Vite and Netlify Functions.
 
 ## 🚀 Features
 
-- **Sichere Authentifizierung**: Username/Passwort-basierte Anmeldung mit JWT
-- **Dateiverwaltung**: Upload und Verwaltung von Dateien über Admin-Panel
-- **Benutzerverwaltung**: Erstellen und Verwalten von Benutzern
-- **Zugriffskontrolle**: Benutzer sehen nur die ihnen zugewiesenen Dateien
-- **Modernes Design**: Responsive UI im Byght-Stil
+- **Secure Authentication**: Username/password-based login with JWT
+- **File Management**: Upload and manage files via admin panel
+- **User Management**: Create and manage users
+- **Access Control**: Users only see files assigned to them
+- **Modern Design**: Responsive UI in Byght style
 
-## 📋 Voraussetzungen
+## 📋 Prerequisites
 
-- Node.js 18 oder höhe
-- npm oder yarn
+- Node.js 18 or higher
+- npm or yarn
 - Netlify Account
-- Neon PostgreSQL Datenbank (kostenlos verfügbar)
+- Neon PostgreSQL database (free available)
 
 ## 🛠️ Installation 
 
-1. **Repository klonen**
+1. **Clone repository**
 ```bash
 git clone https://github.com/yourusername/portal.byght.io.git
 cd portal.byght.io
 ```
 
-2. **Abhängigkeiten installieren**
+2. **Install dependencies**
 ```bash
 npm install
 ```
 
-3. **Umgebungsvariablen konfigurieren**
+3. **Configure environment variables**
 
-Erstelle eine `.env` Datei im Hauptverzeichnis:
+Create a `.env` file in the root directory:
 ```env
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 DATABASE_URL=postgresql://username:password@host:port/database
 ```
 
-## 🚀 Lokale Entwicklung
+## 🚀 Local Development
 
 ```bash
-# Entwicklungsserver starten
+# Start development server
 npm run dev
 
-# Netlify Functions lokal testen
+# Test Netlify Functions locally
 netlify dev
 ```
 
-## 📦 Deployment auf Netlify
+## 📦 Deployment to Netlify
 
-### Option 1: Über Netlify CLI
+### Option 1: Via Netlify CLI
 
-1. **Netlify CLI installieren**
+1. **Install Netlify CLI**
 ```bash
 npm install -g netlify-cli
 ```
 
-2. **Mit Netlify verbinden**
+2. **Connect to Netlify**
 ```bash
 netlify init
 ```
 
-3. **Deployen**
+3. **Deploy**
 ```bash
 netlify deploy --prod
 ```
 
-### Option 2: Über GitHub
+### Option 2: Via GitHub
 
-1. Repository zu GitHub pushen
-2. In Netlify einloggen und "New site from Git" wählen
-3. Repository verbinden und automatisches Deployment konfigurieren
+1. Push repository to GitHub
+2. Log into Netlify and choose "New site from Git"
+3. Connect repository and configure automatic deployment
 
-### Wichtige Netlify-Einstellungen
+### Important Netlify Settings
 
-1. **Neon PostgreSQL Datenbank einrichten**:
-   - Gehe zu [neon.tech](https://neon.tech) und erstelle ein kostenloses Konto
-   - Erstelle ein neues Projekt
-   - Kopiere die Verbindungs-URL (Connection String)
-   - Die Datenbank-Tabellen werden automatisch beim ersten Login erstellt
+1. **Set up Neon PostgreSQL database**:
+   - Go to [neon.tech](https://neon.tech) and create a free account
+   - Create a new project
+   - Copy the connection URL (Connection String)
+   - Database tables will be created automatically on first login
 
-2. **Umgebungsvariablen in Netlify setzen**:
-   - Gehe zu Site Settings → Environment Variables
-   - Füge `JWT_SECRET` mit einem sicheren Wert hinzu
-   - Füge `DATABASE_URL` mit deiner Neon PostgreSQL URL hinzu
+2. **Set environment variables in Netlify**:
+   - Go to Site Settings → Environment Variables
+   - Add `JWT_SECRET` with a secure value
+   - Add `DATABASE_URL` with your Neon PostgreSQL URL
 
-2. **Domain konfigurieren**:
-   - Gehe zu Domain Settings
-   - Füge `portal.byght.io` als Custom Domain hinzu
+2. **Configure domain**:
+   - Go to Domain Settings
+   - Add `portal.byght.io` as Custom Domain
 
-## 👤 Standard-Admin-Zugang
+## 👤 Default Admin Access
 
-Nach dem ersten Deployment musst du den Admin-User einmalig erstellen:
+After the first deployment, you need to create the admin user once:
 
-### Admin-User erstellen:
-1. Rufe nach dem Deployment folgende URL auf: `https://deine-domain.netlify.app/.netlify/functions/setup-admin`
-2. Oder führe einen POST-Request an diese URL aus
-3. Der Admin-User wird erstellt mit:
+### Create Admin User:
+1. After deployment, visit this URL: `https://your-domain.netlify.app/.netlify/functions/setup-admin`
+2. Or make a POST request to this URL
+3. The admin user will be created with:
    - **Username**: admin
-   - **Passwort**: admin123
+   - **Password**: admin123
 
-⚠️ **WICHTIG**: 
-- Der Admin-User wird nur einmal erstellt und nicht bei jedem Build neu geschrieben
-- Ändere das Admin-Passwort nach dem ersten Login!
-- Bewahre die Setup-URL sicher auf, falls du sie später brauchst
+⚠️ **IMPORTANT**: 
+- The admin user is only created once and not rewritten on every build
+- Change the admin password after first login!
+- Keep the setup URL safe in case you need it later
 
-## 📁 Datei-Upload (Admin)
+## 📁 File Upload (Admin)
 
-Als Admin kannst du:
-1. Zum Admin-Panel navigieren (Button im Dashboard)
-2. Dateien hochladen und Benutzern zuweisen
-3. Neue Benutzer erstellen
-4. Dateien und Benutzer verwalten
+As an admin you can:
+1. Navigate to the admin panel (button in dashboard)
+2. Upload files and assign them to users
+3. Create new users
+4. Manage files and users
 
-### Upload-Prozess für Admins:
-1. Logge dich als Admin ein
-2. Gehe zum Admin Panel
-3. Wähle "Dateiverwaltung"
-4. Lade eine Datei hoch
-5. Wähle die Benutzer aus, die Zugriff haben sollen
-6. Klicke auf "Datei hochladen"
+### Upload Process for Admins:
+1. Log in as admin
+2. Go to Admin Panel
+3. Select "File Management"
+4. Upload a file
+5. Select the users who should have access
+6. Click "Upload File"
 
-## 🔧 Technische Details
+## 🔧 Technical Details
 
-### Verwendete Technologien:
+### Technologies Used:
 - **Frontend**: React, Vite, Tailwind CSS, React Router
 - **Backend**: Netlify Functions (Serverless)
-- **Datenbank**: Neon PostgreSQL (für Benutzer und Datei-Metadaten)
-- **Dateispeicherung**: Netlify Blobs (für die eigentlichen Dateien)
-- **Authentifizierung**: JWT Tokens
+- **Database**: Neon PostgreSQL (for users and file metadata)
+- **File Storage**: Netlify Blobs (for actual files)
+- **Authentication**: JWT Tokens
 - **Hosting**: Netlify
 
-### Projekt-Struktur:
+### Project Structure:
 ```
 portal.byght.io/
 ├── src/
-│   ├── components/      # React-Komponenten
-│   ├── contexts/         # React Contexts (Auth)
-│   ├── App.jsx          # Hauptkomponente
-│   └── index.css        # Globale Styles
+│   ├── components/      # React components
+│   ├── contexts/         # React contexts (Auth)
+│   ├── App.jsx          # Main component
+│   └── index.css        # Global styles
 ├── netlify/
-│   └── functions/       # Serverless Functions
-├── dist/                # Build-Output
-├── netlify.toml         # Netlify-Konfiguration
-└── package.json         # Projektabhängigkeiten
+│   └── functions/       # Serverless functions
+├── dist/                # Build output
+├── netlify.toml         # Netlify configuration
+└── package.json         # Project dependencies
 ```
 
-## 🔒 Sicherheit
+## 🔒 Security
 
-- Passwörter werden mit bcrypt gehasht
-- JWT-Tokens für Session-Management
-- Zugriffskontrolle auf Datei-Ebene
-- Admin-only Bereiche geschützt
-- PostgreSQL-Datenbank mit verschlüsselten Verbindungen
-- Sichere Dateispeicherung in Netlify Blobs
+- Passwords are hashed with bcrypt
+- JWT tokens for session management
+- Access control at file level
+- Admin-only areas protected
+- PostgreSQL database with encrypted connections
+- Secure file storage in Netlify Blobs
 
-## 📝 API-Endpunkte
+## 📝 API Endpoints
 
-Alle API-Endpunkte sind unter `/.netlify/functions/` verfügbar:
+All API endpoints are available under `/.netlify/functions/`:
 
-- `POST /auth-login` - Benutzeranmeldung
-- `GET /files-list` - Dateien für aktuellen Benutzer
-- `GET /files-download` - Datei herunterladen
-- `GET /admin-files-list` - Alle Dateien (Admin)
-- `GET /admin-users-list` - Alle Benutzer (Admin)
-- `POST /admin-create-user` - Benutzer erstellen (Admin)
-- `DELETE /admin-delete-user` - Benutzer löschen (Admin)
-- `POST /admin-upload-file` - Datei hochladen (Admin)
-- `DELETE /admin-delete-file` - Datei löschen (Admin)
+- `POST /auth-login` - User login
+- `GET /files-list` - Files for current user
+- `GET /files-download` - Download file
+- `GET /admin-files-list` - All files (Admin)
+- `GET /admin-users-list` - All users (Admin)
+- `POST /admin-create-user` - Create user (Admin)
+- `DELETE /admin-delete-user` - Delete user (Admin)
+- `POST /admin-upload-file` - Upload file (Admin)
+- `DELETE /admin-delete-file` - Delete file (Admin)
 
 ## 🤝 Support
 
-Bei Fragen oder Problemen wende dich an das Byght-Team.
+For questions or issues, contact the Byght team.
 
-## 📄 Lizenz
+## 📄 License
 
-© 2025 Byght GmbH - Alle Rechte vorbehalten
+© 2025 Byght GmbH - All rights reserved

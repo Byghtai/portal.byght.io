@@ -23,7 +23,7 @@ const Login = () => {
     if (result.success) {
       navigate('/dashboard');
     } else {
-      setError(result.error || 'Anmeldung fehlgeschlagen');
+      setError(result.error || 'Login failed');
     }
     
     setLoading(false);
@@ -43,8 +43,8 @@ const Login = () => {
         {/* Login Form */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-semibold text-byght-gray">Willkommen</h2>
-            <p className="text-sm text-gray-600 mt-1">Bitte melden Sie sich an</p>
+            <h2 className="text-xl font-semibold text-byght-gray">Welcome</h2>
+            <p className="text-sm text-gray-600 mt-1">Please sign in</p>
           </div>
 
           {error && (
@@ -57,7 +57,7 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-byght-gray mb-1.5">
-                Benutzername
+                Username
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -69,7 +69,7 @@ const Login = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="input-field pl-10"
-                  placeholder="Ihr Benutzername"
+                  placeholder="Your username"
                   required
                 />
               </div>
@@ -77,7 +77,7 @@ const Login = () => {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-byght-gray mb-1.5">
-                Passwort
+                Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -89,7 +89,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input-field pl-10 pr-10"
-                  placeholder="Ihr Passwort"
+                  placeholder="Your password"
                   required
                 />
                 <button
@@ -110,10 +110,10 @@ const Login = () => {
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Anmelden...</span>
+                  <span>Signing in...</span>
                 </div>
               ) : (
-                'Anmelden'
+                'Sign In'
               )}
             </button>
           </form>
