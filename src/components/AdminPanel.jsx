@@ -25,10 +25,6 @@ const AdminPanel = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploadFiles, setUploadFiles] = useState([]);
-  const [description, setDescription] = useState('');
-  const [productLabel, setProductLabel] = useState('');
-  const [versionLabel, setVersionLabel] = useState('');
-  const [languageLabel, setLanguageLabel] = useState('');
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [newUser, setNewUser] = useState({ 
@@ -57,7 +53,12 @@ const AdminPanel = () => {
   // File editing states
   const [editingFile, setEditingFile] = useState(null);
   const [showEditFileModal, setShowEditFileModal] = useState(false);
-  const [editFileLabels, setEditFileLabels] = useState({ productLabel: '', versionLabel: '', languageLabel: '' });
+  const [editFileData, setEditFileData] = useState({ 
+    description: '', 
+    productLabel: '', 
+    versionLabel: '', 
+    languageLabel: '' 
+  });
   const [updatingFile, setUpdatingFile] = useState(false);
   
   // Filter states
@@ -157,10 +158,6 @@ const AdminPanel = () => {
     for (const file of uploadFiles) {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('description', description);
-      formData.append('productLabel', productLabel);
-      formData.append('versionLabel', versionLabel);
-      formData.append('languageLabel', languageLabel);
 
       try {
         const token = Cookies.get('auth_token');
@@ -182,10 +179,6 @@ const AdminPanel = () => {
     }
 
     setUploadFiles([]);
-    setDescription('');
-    setProductLabel('');
-    setVersionLabel('');
-    setLanguageLabel('');
     setUploading(false);
     fetchFiles();
   };
@@ -470,7 +463,8 @@ const AdminPanel = () => {
 
   const handleEditFile = (file) => {
     setEditingFile(file);
-    setEditFileLabels({
+    setEditFileData({
+      description: file.description || '',
       productLabel: file.productLabel || '',
       versionLabel: file.versionLabel || '',
       languageLabel: file.languageLabel || ''
@@ -478,7 +472,7 @@ const AdminPanel = () => {
     setShowEditFileModal(true);
   };
 
-  const handleUpdateFileLabels = async () => {
+  const handleUpdateFileData = async () => {
     setUpdatingFile(true);
     try {
       const token = Cookies.get('auth_token');
@@ -490,9 +484,10 @@ const AdminPanel = () => {
         },
         body: JSON.stringify({
           fileId: editingFile.id,
-          productLabel: editFileLabels.productLabel || null,
-          versionLabel: editFileLabels.versionLabel || null,
-          languageLabel: editFileLabels.languageLabel || null,
+          description: editFileData.description || null,
+          productLabel: editFileData.productLabel || null,
+          versionLabel: editFileData.versionLabel || null,
+          languageLabel: editFileData.languageLabel || null,
         }),
       });
 
@@ -500,7 +495,7 @@ const AdminPanel = () => {
         setShowEditFileModal(false);
         setEditingFile(null);
         await fetchFiles();
-        alert('File labels successfully updated');
+        alert('File data successfully updated');
       } else {
         const error = await response.json();
         alert('Error updating: ' + error.error);
@@ -695,70 +690,25 @@ const AdminPanel = () => {
                   </div>
                 )}
 
-                <div>
-                  <label className="block text-sm font-medium text-byght-gray mb-1">
-                    Description (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="input-field"
-                    placeholder="Brief description of the file(s)"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Product (optional)
-                    </label>
-                    <select
-                      value={productLabel}
-                      onChange={(e) => setProductLabel(e.target.value)}
-                      className="input-field"
-                    >
-                      <option value="">No Product</option>
-                      <option value="IMS SmartKit">IMS SmartKit</option>
-                      <option value="ISMS SmartKit">ISMS SmartKit</option>
-                      <option value="DSMS SmartKit">DSMS SmartKit</option>
-                      <option value="Addon">Addon</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Version (optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={versionLabel}
-                      onChange={(e) => {
-                        // Nur Zahlen und Punkte erlauben
-                        const value = e.target.value.replace(/[^0-9.]/g, '');
-                        setVersionLabel(value);
-                      }}
-                      className="input-field"
-                      placeholder="e.g. 1.2.3"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Language (optional)
-                    </label>
-                    <select
-                      value={languageLabel}
-                      onChange={(e) => setLanguageLabel(e.target.value)}
-                      className="input-field"
-                    >
-                      <option value="">No Language</option>
-                      <option value="EN">EN</option>
-                      <option value="DE">DE</option>
-                      <option value="EN/DE">EN/DE</option>
-                      <option value="other">Other</option>
-                    </select>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800">
+                        Hinweis
+                      </h3>
+                      <div className="mt-2 text-sm text-blue-700">
+                        <p>
+                          Dateien werden ohne Beschreibung und Labels hochgeladen. 
+                          Diese können nach dem Upload über den Bearbeiten-Button (✏️) 
+                          pro Datei einzeln hinzugefügt werden.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -890,7 +840,13 @@ const AdminPanel = () => {
                             Filename
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                            Labels
+                            Product
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                            Version
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                            Language
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                             Size
@@ -913,23 +869,19 @@ const AdminPanel = () => {
                             )}
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap hidden lg:table-cell">
-                            <div className="flex flex-wrap gap-1">
-                              {file.productLabel && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                  {file.productLabel}
-                                </span>
-                              )}
-                              {file.versionLabel && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                  v{file.versionLabel}
-                                </span>
-                              )}
-                              {file.languageLabel && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                  {file.languageLabel}
-                                </span>
-                              )}
-                            </div>
+                            <span className="text-xs text-gray-700">
+                              {file.productLabel || '-'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap hidden lg:table-cell">
+                            <span className="text-xs text-gray-700">
+                              {file.versionLabel ? `v${file.versionLabel}` : '-'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap hidden lg:table-cell">
+                            <span className="text-xs text-gray-700">
+                              {file.languageLabel || '-'}
+                            </span>
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap hidden sm:table-cell">
                             <span className="text-xs text-gray-600">{formatFileSize(file.size)}</span>
@@ -1315,7 +1267,7 @@ const AdminPanel = () => {
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-byght-gray">
-                    Edit Labels: {editingFile.filename}
+                    Edit File: {editingFile.filename}
                   </h3>
                   <button
                     onClick={() => setShowEditFileModal(false)}
@@ -1328,11 +1280,24 @@ const AdminPanel = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Description
+                    </label>
+                    <input
+                      type="text"
+                      value={editFileData.description}
+                      onChange={(e) => setEditFileData({ ...editFileData, description: e.target.value })}
+                      className="input-field"
+                      placeholder="Brief description of the file"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
                       Product
                     </label>
                     <select
-                      value={editFileLabels.productLabel}
-                      onChange={(e) => setEditFileLabels({ ...editFileLabels, productLabel: e.target.value })}
+                      value={editFileData.productLabel}
+                      onChange={(e) => setEditFileData({ ...editFileData, productLabel: e.target.value })}
                       className="input-field"
                     >
                       <option value="">No Product</option>
@@ -1350,10 +1315,10 @@ const AdminPanel = () => {
                     </label>
                     <input
                       type="text"
-                      value={editFileLabels.versionLabel}
+                      value={editFileData.versionLabel}
                       onChange={(e) => {
                         const value = e.target.value.replace(/[^0-9.]/g, '');
-                        setEditFileLabels({ ...editFileLabels, versionLabel: value });
+                        setEditFileData({ ...editFileData, versionLabel: value });
                       }}
                       className="input-field"
                       placeholder="e.g. 1.2.3"
@@ -1365,8 +1330,8 @@ const AdminPanel = () => {
                       Language
                     </label>
                     <select
-                      value={editFileLabels.languageLabel}
-                      onChange={(e) => setEditFileLabels({ ...editFileLabels, languageLabel: e.target.value })}
+                      value={editFileData.languageLabel}
+                      onChange={(e) => setEditFileData({ ...editFileData, languageLabel: e.target.value })}
                       className="input-field"
                     >
                       <option value="">No Language</option>
@@ -1386,7 +1351,7 @@ const AdminPanel = () => {
                     Cancel
                   </button>
                   <button
-                    onClick={handleUpdateFileLabels}
+                    onClick={handleUpdateFileData}
                     disabled={updatingFile}
                     className="btn-primary"
                   >

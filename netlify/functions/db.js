@@ -522,24 +522,24 @@ export async function getAllFiles() {
     ];
     
     if (hasProductLabel) {
-      selectFields.push('f.product_label as productLabel');
+      selectFields.push('f.product_label as "productLabel"');
       groupByFields.push('f.product_label');
     } else {
-      selectFields.push('NULL as productLabel');
+      selectFields.push('NULL as "productLabel"');
     }
     
     if (hasVersionLabel) {
-      selectFields.push('f.version_label as versionLabel');
+      selectFields.push('f.version_label as "versionLabel"');
       groupByFields.push('f.version_label');
     } else {
-      selectFields.push('NULL as versionLabel');
+      selectFields.push('NULL as "versionLabel"');
     }
     
     if (hasLanguageLabel) {
-      selectFields.push('f.language_label as languageLabel');
+      selectFields.push('f.language_label as "languageLabel"');
       groupByFields.push('f.language_label');
     } else {
-      selectFields.push('NULL as languageLabel');
+      selectFields.push('NULL as "languageLabel"');
     }
     
     selectFields.push('array_agg(u.username) as assigned_users');

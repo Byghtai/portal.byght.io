@@ -47,10 +47,11 @@ export default async (req, context) => {
     const formData = await req.formData();
     const file = formData.get('file');
     const usersJson = formData.get('users');
-    const description = formData.get('description') || '';
-    const productLabel = formData.get('productLabel') || null;
-    const versionLabel = formData.get('versionLabel') || null;
-    const languageLabel = formData.get('languageLabel') || null;
+    // Labels und Description sind jetzt optional und werden nach dem Upload gesetzt
+    const description = null;
+    const productLabel = null;
+    const versionLabel = null;
+    const languageLabel = null;
 
     if (!file) {
       return new Response(JSON.stringify({ error: 'No file provided' }), {
