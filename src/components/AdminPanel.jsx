@@ -562,30 +562,38 @@ const AdminPanel = () => {
       return;
     }
     
+    console.log('Updating username for user:', userId, 'with value:', newUsername);
     setUpdatingUser({ ...updatingUser, [userId]: true });
     try {
       const token = Cookies.get('auth_token');
+      const requestBody = {
+        userId,
+        username: newUsername.trim(),
+      };
+      console.log('Sending request:', requestBody);
+      
       const response = await fetch('/.netlify/functions/admin-update-user', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userId,
-          username: newUsername.trim(),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
         setEditingUsername({ ...editingUsername, [userId]: false });
         await fetchUsers();
         alert('Username successfully updated');
       } else {
         const error = await response.json();
+        console.error('Server error:', error);
         alert('Error updating username: ' + error.error);
       }
     } catch (error) {
+      console.error('Network error:', error);
       alert('Error updating username: ' + error.message);
     } finally {
       setUpdatingUser({ ...updatingUser, [userId]: false });
@@ -593,30 +601,38 @@ const AdminPanel = () => {
   };
 
   const handleUpdateCompany = async (userId, newCompany) => {
+    console.log('Updating company for user:', userId, 'with value:', newCompany);
     setUpdatingUser({ ...updatingUser, [userId]: true });
     try {
       const token = Cookies.get('auth_token');
+      const requestBody = {
+        userId,
+        customer: newCompany.trim(),
+      };
+      console.log('Sending request:', requestBody);
+      
       const response = await fetch('/.netlify/functions/admin-update-user', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userId,
-          customer: newCompany.trim(),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
         setEditingCompany({ ...editingCompany, [userId]: false });
         await fetchUsers();
         alert('Company successfully updated');
       } else {
         const error = await response.json();
+        console.error('Server error:', error);
         alert('Error updating company: ' + error.error);
       }
     } catch (error) {
+      console.error('Network error:', error);
       alert('Error updating company: ' + error.message);
     } finally {
       setUpdatingUser({ ...updatingUser, [userId]: false });

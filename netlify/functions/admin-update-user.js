@@ -71,6 +71,8 @@ export default async (req, context) => {
     }
 
     const { userId, username, customer, password, expiryDate } = await req.json();
+    
+    console.log('Received request body:', { userId, username, customer, password, expiryDate });
 
     if (!userId) {
       return new Response(JSON.stringify({ error: 'User ID required' }), {
@@ -93,6 +95,10 @@ export default async (req, context) => {
     if (expiryDate !== undefined) {
       updates.expiryDate = expiryDate;
     }
+    
+    console.log('Built updates object:', updates);
+
+
     
     // Handle password update if provided
     if (password) {
@@ -131,7 +137,7 @@ export default async (req, context) => {
     });
   } catch (error) {
     console.error('Update user error:', error);
-    return new Response(JSON.stringify({ error: 'Server error' }), {
+    return new Response(JSON.stringify({ error: error.message || 'Server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
