@@ -67,8 +67,8 @@ export default async (req, context) => {
       // Log alle FormData Einträge
       console.log('FormData entries:');
       for (const [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          console.log(`  ${key}: File(name=${value.name}, size=${value.size}, type=${value.type})`);
+        if (value && typeof value === 'object' && 'name' in value && 'size' in value) {
+          console.log(`  ${key}: File(name=${value.name}, size=${value.size}, type=${value.type || 'unknown'})`);
         } else {
           console.log(`  ${key}: ${value}`);
         }
@@ -110,6 +110,12 @@ export default async (req, context) => {
     let arrayBufferTest = { success: false, error: null, size: 0 };
     try {
       console.log('Test 1: Reading as ArrayBuffer...');
+      
+      // Prüfe ob file.arrayBuffer() verfügbar ist
+      if (typeof file.arrayBuffer !== 'function') {
+        throw new Error('file.arrayBuffer() method not available');
+      }
+      
       const buffer = await file.arrayBuffer();
       arrayBufferTest.success = true;
       arrayBufferTest.size = buffer.byteLength;
@@ -133,6 +139,12 @@ export default async (req, context) => {
     let streamTest = { success: false, error: null, chunks: 0, totalSize: 0 };
     try {
       console.log('Test 2: Reading as Stream...');
+      
+      // Prüfe ob file.stream() verfügbar ist
+      if (typeof file.stream !== 'function') {
+        throw new Error('file.stream() method not available');
+      }
+      
       const stream = file.stream();
       const reader = stream.getReader();
       const chunks = [];

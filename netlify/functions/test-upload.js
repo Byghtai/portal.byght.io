@@ -47,8 +47,8 @@ export default async (req, context) => {
     const formData = await req.formData();
     console.log('FormData entries:');
     for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
+      if (value && typeof value === 'object' && 'name' in value && 'size' in value) {
+        console.log(`${key}: File(${value.name}, ${value.size} bytes, ${value.type || 'unknown'})`);
       } else {
         console.log(`${key}: ${value}`);
       }
