@@ -98,6 +98,11 @@ export default async (req, context) => {
       // Zusätzliche Validierung für ZIP-Dateien
       if (file.type === 'application/zip' || file.name.toLowerCase().endsWith('.zip')) {
         console.log('Processing ZIP file with enhanced validation...');
+        console.log('File details:', {
+          name: file.name,
+          size: file.size,
+          type: file.type
+        });
         
         // Prüfen ob die ZIP-Datei gültig ist
         try {
@@ -115,15 +120,28 @@ export default async (req, context) => {
             });
           }
           
-          // Prüfen ZIP-Header (PK\x03\x04)
+          // Prüfen ZIP-Header (verschiedene ZIP-Formate unterstützen)
           const uint8Array = new Uint8Array(fileBuffer);
           if (uint8Array.length >= 4) {
             const header = uint8Array.slice(0, 4);
-            const headerString = String.fromCharCode(...header);
-            console.log('ZIP header check:', headerString, headerString === 'PK\x03\x04');
+            const headerHex = Array.from(header).map(b => b.toString(16).padStart(2, '0')).join('');
+            console.log('ZIP header hex:', headerHex);
             
-            if (headerString !== 'PK\x03\x04') {
-              console.warn('Warning: File does not have valid ZIP header, but continuing...');
+            // Verschiedene ZIP-Header-Signaturen prüfen
+            const validZipHeaders = [
+              '504b0304', // Standard ZIP (PK\x03\x04)
+              '504b0506', // Empty ZIP archive (PK\x05\x06)
+              '504b0708', // Spanned archive (PK\x07\x08)
+              '504b4c49', // ZIP64 (PKLI)
+              '504b5370' // Self-extracting archive (PKSp)
+            ];
+            
+            const isValidZip = validZipHeaders.some(validHeader => headerHex.startsWith(validHeader.substring(0, 8)));
+            
+            if (!isValidZip) {
+              console.warn(`Warning: File header ${headerHex} is not a standard ZIP header, but continuing...`);
+            } else {
+              console.log('Valid ZIP header detected:', headerHex);
             }
           }
           
@@ -131,15 +149,43 @@ export default async (req, context) => {
           console.log('ZIP file stored in Blobs successfully');
         } catch (zipError) {
           console.error('Error processing ZIP file:', zipError);
-          return new Response(JSON.stringify({ 
-            error: 'Error processing ZIP file',
-            details: zipError.message,
-            fileType: file.type,
-            fileName: file.name
-          }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-          });
+          console.error('ZIP Error Stack:', zipError.stack);
+          
+          // Versuche trotzdem die Datei zu speichern, falls es nur ein Validierungsproblem ist
+          try {
+            console.log('Attempting fallback upload for problematic ZIP file...');
+            const fallbackBuffer = await file.stream();
+            const chunks = [];
+            const reader = fallbackBuffer.getReader();
+            
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+            }
+            
+            const combinedBuffer = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
+            let offset = 0;
+            for (const chunk of chunks) {
+              combinedBuffer.set(chunk, offset);
+              offset += chunk.length;
+            }
+            
+            await filesStore.set(blobKey, combinedBuffer);
+            console.log('ZIP file stored via fallback method');
+          } catch (fallbackError) {
+            console.error('Fallback also failed:', fallbackError);
+            return new Response(JSON.stringify({ 
+              error: 'Error processing ZIP file',
+              details: zipError.message,
+              fallbackError: fallbackError.message,
+              fileType: file.type,
+              fileName: file.name
+            }), {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          }
         }
       } else {
         // Normale Dateiverarbeitung für andere Dateitypen

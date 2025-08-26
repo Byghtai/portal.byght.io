@@ -215,9 +215,16 @@ const AdminPanel = () => {
           });
         } else {
           let errorMessage = 'Unknown error occurred';
+          let errorDetails = '';
           try {
             const errorData = await response.json();
             errorMessage = errorData.error || errorMessage;
+            if (errorData.details) {
+              errorDetails = `\nDetails: ${errorData.details}`;
+            }
+            if (errorData.fallbackError) {
+              errorDetails += `\nFallback error: ${errorData.fallbackError}`;
+            }
           } catch (jsonError) {
             // Wenn JSON-Parsing fehlschlägt, versuche den Text zu lesen
             try {
@@ -227,7 +234,8 @@ const AdminPanel = () => {
               errorMessage = `HTTP ${response.status}: ${response.statusText}`;
             }
           }
-          alert(`Error uploading ${file.name}: ${errorMessage}`);
+          console.error(`Upload error for ${file.name}:`, errorMessage, errorDetails);
+          alert(`Error uploading ${file.name}: ${errorMessage}${errorDetails}`);
         }
       } catch (error) {
         alert(`Error uploading ${file.name}: ${error.message}`);
