@@ -20,6 +20,7 @@ import TestUpload from './TestUpload';
 import ZipDebugTest from './ZipDebugTest';
 import BasicFileTest from './BasicFileTest';
 import ChunkedUpload from './ChunkedUpload';
+import LazyUpload from './LazyUpload';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -1053,6 +1054,19 @@ const AdminPanel = () => {
               <span>Large Files</span>
             </div>
           </button>
+          <button
+            onClick={() => setActiveTab('lazy')}
+            className={`px-6 py-2.5 rounded-md font-medium transition-colors ${
+              activeTab === 'lazy'
+                ? 'bg-byght-turquoise text-white'
+                : 'text-byght-gray hover:bg-gray-100'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Upload size={18} />
+              <span>Lazy Upload</span>
+            </div>
+          </button>
         </div>
 
         {loading ? (
@@ -1352,6 +1366,8 @@ const AdminPanel = () => {
           <BasicFileTest />
         ) : activeTab === 'chunked' ? (
           <ChunkedUpload />
+        ) : activeTab === 'lazy' ? (
+          <LazyUpload />
         ) : (
           <div className="space-y-6">
             {/* User Creation Button */}
