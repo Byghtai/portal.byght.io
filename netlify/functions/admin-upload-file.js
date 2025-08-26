@@ -92,10 +92,34 @@ export default async (req, context) => {
     console.log('Storing file in Netlify Blobs...');
     const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
     console.log('Blob store created, reading file buffer...');
-    const fileBuffer = await file.arrayBuffer();
-    console.log('File buffer read, size:', fileBuffer.byteLength);
-    await filesStore.set(blobKey, new Uint8Array(fileBuffer));
-    console.log('File stored in Blobs successfully');
+    
+    try {
+      const fileBuffer = await file.arrayBuffer();
+      console.log('File buffer read, size:', fileBuffer.byteLength);
+      
+      // Prüfen ob die Datei zu groß ist (Netlify hat Limits)
+      if (fileBuffer.byteLength > 100 * 1024 * 1024) { // 100MB Limit
+        return new Response(JSON.stringify({ 
+          error: 'File too large',
+          details: `File size ${fileBuffer.byteLength} bytes exceeds the 100MB limit`
+        }), {
+          status: 413,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      
+      await filesStore.set(blobKey, new Uint8Array(fileBuffer));
+      console.log('File stored in Blobs successfully');
+    } catch (bufferError) {
+      console.error('Error reading file buffer:', bufferError);
+      return new Response(JSON.stringify({ 
+        error: 'Error reading file',
+        details: bufferError.message
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
     // Datei-Metadaten in der Datenbank speichern
     console.log('Saving file metadata to database...');

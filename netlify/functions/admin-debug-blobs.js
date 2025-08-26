@@ -122,8 +122,25 @@ export default async (req, context) => {
       
       if (!hasConfluenceLabel) {
         console.log('Adding confluence_label column...');
-        await client.query('ALTER TABLE files ADD COLUMN confluence_label VARCHAR(20)');
+        await client.query('ALTER TABLE files ADD COLUMN confluence_label VARCHAR(50)');
         addedColumns.push('confluence_label');
+      } else {
+        // Check if we need to extend the column size
+        try {
+          const columnInfo = await client.query(`
+            SELECT character_maximum_length 
+            FROM information_schema.columns 
+            WHERE table_name = 'files' AND column_name = 'confluence_label'
+          `);
+          const maxLength = columnInfo.rows[0]?.character_maximum_length;
+          if (maxLength && maxLength < 50) {
+            console.log('Extending confluence_label column from VARCHAR(' + maxLength + ') to VARCHAR(50)...');
+            await client.query('ALTER TABLE files ALTER COLUMN confluence_label TYPE VARCHAR(50)');
+            console.log('✓ confluence_label column extended');
+          }
+        } catch (error) {
+          console.log('Could not check/extend confluence_label column:', error.message);
+        }
       }
       
       // Get current table structure

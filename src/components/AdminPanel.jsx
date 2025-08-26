@@ -49,6 +49,7 @@ const AdminPanel = () => {
   const [editingExpiryDate, setEditingExpiryDate] = useState({});
   const [updatingExpiryDate, setUpdatingExpiryDate] = useState({});
   const [cleaningUp, setCleaningUp] = useState(false);
+  const [fixingConfluence, setFixingConfluence] = useState(false);
   
   // New states for inline editing
   const [editingUsername, setEditingUsername] = useState({});
@@ -345,6 +346,34 @@ const AdminPanel = () => {
       alert('Error during cleanup: ' + error.message);
     } finally {
       setCleaningUp(false);
+    }
+  };
+
+  const handleFixConfluenceColumn = async () => {
+    if (!confirm('Do you want to fix the Confluence label column in the database? This will extend the column size to support longer values.')) return;
+    
+    setFixingConfluence(true);
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-fix-confluence-column', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Database fix completed!\n\n${result.message}`);
+      } else {
+        const error = await response.json();
+        alert('Error fixing database: ' + error.error);
+      }
+    } catch (error) {
+      alert('Error fixing database: ' + error.message);
+    } finally {
+      setFixingConfluence(false);
     }
   };
 
@@ -952,6 +981,14 @@ const AdminPanel = () => {
                 <h2 className="text-lg font-semibold text-byght-gray">Uploaded Files</h2>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-600">{filteredFiles.length} of {files.length} file(s)</span>
+                  <button
+                    onClick={handleFixConfluenceColumn}
+                    disabled={fixingConfluence}
+                    className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Fix Confluence label column in database"
+                  >
+                    {fixingConfluence ? 'Fixing...' : 'Fix Confluence'}
+                  </button>
                   <button
                     onClick={handleCleanupOrphanedFiles}
                     disabled={cleaningUp}
@@ -1690,7 +1727,7 @@ const AdminPanel = () => {
                       onChange={(e) => setEditFileData({ ...editFileData, confluenceLabel: e.target.value })}
                       className="input-field"
                     >
-                      <option value="">No Confluence</option>
+                      <option value=""></option>
                       <option value="Cloud">Cloud</option>
                       <option value="Server">Server</option>
                     </select>
@@ -1920,7 +1957,7 @@ const AdminPanel = () => {
                             onChange={(e) => handleLabelChange(file.id, 'confluenceLabel', e.target.value)}
                             className="input-field"
                           >
-                            <option value="">No Confluence</option>
+                            <option value=""></option>
                             <option value="Cloud">Cloud</option>
                             <option value="Server">Server</option>
                           </select>

@@ -6,6 +6,7 @@ const TestUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [testingDb, setTestingDb] = useState(false);
 
   const handleFileSelect = (e) => {
     const selectedFile = e.target.files[0];
@@ -65,6 +66,51 @@ const TestUpload = () => {
       setError(error.message);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleTestDatabase = async () => {
+    setTestingDb(true);
+    setResult(null);
+    setError(null);
+
+    try {
+      const token = Cookies.get('auth_token');
+      console.log('Testing database connection...');
+      
+      const response = await fetch('/.netlify/functions/test-db', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+
+      if (response.ok) {
+        try {
+          const data = JSON.parse(responseText);
+          setResult(data);
+        } catch (jsonError) {
+          setError(`JSON parsing failed: ${jsonError.message}. Response: ${responseText}`);
+        }
+      } else {
+        try {
+          const errorData = JSON.parse(responseText);
+          setError(errorData.error || 'Database test failed');
+        } catch (jsonError) {
+          setError(`HTTP ${response.status}: ${responseText}`);
+        }
+      }
+    } catch (error) {
+      console.error('Database test error:', error);
+      setError(error.message);
+    } finally {
+      setTestingDb(false);
     }
   };
 
@@ -146,6 +192,14 @@ const TestUpload = () => {
       )}
 
       <div className="flex gap-4 mb-6">
+        <button
+          onClick={handleTestDatabase}
+          disabled={testingDb}
+          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
+        >
+          {testingDb ? 'Testing...' : 'Test Database'}
+        </button>
+        
         <button
           onClick={handleTestUpload}
           disabled={!file || uploading}

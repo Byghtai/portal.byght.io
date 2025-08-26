@@ -88,6 +88,18 @@ export async function initDatabase() {
       }
     }
 
+    // Prüfen ob confluence_label Spalte existiert und hinzufügen falls nicht
+    try {
+      await client.query('SELECT confluence_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "confluence_label" does not exist')) {
+        console.log('Adding confluence_label column to files table...');
+        await client.query('ALTER TABLE files ADD COLUMN confluence_label VARCHAR(50)');
+      } else {
+        throw error;
+      }
+    }
+
     // File-User-Zuordnungstabelle erstellen
     await client.query(`
       CREATE TABLE IF NOT EXISTS file_user_assignments (
