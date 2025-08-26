@@ -50,6 +50,7 @@ const AdminPanel = () => {
   const [updatingExpiryDate, setUpdatingExpiryDate] = useState({});
   const [cleaningUp, setCleaningUp] = useState(false);
   const [fixingConfluence, setFixingConfluence] = useState(false);
+  const [testingConfluence, setTestingConfluence] = useState(false);
   
   // New states for inline editing
   const [editingUsername, setEditingUsername] = useState({});
@@ -377,6 +378,32 @@ const AdminPanel = () => {
     }
   };
 
+  const handleTestConfluenceUpdate = async () => {
+    setTestingConfluence(true);
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/test-confluence-update', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Test completed successfully!\n\nTest file: ${result.testFile}\nTest value: ${result.testValue}\nInitial column length: ${result.initialLength}\nFinal column length: ${result.finalLength}`);
+      } else {
+        const error = await response.json();
+        alert('Test failed: ' + (error.details || error.error));
+      }
+    } catch (error) {
+      alert('Test failed: ' + error.message);
+    } finally {
+      setTestingConfluence(false);
+    }
+  };
+
 
 
 
@@ -663,6 +690,30 @@ const AdminPanel = () => {
   };
 
   const handleUpdateFileData = async () => {
+    // Frontend-Validierung
+    const validationErrors = [];
+    
+    if (editFileData.confluenceLabel && editFileData.confluenceLabel.length > 50) {
+      validationErrors.push(`Confluence label is too long (${editFileData.confluenceLabel.length} characters). Maximum is 50 characters.`);
+    }
+    
+    if (editFileData.productLabel && editFileData.productLabel.length > 50) {
+      validationErrors.push(`Product label is too long (${editFileData.productLabel.length} characters). Maximum is 50 characters.`);
+    }
+    
+    if (editFileData.versionLabel && editFileData.versionLabel.length > 20) {
+      validationErrors.push(`Version label is too long (${editFileData.versionLabel.length} characters). Maximum is 20 characters.`);
+    }
+    
+    if (editFileData.languageLabel && editFileData.languageLabel.length > 20) {
+      validationErrors.push(`Language label is too long (${editFileData.languageLabel.length} characters). Maximum is 20 characters.`);
+    }
+    
+    if (validationErrors.length > 0) {
+      alert('Validation errors:\n\n' + validationErrors.join('\n'));
+      return;
+    }
+    
     setUpdatingFile(true);
     try {
       const token = Cookies.get('auth_token');
@@ -688,10 +739,26 @@ const AdminPanel = () => {
         alert('File data successfully updated');
       } else {
         const error = await response.json();
-        alert('Error updating: ' + error.error);
+        let errorMessage = error.error;
+        
+        // Detailliertere Fehlermeldungen für Benutzer
+        if (error.details) {
+          if (error.details.includes('value too long for type')) {
+            errorMessage = 'One of the labels is too long. Please use shorter values.';
+          } else if (error.details.includes('column') && error.details.includes('does not exist')) {
+            errorMessage = 'Database issue detected. Please try the "Fix Confluence" button first.';
+          }
+        }
+        
+        // Spezielle Behandlung für Längenfehler
+        if (error.currentLength && error.maxLength) {
+          errorMessage += `\n\nCurrent length: ${error.currentLength} characters\nMaximum allowed: ${error.maxLength} characters`;
+        }
+        
+        alert('Error updating file: ' + errorMessage);
       }
     } catch (error) {
-      alert('Error updating: ' + error.message);
+      alert('Error updating file: ' + error.message);
     } finally {
       setUpdatingFile(false);
     }
@@ -703,6 +770,7 @@ const AdminPanel = () => {
       const token = Cookies.get('auth_token');
       let successCount = 0;
       let errorCount = 0;
+      let errorMessages = [];
 
       for (const file of uploadedFiles) {
         const labels = fileLabels[file.id] || {};
@@ -726,22 +794,48 @@ const AdminPanel = () => {
             successCount++;
           } else {
             errorCount++;
-            console.error(`Failed to update labels for ${file.filename}`);
+            const error = await response.json();
+            let errorMessage = error.error;
+            
+            // Detailliertere Fehlermeldungen
+            if (error.details) {
+              if (error.details.includes('value too long for type')) {
+                errorMessage = 'One of the labels is too long. Please use shorter values.';
+              } else if (error.details.includes('column') && error.details.includes('does not exist')) {
+                errorMessage = 'Database issue detected. Please try the "Fix Confluence" button first.';
+              }
+            }
+            
+            // Spezielle Behandlung für Längenfehler
+            if (error.currentLength && error.maxLength) {
+              errorMessage += `\n\nCurrent length: ${error.currentLength} characters\nMaximum allowed: ${error.maxLength} characters`;
+            }
+            
+            errorMessages.push(`${file.filename}: ${errorMessage}`);
+            console.error(`Failed to update labels for ${file.filename}:`, error);
           }
         } catch (error) {
           errorCount++;
+          errorMessages.push(`${file.filename}: ${error.message}`);
           console.error(`Error updating labels for ${file.filename}:`, error);
         }
       }
 
       if (successCount > 0) {
-        alert(`${successCount} file(s) successfully updated with labels!${errorCount > 0 ? ` ${errorCount} file(s) could not be updated.` : ''}`);
+        let message = `${successCount} file(s) successfully updated with labels!`;
+        if (errorCount > 0) {
+          message += `\n\n${errorCount} file(s) could not be updated:\n${errorMessages.slice(0, 3).join('\n')}`;
+          if (errorMessages.length > 3) {
+            message += `\n... and ${errorMessages.length - 3} more errors`;
+          }
+        }
+        alert(message);
         setShowLabelPopup(false);
         setUploadedFiles([]);
         setFileLabels({});
         await fetchFiles();
       } else {
-        throw new Error('All label updates failed');
+        throw new Error('All label updates failed. Please check the error messages above.');
       }
     } catch (error) {
       alert('Error saving labels: ' + error.message);
@@ -988,6 +1082,14 @@ const AdminPanel = () => {
                     title="Fix Confluence label column in database"
                   >
                     {fixingConfluence ? 'Fixing...' : 'Fix Confluence'}
+                  </button>
+                  <button
+                    onClick={handleTestConfluenceUpdate}
+                    disabled={testingConfluence}
+                    className="text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Test Confluence label update"
+                  >
+                    {testingConfluence ? 'Testing...' : 'Test Confluence'}
                   </button>
                   <button
                     onClick={handleCleanupOrphanedFiles}
@@ -1731,6 +1833,13 @@ const AdminPanel = () => {
                       <option value="Cloud">Cloud</option>
                       <option value="Server">Server</option>
                     </select>
+                    {editFileData.confluenceLabel && (
+                      <div className={`text-xs mt-1 ${
+                        editFileData.confluenceLabel.length > 50 ? 'text-red-600' : 'text-gray-500'
+                      }`}>
+                        {editFileData.confluenceLabel.length}/50 characters
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -1961,6 +2070,13 @@ const AdminPanel = () => {
                             <option value="Cloud">Cloud</option>
                             <option value="Server">Server</option>
                           </select>
+                          {fileLabels[file.id]?.confluenceLabel && (
+                            <div className={`text-xs mt-1 ${
+                              fileLabels[file.id].confluenceLabel.length > 50 ? 'text-red-600' : 'text-gray-500'
+                            }`}>
+                              {fileLabels[file.id].confluenceLabel.length}/50 characters
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
