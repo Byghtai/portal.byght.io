@@ -562,7 +562,6 @@ const AdminPanel = () => {
       return;
     }
     
-    console.log('Updating username for user:', userId, 'with value:', newUsername);
     setUpdatingUser({ ...updatingUser, [userId]: true });
     try {
       const token = Cookies.get('auth_token');
@@ -570,7 +569,6 @@ const AdminPanel = () => {
         userId,
         username: newUsername.trim(),
       };
-      console.log('Sending request:', requestBody);
       
       const response = await fetch('/.netlify/functions/admin-update-user', {
         method: 'PUT',
@@ -580,8 +578,6 @@ const AdminPanel = () => {
         },
         body: JSON.stringify(requestBody),
       });
-
-      console.log('Response status:', response.status);
       
       if (response.ok) {
         setEditingUsername({ ...editingUsername, [userId]: false });
@@ -589,11 +585,9 @@ const AdminPanel = () => {
         alert('Username successfully updated');
       } else {
         const error = await response.json();
-        console.error('Server error:', error);
         alert('Error updating username: ' + error.error);
       }
     } catch (error) {
-      console.error('Network error:', error);
       alert('Error updating username: ' + error.message);
     } finally {
       setUpdatingUser({ ...updatingUser, [userId]: false });
@@ -601,7 +595,6 @@ const AdminPanel = () => {
   };
 
   const handleUpdateCompany = async (userId, newCompany) => {
-    console.log('Updating company for user:', userId, 'with value:', newCompany);
     setUpdatingUser({ ...updatingUser, [userId]: true });
     try {
       const token = Cookies.get('auth_token');
@@ -609,7 +602,6 @@ const AdminPanel = () => {
         userId,
         customer: newCompany.trim(),
       };
-      console.log('Sending request:', requestBody);
       
       const response = await fetch('/.netlify/functions/admin-update-user', {
         method: 'PUT',
@@ -619,8 +611,6 @@ const AdminPanel = () => {
         },
         body: JSON.stringify(requestBody),
       });
-
-      console.log('Response status:', response.status);
       
       if (response.ok) {
         setEditingCompany({ ...editingCompany, [userId]: false });
@@ -628,11 +618,9 @@ const AdminPanel = () => {
         alert('Company successfully updated');
       } else {
         const error = await response.json();
-        console.error('Server error:', error);
         alert('Error updating company: ' + error.error);
       }
     } catch (error) {
-      console.error('Network error:', error);
       alert('Error updating company: ' + error.message);
     } finally {
       setUpdatingUser({ ...updatingUser, [userId]: false });

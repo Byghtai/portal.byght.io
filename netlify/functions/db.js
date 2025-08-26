@@ -403,7 +403,6 @@ export async function updateUserExpiryDate(userId, expiryDate) {
 
 // Benutzerdetails aktualisieren (Username, Customer, Password)
 export async function updateUserDetails(userId, updates) {
-  console.log('updateUserDetails called with:', { userId, updates });
   const client = await pool.connect();
   try {
     const updateFields = [];
@@ -438,15 +437,12 @@ export async function updateUserDetails(userId, updates) {
       throw new Error('No fields to update');
     }
 
-    // Add updated_at field
-    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-    
     // Add userId as the last parameter
     values.push(userId);
 
     const query = `
       UPDATE users 
-      SET ${updateFields.join(', ')}
+      SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP
       WHERE id = $${paramCount}
       RETURNING id, username, is_admin, expiry_date, customer
     `;
