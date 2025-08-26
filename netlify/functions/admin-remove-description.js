@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { pool } from './db.js';
+import { removeDescriptionColumn } from './db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -7,7 +7,7 @@ if (!JWT_SECRET) {
 }
 
 export default async (req, context) => {
-  if (req.method !== 'PUT') {
+  if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
       headers: { 'Content-Type': 'application/json' }
@@ -42,44 +42,18 @@ export default async (req, context) => {
       });
     }
 
-    const { fileId, productLabel, versionLabel, languageLabel } = await req.json();
+    // Description-Spalte entfernen
+    const result = await removeDescriptionColumn();
 
-    if (!fileId) {
-      return new Response(JSON.stringify({ error: 'File ID is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const client = await pool.connect();
-    try {
-      const result = await client.query(
-        `UPDATE files 
-         SET product_label = $1, version_label = $2, language_label = $3
-         WHERE id = $4 
-         RETURNING id, filename, product_label, version_label, language_label`,
-        [productLabel || null, versionLabel || null, languageLabel || null, fileId]
-      );
-
-      if (result.rowCount === 0) {
-        return new Response(JSON.stringify({ error: 'File not found' }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
-
-      return new Response(JSON.stringify({ 
-        success: true,
-        file: result.rows[0]
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    } finally {
-      client.release();
-    }
+    return new Response(JSON.stringify({ 
+      success: true,
+      message: result.message
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
-    console.error('Update file labels error:', error);
+    console.error('Remove description column error:', error);
     return new Response(JSON.stringify({ error: 'Server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

@@ -48,7 +48,6 @@ const AdminPanel = () => {
   const [editingExpiryDate, setEditingExpiryDate] = useState({});
   const [updatingExpiryDate, setUpdatingExpiryDate] = useState({});
   const [cleaningUp, setCleaningUp] = useState(false);
-  const [debugging, setDebugging] = useState(false);
   
   // File editing states
   const [editingFile, setEditingFile] = useState(null);
@@ -60,6 +59,12 @@ const AdminPanel = () => {
     languageLabel: '' 
   });
   const [updatingFile, setUpdatingFile] = useState(false);
+
+  // Label popup states for newly uploaded files
+  const [showLabelPopup, setShowLabelPopup] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [fileLabels, setFileLabels] = useState({});
+  const [savingLabels, setSavingLabels] = useState(false);
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -105,9 +110,21 @@ const AdminPanel = () => {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log('Users data from API:', data.users); // Debug-Ausgabe
         setUsers(data.users || []);
         // Load files for all users
         await fetchAllUserFiles(data.users || []);
+        
+        // Test customer data
+        try {
+          const testResponse = await fetch('/.netlify/functions/test-customer-data');
+          if (testResponse.ok) {
+            const testData = await testResponse.json();
+            console.log('Customer data test:', testData);
+          }
+        } catch (error) {
+          console.error('Error testing customer data:', error);
+        }
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -154,6 +171,7 @@ const AdminPanel = () => {
     }
 
     setUploading(true);
+    const uploadedFileData = [];
     
     for (const file of uploadFiles) {
       const formData = new FormData();
@@ -169,7 +187,17 @@ const AdminPanel = () => {
           body: formData,
         });
 
-        if (!response.ok) {
+        if (response.ok) {
+          const result = await response.json();
+          uploadedFileData.push({
+            id: result.file.id,
+            filename: file.name,
+            size: file.size,
+            productLabel: '',
+            versionLabel: '',
+            languageLabel: ''
+          });
+        } else {
           const error = await response.json();
           alert(`Error uploading ${file.name}: ${error.error}`);
         }
@@ -180,6 +208,14 @@ const AdminPanel = () => {
 
     setUploadFiles([]);
     setUploading(false);
+    
+    // Show label popup if files were uploaded successfully
+    if (uploadedFileData.length > 0) {
+      setUploadedFiles(uploadedFileData);
+      setFileLabels({});
+      setShowLabelPopup(true);
+    }
+    
     fetchFiles();
   };
 
@@ -286,51 +322,7 @@ const AdminPanel = () => {
     }
   };
 
-  const handleDebugDatabase = async () => {
-    setDebugging(true);
-    try {
-      const token = Cookies.get('auth_token');
-      const response = await fetch('/.netlify/functions/admin-debug-blobs', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Database debug result:', result);
-        
-        let message = `Database structure check completed!\n\n`;
-        message += `File count: ${result.structure.fileCount}\n`;
-        message += `Columns: ${result.structure.columns.length}\n`;
-        
-        if (result.fixes.addedColumns.length > 0) {
-          message += `\nFixed missing columns: ${result.fixes.addedColumns.join(', ')}\n`;
-        }
-        
-        message += `\nLabel columns status:\n`;
-        message += `- Product label: ${result.fixes.hasProductLabel ? '✓' : '✗'}\n`;
-        message += `- Version label: ${result.fixes.hasVersionLabel ? '✓' : '✗'}\n`;
-        message += `- Language label: ${result.fixes.hasLanguageLabel ? '✓' : '✗'}\n`;
-        
-        alert(message);
-        
-        // Refresh files if columns were added
-        if (result.fixes.addedColumns.length > 0) {
-          await fetchFiles();
-        }
-      } else {
-        const error = await response.json();
-        alert('Error during debug: ' + error.error);
-      }
-    } catch (error) {
-      alert('Error during debug: ' + error.message);
-    } finally {
-      setDebugging(false);
-    }
-  };
 
 
 
@@ -464,7 +456,6 @@ const AdminPanel = () => {
   const handleEditFile = (file) => {
     setEditingFile(file);
     setEditFileData({
-      description: file.description || '',
       productLabel: file.productLabel || '',
       versionLabel: file.versionLabel || '',
       languageLabel: file.languageLabel || ''
@@ -484,7 +475,6 @@ const AdminPanel = () => {
         },
         body: JSON.stringify({
           fileId: editingFile.id,
-          description: editFileData.description || null,
           productLabel: editFileData.productLabel || null,
           versionLabel: editFileData.versionLabel || null,
           languageLabel: editFileData.languageLabel || null,
@@ -505,6 +495,74 @@ const AdminPanel = () => {
     } finally {
       setUpdatingFile(false);
     }
+  };
+
+  const handleSaveLabels = async () => {
+    setSavingLabels(true);
+    try {
+      const token = Cookies.get('auth_token');
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const file of uploadedFiles) {
+        const labels = fileLabels[file.id] || {};
+        try {
+          const response = await fetch('/.netlify/functions/admin-update-file-labels', {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fileId: file.id,
+              productLabel: labels.productLabel || null,
+              versionLabel: labels.versionLabel || null,
+              languageLabel: labels.languageLabel || null,
+            }),
+          });
+
+          if (response.ok) {
+            successCount++;
+          } else {
+            errorCount++;
+            console.error(`Failed to update labels for ${file.filename}`);
+          }
+        } catch (error) {
+          errorCount++;
+          console.error(`Error updating labels for ${file.filename}:`, error);
+        }
+      }
+
+      if (successCount > 0) {
+        alert(`${successCount} file(s) successfully updated with labels!${errorCount > 0 ? ` ${errorCount} file(s) could not be updated.` : ''}`);
+        setShowLabelPopup(false);
+        setUploadedFiles([]);
+        setFileLabels({});
+        await fetchFiles();
+      } else {
+        throw new Error('All label updates failed');
+      }
+    } catch (error) {
+      alert('Error saving labels: ' + error.message);
+    } finally {
+      setSavingLabels(false);
+    }
+  };
+
+  const handleLabelChange = (fileId, field, value) => {
+    setFileLabels(prev => ({
+      ...prev,
+      [fileId]: {
+        ...prev[fileId],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleSkipLabels = () => {
+    setShowLabelPopup(false);
+    setUploadedFiles([]);
+    setFileLabels({});
   };
 
   const formatFileSize = (bytes) => {
@@ -544,8 +602,7 @@ const AdminPanel = () => {
   // Filter functions
   const filteredFiles = files.filter(file => {
     const matchesSearch = !searchTerm || 
-      file.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (file.description && file.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      file.filename.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesProduct = !filterProduct || file.productLabel === filterProduct;
     const matchesVersion = !filterVersion || file.versionLabel === filterVersion;
@@ -690,27 +747,7 @@ const AdminPanel = () => {
                   </div>
                 )}
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">
-                        Hinweis
-                      </h3>
-                      <div className="mt-2 text-sm text-blue-700">
-                        <p>
-                          Dateien werden ohne Beschreibung und Labels hochgeladen. 
-                          Diese können nach dem Upload über den Bearbeiten-Button (✏️) 
-                          pro Datei einzeln hinzugefügt werden.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+
 
                 <button
                   type="submit"
@@ -728,14 +765,6 @@ const AdminPanel = () => {
                 <h2 className="text-lg font-semibold text-byght-gray">Uploaded Files</h2>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-600">{filteredFiles.length} of {files.length} file(s)</span>
-                  <button
-                    onClick={handleDebugDatabase}
-                    disabled={debugging}
-                    className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Check and fix database structure"
-                  >
-                    {debugging ? 'Checking...' : 'Debug DB'}
-                  </button>
                   <button
                     onClick={handleCleanupOrphanedFiles}
                     disabled={cleaningUp}
@@ -759,7 +788,7 @@ const AdminPanel = () => {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
-                      placeholder="Filename or description..."
+                      placeholder="Filename..."
                     />
                   </div>
 
@@ -864,9 +893,6 @@ const AdminPanel = () => {
                         <tr key={file.id} className="hover:bg-gray-50">
                           <td className="px-3 py-2 whitespace-nowrap">
                             <div className="text-xs font-medium text-byght-gray truncate max-w-xs">{file.filename}</div>
-                            {file.description && (
-                              <div className="text-xs text-gray-500 truncate max-w-xs">{file.description}</div>
-                            )}
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap hidden lg:table-cell">
                             <span className="text-xs text-gray-700">
@@ -1057,11 +1083,12 @@ const AdminPanel = () => {
                 <div className="space-y-2">
                   {filteredUsers.map((user) => (
                     <div key={user.id} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
+
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center space-x-3">
                           <span className="text-sm font-medium text-byght-gray">
                             {user.username}
-                            {user.customer && (
+                            {user.customer && user.customer.trim() !== '' && (
                               <span className="text-gray-500 font-normal ml-1">({user.customer})</span>
                             )}
                           </span>
@@ -1280,19 +1307,6 @@ const AdminPanel = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Description
-                    </label>
-                    <input
-                      type="text"
-                      value={editFileData.description}
-                      onChange={(e) => setEditFileData({ ...editFileData, description: e.target.value })}
-                      className="input-field"
-                      placeholder="Brief description of the file"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-byght-gray mb-1">
                       Product
                     </label>
                     <select
@@ -1357,6 +1371,119 @@ const AdminPanel = () => {
                   >
                     {updatingFile ? 'Saving...' : 'Save'}
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Label Popup Modal for newly uploaded files */}
+        {showLabelPopup && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-byght-gray">
+                    Add Labels to Uploaded Files
+                  </h3>
+                  <button
+                    onClick={handleSkipLabels}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+                
+                <div className="max-h-[60vh] overflow-y-auto space-y-6">
+                  {uploadedFiles.map((file) => (
+                    <div key={file.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-lg flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-byght-gray">{file.filename}</h4>
+                            <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-byght-gray mb-1">
+                            Product
+                          </label>
+                          <select
+                            value={fileLabels[file.id]?.productLabel || ''}
+                            onChange={(e) => handleLabelChange(file.id, 'productLabel', e.target.value)}
+                            className="input-field"
+                          >
+                            <option value="">No Product</option>
+                            <option value="IMS SmartKit">IMS SmartKit</option>
+                            <option value="ISMS SmartKit">ISMS SmartKit</option>
+                            <option value="DSMS SmartKit">DSMS SmartKit</option>
+                            <option value="Addon">Addon</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-byght-gray mb-1">
+                            Version
+                          </label>
+                          <input
+                            type="text"
+                            value={fileLabels[file.id]?.versionLabel || ''}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^0-9.]/g, '');
+                              handleLabelChange(file.id, 'versionLabel', value);
+                            }}
+                            className="input-field"
+                            placeholder="e.g. 1.2.3"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-byght-gray mb-1">
+                            Language
+                          </label>
+                          <select
+                            value={fileLabels[file.id]?.languageLabel || ''}
+                            onChange={(e) => handleLabelChange(file.id, 'languageLabel', e.target.value)}
+                            className="input-field"
+                          >
+                            <option value="">No Language</option>
+                            <option value="EN">EN</option>
+                            <option value="DE">DE</option>
+                            <option value="EN/DE">EN/DE</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={handleSkipLabels}
+                    className="btn-secondary"
+                  >
+                    Skip
+                  </button>
+                  <div className="flex gap-2">
+                    <span className="text-sm text-gray-500 self-center">
+                      {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} uploaded
+                    </span>
+                    <button
+                      onClick={handleSaveLabels}
+                      disabled={savingLabels}
+                      className="btn-primary"
+                    >
+                      {savingLabels ? 'Saving...' : 'Save Labels'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

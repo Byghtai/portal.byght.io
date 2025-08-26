@@ -55,7 +55,7 @@ export async function initDatabase() {
         filename VARCHAR(255) NOT NULL,
         file_size BIGINT NOT NULL,
         mime_type VARCHAR(100),
-        description TEXT,
+
         blob_key VARCHAR(255) NOT NULL,
         uploaded_by INTEGER REFERENCES users(id),
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -381,7 +381,7 @@ export async function updateUserExpiryDate(userId, expiryDate) {
 }
 
 // Datei-Metadaten speichern
-export async function saveFileMetadata(filename, fileSize, mimeType, description, blobKey, uploadedBy, productLabel = null, versionLabel = null, languageLabel = null) {
+export async function saveFileMetadata(filename, fileSize, mimeType, blobKey, uploadedBy, productLabel = null, versionLabel = null, languageLabel = null) {
   const client = await pool.connect();
   try {
     // Prüfen ob Label-Spalten existieren
@@ -420,10 +420,10 @@ export async function saveFileMetadata(filename, fileSize, mimeType, description
     }
     
     // Query anpassen basierend auf Spaltenverfügbarkeit
-    const columns = ['filename', 'file_size', 'mime_type', 'description', 'blob_key', 'uploaded_by'];
-    const values = [filename, fileSize, mimeType, description, blobKey, uploadedBy];
-    const placeholders = ['$1', '$2', '$3', '$4', '$5', '$6'];
-    let paramIndex = 7;
+    const columns = ['filename', 'file_size', 'mime_type', 'blob_key', 'uploaded_by'];
+    const values = [filename, fileSize, mimeType, blobKey, uploadedBy];
+    const placeholders = ['$1', '$2', '$3', '$4', '$5'];
+    let paramIndex = 6;
     
     if (hasProductLabel) {
       columns.push('product_label');
@@ -513,12 +513,12 @@ export async function getAllFiles() {
     // Query anpassen basierend auf Spaltenverfügbarkeit
     const selectFields = [
       'f.id', 'f.filename', 'f.file_size as size', 'f.mime_type as mimeType',
-      'f.description', 'f.uploaded_at as uploadedAt', 'f.blob_key as blobKey'
+      'f.uploaded_at as uploadedAt', 'f.blob_key as blobKey'
     ];
     
     const groupByFields = [
       'f.id', 'f.filename', 'f.file_size', 'f.mime_type', 
-      'f.description', 'f.uploaded_at', 'f.blob_key'
+      'f.uploaded_at', 'f.blob_key'
     ];
     
     if (hasProductLabel) {
@@ -725,7 +725,7 @@ export async function getFilesForUser(userId) {
     // Query anpassen basierend auf Spaltenverfügbarkeit
     const selectFields = [
       'f.id', 'f.filename', 'f.file_size as size', 'f.mime_type as mimeType',
-      'f.description', 'f.uploaded_at as uploadedAt', 'f.blob_key as blobKey'
+      'f.uploaded_at as uploadedAt', 'f.blob_key as blobKey'
     ];
     
     if (hasProductLabel) {
@@ -803,6 +803,36 @@ export async function assignAllExistingFilesToAdmins() {
     }
     
     return { filesProcessed: allFiles.length, adminsProcessed: adminUsers.length };
+  } finally {
+    client.release();
+  }
+}
+
+// Migration: Description-Spalte entfernen
+export async function removeDescriptionColumn() {
+  const client = await pool.connect();
+  try {
+    // Prüfen ob description-Spalte existiert
+    try {
+      await client.query('SELECT description FROM files LIMIT 1');
+      console.log('Description column exists, removing...');
+      
+      // Description-Spalte entfernen
+      await client.query('ALTER TABLE files DROP COLUMN description');
+      console.log('Description column removed successfully');
+      
+      return { success: true, message: 'Description column removed' };
+    } catch (error) {
+      if (error.message.includes('column "description" does not exist')) {
+        console.log('Description column does not exist');
+        return { success: true, message: 'Description column does not exist' };
+      } else {
+        throw error;
+      }
+    }
+  } catch (error) {
+    console.error('Error removing description column:', error);
+    throw error;
   } finally {
     client.release();
   }

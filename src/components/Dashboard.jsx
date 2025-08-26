@@ -98,8 +98,7 @@ const Dashboard = () => {
 
   const filteredFiles = files.filter(file => {
     const matchesSearch = !searchTerm || 
-      file.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (file.description && file.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      file.filename.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesProduct = !filterProduct || file.productLabel === filterProduct;
     const matchesVersion = !filterVersion || file.versionLabel === filterVersion;
@@ -351,9 +350,7 @@ const Dashboard = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">
                       Uploaded
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden 2xl:table-cell">
-                      Description
-                    </th>
+
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
@@ -406,9 +403,7 @@ const Dashboard = () => {
                           {formatDate(file.uploadedAt)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 hidden 2xl:table-cell">
-                        <span className="text-sm text-gray-600">{file.description || '-'}</span>
-                      </td>
+
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <button
                           onClick={() => handleDownload(file.id, file.filename)}

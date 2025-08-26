@@ -47,8 +47,7 @@ export default async (req, context) => {
     const formData = await req.formData();
     const file = formData.get('file');
     const usersJson = formData.get('users');
-    // Labels und Description sind jetzt optional und werden nach dem Upload gesetzt
-    const description = null;
+    // Labels werden nach dem Upload gesetzt
     const productLabel = null;
     const versionLabel = null;
     const languageLabel = null;
@@ -85,7 +84,6 @@ export default async (req, context) => {
       file.name,
       file.size,
       file.type,
-      description,
       blobKey,
       decoded.userId,
       productLabel,
@@ -108,7 +106,6 @@ export default async (req, context) => {
         filename: file.name,
         size: file.size,
         mimeType: file.type,
-        description,
         uploadedAt: new Date().toISOString()
       }
     }), {
