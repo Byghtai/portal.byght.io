@@ -67,7 +67,8 @@ const AdminPanel = () => {
     description: '', 
     productLabel: '', 
     versionLabel: '', 
-    languageLabel: '' 
+    languageLabel: '',
+    confluenceLabel: '' 
   });
   const [updatingFile, setUpdatingFile] = useState(false);
 
@@ -82,6 +83,7 @@ const AdminPanel = () => {
   const [filterProduct, setFilterProduct] = useState('');
   const [filterVersion, setFilterVersion] = useState('');
   const [filterLanguage, setFilterLanguage] = useState('');
+  const [filterConfluence, setFilterConfluence] = useState('');
   const [userSearchTerm, setUserSearchTerm] = useState('');
 
 
@@ -612,7 +614,8 @@ const AdminPanel = () => {
     setEditFileData({
       productLabel: file.productLabel || '',
       versionLabel: file.versionLabel || '',
-      languageLabel: file.languageLabel || ''
+      languageLabel: file.languageLabel || '',
+      confluenceLabel: file.confluenceLabel || ''
     });
     setShowEditFileModal(true);
   };
@@ -632,6 +635,7 @@ const AdminPanel = () => {
           productLabel: editFileData.productLabel || null,
           versionLabel: editFileData.versionLabel || null,
           languageLabel: editFileData.languageLabel || null,
+          confluenceLabel: editFileData.confluenceLabel || null,
         }),
       });
 
@@ -672,6 +676,7 @@ const AdminPanel = () => {
               productLabel: labels.productLabel || null,
               versionLabel: labels.versionLabel || null,
               languageLabel: labels.languageLabel || null,
+              confluenceLabel: labels.confluenceLabel || null,
             }),
           });
 
@@ -761,8 +766,9 @@ const AdminPanel = () => {
     const matchesProduct = !filterProduct || file.productLabel === filterProduct;
     const matchesVersion = !filterVersion || file.versionLabel === filterVersion;
     const matchesLanguage = !filterLanguage || file.languageLabel === filterLanguage;
+    const matchesConfluence = !filterConfluence || file.confluenceLabel === filterConfluence;
     
-    return matchesSearch && matchesProduct && matchesVersion && matchesLanguage;
+    return matchesSearch && matchesProduct && matchesVersion && matchesLanguage && matchesConfluence;
   });
 
   const filteredUsers = users.filter(user => {
@@ -777,6 +783,7 @@ const AdminPanel = () => {
   const uniqueProducts = [...new Set(files.map(f => f.productLabel).filter(Boolean))];
   const uniqueVersions = [...new Set(files.map(f => f.versionLabel).filter(Boolean))];
   const uniqueLanguages = [...new Set(files.map(f => f.languageLabel).filter(Boolean))];
+  const uniqueConfluences = [...new Set(files.map(f => f.confluenceLabel).filter(Boolean))];
 
   const getDaysUntilExpiry = (expiryDate) => {
     if (!expiryDate) return null;
@@ -932,7 +939,7 @@ const AdminPanel = () => {
 
               {/* Filter Section */}
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
                       Search
@@ -994,6 +1001,22 @@ const AdminPanel = () => {
                     </select>
                   </div>
 
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Confluence
+                    </label>
+                    <select
+                      value={filterConfluence}
+                      onChange={(e) => setFilterConfluence(e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                    >
+                      <option value="">All Confluence</option>
+                      {uniqueConfluences.map(confluence => (
+                        <option key={confluence} value={confluence}>{confluence}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="flex items-end">
                     <button
                       onClick={() => {
@@ -1001,6 +1024,7 @@ const AdminPanel = () => {
                         setFilterProduct('');
                         setFilterVersion('');
                         setFilterLanguage('');
+                        setFilterConfluence('');
                       }}
                       className="w-full px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
                     >
@@ -1030,6 +1054,9 @@ const AdminPanel = () => {
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                             Language
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                            Confluence
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                             Size
@@ -1061,6 +1088,11 @@ const AdminPanel = () => {
                           <td className="px-3 py-2 whitespace-nowrap hidden lg:table-cell">
                             <span className="text-xs text-gray-700">
                               {file.languageLabel || '-'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap hidden lg:table-cell">
+                            <span className="text-xs text-gray-700">
+                              {file.confluenceLabel || '-'}
                             </span>
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap hidden sm:table-cell">
@@ -1620,6 +1652,21 @@ const AdminPanel = () => {
                       <option value="other">Other</option>
                     </select>
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Confluence
+                    </label>
+                    <select
+                      value={editFileData.confluenceLabel}
+                      onChange={(e) => setEditFileData({ ...editFileData, confluenceLabel: e.target.value })}
+                      className="input-field"
+                    >
+                      <option value="">No Confluence</option>
+                      <option value="Cloud">Cloud</option>
+                      <option value="Server">Server</option>
+                    </select>
+                  </div>
                 </div>
                 
                 <div className="flex justify-end gap-2 mt-6">
@@ -1784,7 +1831,7 @@ const AdminPanel = () => {
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-byght-gray mb-1">
                             Product
@@ -1833,6 +1880,21 @@ const AdminPanel = () => {
                             <option value="DE">DE</option>
                             <option value="EN/DE">EN/DE</option>
                             <option value="other">Other</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-byght-gray mb-1">
+                            Confluence
+                          </label>
+                          <select
+                            value={fileLabels[file.id]?.confluenceLabel || ''}
+                            onChange={(e) => handleLabelChange(file.id, 'confluenceLabel', e.target.value)}
+                            className="input-field"
+                          >
+                            <option value="">No Confluence</option>
+                            <option value="Cloud">Cloud</option>
+                            <option value="Server">Server</option>
                           </select>
                         </div>
                       </div>

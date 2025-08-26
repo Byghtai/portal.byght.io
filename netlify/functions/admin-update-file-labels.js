@@ -42,7 +42,7 @@ export default async (req, context) => {
       });
     }
 
-    const { fileId, productLabel, versionLabel, languageLabel } = await req.json();
+    const { fileId, productLabel, versionLabel, languageLabel, confluenceLabel } = await req.json();
 
     if (!fileId) {
       return new Response(JSON.stringify({ error: 'File ID is required' }), {
@@ -55,10 +55,10 @@ export default async (req, context) => {
     try {
       const result = await client.query(
         `UPDATE files 
-         SET product_label = $1, version_label = $2, language_label = $3
-         WHERE id = $4 
-         RETURNING id, filename, product_label, version_label, language_label`,
-        [productLabel || null, versionLabel || null, languageLabel || null, fileId]
+         SET product_label = $1, version_label = $2, language_label = $3, confluence_label = $4
+         WHERE id = $5 
+         RETURNING id, filename, product_label, version_label, language_label, confluence_label`,
+        [productLabel || null, versionLabel || null, languageLabel || null, confluenceLabel || null, fileId]
       );
 
       if (result.rowCount === 0) {

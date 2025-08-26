@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Download, FileText, LogOut, User, Folder, Calendar, HardDrive, Settings, AlertCircle, Menu, X, Search, Cloud, Key, CheckCircle, Upload, Users, FileCheck, HelpCircle, Mail, ChevronRight } from 'lucide-react';
+import { Download, FileText, LogOut, User, Folder, Calendar, HardDrive, Settings, AlertCircle, Menu, X, Cloud, Key, CheckCircle, Upload, Users, FileCheck, HelpCircle, Mail, ChevronRight } from 'lucide-react';
 import ByghtLogo from '../assets/byght-logo.svg';
-import ConfluenceImage from '../assets/confluence-import-space.png';
 import Cookies from 'js-cookie';
 
 const Dashboard = () => {
@@ -13,12 +12,12 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   
   // Filter states
   const [filterProduct, setFilterProduct] = useState('');
   const [filterVersion, setFilterVersion] = useState('');
   const [filterLanguage, setFilterLanguage] = useState('');
+  const [filterConfluence, setFilterConfluence] = useState('');
 
   useEffect(() => {
     fetchUserFiles();
@@ -98,20 +97,19 @@ const Dashboard = () => {
   };
 
   const filteredFiles = files.filter(file => {
-    const matchesSearch = !searchTerm || 
-      file.filename.toLowerCase().includes(searchTerm.toLowerCase());
-    
     const matchesProduct = !filterProduct || file.productLabel === filterProduct;
     const matchesVersion = !filterVersion || file.versionLabel === filterVersion;
     const matchesLanguage = !filterLanguage || file.languageLabel === filterLanguage;
+    const matchesConfluence = !filterConfluence || file.confluenceLabel === filterConfluence;
     
-    return matchesSearch && matchesProduct && matchesVersion && matchesLanguage;
+    return matchesProduct && matchesVersion && matchesLanguage && matchesConfluence;
   });
 
   // Get unique values for filter dropdowns
   const uniqueProducts = [...new Set(files.map(f => f.productLabel).filter(Boolean))];
   const uniqueVersions = [...new Set(files.map(f => f.versionLabel).filter(Boolean))];
   const uniqueLanguages = [...new Set(files.map(f => f.languageLabel).filter(Boolean))];
+  const uniqueConfluences = [...new Set(files.map(f => f.confluenceLabel).filter(Boolean))];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -257,98 +255,100 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Dateitabelle mit Such- und Filteroptionen */}
+              {/* Dateitabelle mit Filteroptionen */}
               <div className="ml-14 mb-6">
-                {/* Search and Filter Bar */}
-                {files.length > 0 && (
-                  <div className="mb-4 space-y-3">
-                    <div className="relative max-w-md">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-4 w-4 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="Dateien durchsuchen..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full px-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-byght-turquoise focus:border-transparent text-sm"
-                      />
-                    </div>
-
-                    {/* Filter Section */}
-                    {(uniqueProducts.length > 0 || uniqueVersions.length > 0 || uniqueLanguages.length > 0) && (
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-                          {uniqueProducts.length > 0 && (
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Produkt
-                              </label>
-                              <select
-                                value={filterProduct}
-                                onChange={(e) => setFilterProduct(e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
-                              >
-                                <option value="">Alle Produkte</option>
-                                {uniqueProducts.map(product => (
-                                  <option key={product} value={product}>{product}</option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-
-                          {uniqueVersions.length > 0 && (
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Version
-                              </label>
-                              <select
-                                value={filterVersion}
-                                onChange={(e) => setFilterVersion(e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
-                              >
-                                <option value="">Alle Versionen</option>
-                                {uniqueVersions.map(version => (
-                                  <option key={version} value={version}>{version}</option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-
-                          {uniqueLanguages.length > 0 && (
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Sprache
-                              </label>
-                              <select
-                                value={filterLanguage}
-                                onChange={(e) => setFilterLanguage(e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
-                              >
-                                <option value="">Alle Sprachen</option>
-                                {uniqueLanguages.map(language => (
-                                  <option key={language} value={language}>{language}</option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-
-                          <div className="flex items-end">
-                            <button
-                              onClick={() => {
-                                setSearchTerm('');
-                                setFilterProduct('');
-                                setFilterVersion('');
-                                setFilterLanguage('');
-                              }}
-                              className="w-full px-2 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
+                {/* Filter Section */}
+                {files.length > 0 && (uniqueProducts.length > 0 || uniqueVersions.length > 0 || uniqueLanguages.length > 0) && (
+                  <div className="mb-4">
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
+                        {uniqueProducts.length > 0 && (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Produkt
+                            </label>
+                            <select
+                              value={filterProduct}
+                              onChange={(e) => setFilterProduct(e.target.value)}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
                             >
-                              Filter zurücksetzen
-                            </button>
+                              <option value="">Alle Produkte</option>
+                              {uniqueProducts.map(product => (
+                                <option key={product} value={product}>{product}</option>
+                              ))}
+                            </select>
                           </div>
+                        )}
+
+                        {uniqueVersions.length > 0 && (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Version
+                            </label>
+                            <select
+                              value={filterVersion}
+                              onChange={(e) => setFilterVersion(e.target.value)}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                            >
+                              <option value="">Alle Versionen</option>
+                              {uniqueVersions.map(version => (
+                                <option key={version} value={version}>{version}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {uniqueLanguages.length > 0 && (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Sprache
+                            </label>
+                            <select
+                              value={filterLanguage}
+                              onChange={(e) => setFilterLanguage(e.target.value)}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                            >
+                              <option value="">Alle Sprachen</option>
+                              {uniqueLanguages.map(language => (
+                                <option key={language} value={language}>{language}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {uniqueConfluences.length > 0 && (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Confluence
+                            </label>
+                            <select
+                              value={filterConfluence}
+                              onChange={(e) => setFilterConfluence(e.target.value)}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                            >
+                              <option value="">Alle Confluence</option>
+                              {uniqueConfluences.map(confluence => (
+                                <option key={confluence} value={confluence}>{confluence}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        <div className="flex items-end">
+                          <button
+                            onClick={() => {
+                              setFilterProduct('');
+                              setFilterVersion('');
+                              setFilterLanguage('');
+                              setFilterConfluence('');
+                            }}
+                            className="w-full px-2 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
+                          >
+                            Filter zurücksetzen
+                          </button>
                         </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
 
@@ -377,7 +377,7 @@ const Dashboard = () => {
                     <p className="text-gray-600 text-sm">
                       {files.length === 0 
                         ? 'Sobald Dateien für Sie freigegeben werden, erscheinen sie hier.'
-                        : 'Versuchen Sie, Ihre Such- oder Filterkriterien anzupassen.'
+                        : 'Versuchen Sie, Ihre Filterkriterien anzupassen.'
                       }
                     </p>
                   </div>
@@ -398,6 +398,9 @@ const Dashboard = () => {
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                               Sprache
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                              Confluence
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                               Größe
@@ -421,7 +424,7 @@ const Dashboard = () => {
                                   <div>
                                     <div className="text-sm font-medium text-byght-gray">{file.filename}</div>
                                     <div className="lg:hidden text-xs text-gray-500 mt-1">
-                                      {[file.productLabel, file.versionLabel, file.languageLabel].filter(Boolean).join(' • ')}
+                                      {[file.productLabel, file.versionLabel, file.languageLabel, file.confluenceLabel].filter(Boolean).join(' • ')}
                                     </div>
                                   </div>
                                 </div>
@@ -439,6 +442,11 @@ const Dashboard = () => {
                               <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell">
                                 <span className="text-sm text-gray-900">
                                   {file.languageLabel || '-'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell">
+                                <span className="text-sm text-gray-900">
+                                  {file.confluenceLabel || '-'}
                                 </span>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap hidden sm:table-cell">
@@ -544,17 +552,6 @@ const Dashboard = () => {
                   </p>
                 </div>
               </div>
-
-              {/* Screenshot */}
-              {ConfluenceImage && (
-                <div className="ml-14 mt-6 mb-8">
-                  <img 
-                    src={ConfluenceImage} 
-                    alt="Confluence Import Space Screenshot" 
-                    className="rounded-lg shadow-lg border border-gray-200 max-w-full"
-                  />
-                </div>
-              )}
             </div>
           </div>
 
@@ -590,6 +587,23 @@ const Dashboard = () => {
                 </div>
               </li>
             </ul>
+          </div>
+
+          {/* Need help? */}
+          <div className="mb-8 border-t pt-8">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Mail className="text-byght-turquoise" size={24} />
+              Need help?
+            </h2>
+            <p className="text-gray-600">
+              We're happy to assist with the import, configuration, and final checks.
+            </p>
+            <p className="mt-3">
+              <strong className="text-gray-800">📧 Contact us:</strong>{' '}
+              <a href="mailto:Fragen@byght.io" className="text-byght-turquoise hover:text-byght-turquoise/80 font-medium">
+                Fragen@byght.io
+              </a>
+            </p>
           </div>
 
           {/* FAQs */}
@@ -656,23 +670,6 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Need help? */}
-          <div className="border-t pt-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Mail className="text-byght-turquoise" size={24} />
-              Need help?
-            </h2>
-            <p className="text-gray-600">
-              We're happy to assist with the import, configuration, and final checks.
-            </p>
-            <p className="mt-3">
-              <strong className="text-gray-800">📧 Contact us:</strong>{' '}
-              <a href="mailto:Fragen@byght.io" className="text-byght-turquoise hover:text-byght-turquoise/80 font-medium">
-                Fragen@byght.io
-              </a>
-            </p>
           </div>
         </div>
       </main>

@@ -444,13 +444,14 @@ export async function updateUserDetails(userId, updates) {
 }
 
 // Datei-Metadaten speichern
-export async function saveFileMetadata(filename, fileSize, mimeType, blobKey, uploadedBy, productLabel = null, versionLabel = null, languageLabel = null) {
+export async function saveFileMetadata(filename, fileSize, mimeType, blobKey, uploadedBy, productLabel = null, versionLabel = null, languageLabel = null, confluenceLabel = null) {
   const client = await pool.connect();
   try {
     // Prüfen ob Label-Spalten existieren
     let hasProductLabel = true;
     let hasVersionLabel = true;
     let hasLanguageLabel = true;
+    let hasConfluenceLabel = true;
     
     try {
       await client.query('SELECT product_label FROM files LIMIT 1');
@@ -482,6 +483,16 @@ export async function saveFileMetadata(filename, fileSize, mimeType, blobKey, up
       }
     }
     
+    try {
+      await client.query('SELECT confluence_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "confluence_label" does not exist')) {
+        hasConfluenceLabel = false;
+      } else {
+        throw error;
+      }
+    }
+    
     // Query anpassen basierend auf Spaltenverfügbarkeit
     const columns = ['filename', 'file_size', 'mime_type', 'blob_key', 'uploaded_by'];
     const values = [filename, fileSize, mimeType, blobKey, uploadedBy];
@@ -503,6 +514,12 @@ export async function saveFileMetadata(filename, fileSize, mimeType, blobKey, up
     if (hasLanguageLabel) {
       columns.push('language_label');
       values.push(languageLabel);
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    if (hasConfluenceLabel) {
+      columns.push('confluence_label');
+      values.push(confluenceLabel);
       placeholders.push(`$${paramIndex++}`);
     }
     
@@ -542,6 +559,7 @@ export async function getAllFiles() {
     let hasProductLabel = true;
     let hasVersionLabel = true;
     let hasLanguageLabel = true;
+    let hasConfluenceLabel = true;
     
     try {
       await client.query('SELECT product_label FROM files LIMIT 1');
@@ -568,6 +586,16 @@ export async function getAllFiles() {
     } catch (error) {
       if (error.message.includes('column "language_label" does not exist')) {
         hasLanguageLabel = false;
+      } else {
+        throw error;
+      }
+    }
+    
+    try {
+      await client.query('SELECT confluence_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "confluence_label" does not exist')) {
+        hasConfluenceLabel = false;
       } else {
         throw error;
       }
@@ -603,6 +631,13 @@ export async function getAllFiles() {
       groupByFields.push('f.language_label');
     } else {
       selectFields.push('NULL as "languageLabel"');
+    }
+    
+    if (hasConfluenceLabel) {
+      selectFields.push('f.confluence_label as "confluenceLabel"');
+      groupByFields.push('f.confluence_label');
+    } else {
+      selectFields.push('NULL as "confluenceLabel"');
     }
     
     selectFields.push('array_agg(u.username) as assigned_users');
@@ -754,6 +789,7 @@ export async function getFilesForUser(userId) {
     let hasProductLabel = true;
     let hasVersionLabel = true;
     let hasLanguageLabel = true;
+    let hasConfluenceLabel = true;
     
     try {
       await client.query('SELECT product_label FROM files LIMIT 1');
@@ -785,6 +821,16 @@ export async function getFilesForUser(userId) {
       }
     }
     
+    try {
+      await client.query('SELECT confluence_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "confluence_label" does not exist')) {
+        hasConfluenceLabel = false;
+      } else {
+        throw error;
+      }
+    }
+    
     // Query anpassen basierend auf Spaltenverfügbarkeit
     const selectFields = [
       'f.id', 'f.filename', 'f.file_size as size', 'f.mime_type as mimeType',
@@ -807,6 +853,12 @@ export async function getFilesForUser(userId) {
       selectFields.push('f.language_label as languageLabel');
     } else {
       selectFields.push('NULL as languageLabel');
+    }
+    
+    if (hasConfluenceLabel) {
+      selectFields.push('f.confluence_label as confluenceLabel');
+    } else {
+      selectFields.push('NULL as confluenceLabel');
     }
     
     // Prüfen ob Benutzer Admin ist

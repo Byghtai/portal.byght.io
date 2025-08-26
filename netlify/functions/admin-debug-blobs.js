@@ -47,9 +47,10 @@ export default async (req, context) => {
       console.log('Starting database structure check...');
       
       // Check if label columns exist in files table
-      let hasProductLabel = false;
-      let hasVersionLabel = false;
-      let hasLanguageLabel = false;
+          let hasProductLabel = false;
+    let hasVersionLabel = false;
+    let hasLanguageLabel = false;
+    let hasConfluenceLabel = false;
       
       try {
         await client.query('SELECT product_label FROM files LIMIT 1');
@@ -87,6 +88,18 @@ export default async (req, context) => {
         }
       }
       
+      try {
+        await client.query('SELECT confluence_label FROM files LIMIT 1');
+        hasConfluenceLabel = true;
+        console.log('✓ confluence_label column exists');
+      } catch (error) {
+        if (error.message.includes('column "confluence_label" does not exist')) {
+          console.log('✗ confluence_label column missing');
+        } else {
+          throw error;
+        }
+      }
+      
       // Add missing columns
       const addedColumns = [];
       if (!hasProductLabel) {
@@ -107,6 +120,12 @@ export default async (req, context) => {
         addedColumns.push('language_label');
       }
       
+      if (!hasConfluenceLabel) {
+        console.log('Adding confluence_label column...');
+        await client.query('ALTER TABLE files ADD COLUMN confluence_label VARCHAR(20)');
+        addedColumns.push('confluence_label');
+      }
+      
       // Get current table structure
       const structureResult = await client.query(`
         SELECT column_name, data_type, is_nullable
@@ -121,7 +140,7 @@ export default async (req, context) => {
       
       // Get sample files to check data
       const sampleFilesResult = await client.query(`
-        SELECT id, filename, product_label, version_label, language_label
+        SELECT id, filename, product_label, version_label, language_label, confluence_label
         FROM files
         LIMIT 5
       `);
@@ -138,7 +157,8 @@ export default async (req, context) => {
           addedColumns: addedColumns,
           hasProductLabel: hasProductLabel || addedColumns.includes('product_label'),
           hasVersionLabel: hasVersionLabel || addedColumns.includes('version_label'),
-          hasLanguageLabel: hasLanguageLabel || addedColumns.includes('language_label')
+          hasLanguageLabel: hasLanguageLabel || addedColumns.includes('language_label'),
+          hasConfluenceLabel: hasConfluenceLabel || addedColumns.includes('confluence_label')
         }
       }), {
         status: 200,

@@ -48,9 +48,10 @@ export default async (req, context) => {
     const file = formData.get('file');
     const usersJson = formData.get('users');
     // Labels werden nach dem Upload gesetzt
-    const productLabel = null;
-    const versionLabel = null;
-    const languageLabel = null;
+      const productLabel = null;
+  const versionLabel = null;
+  const languageLabel = null;
+  const confluenceLabel = null;
 
     if (!file) {
       return new Response(JSON.stringify({ error: 'No file provided' }), {
@@ -86,9 +87,10 @@ export default async (req, context) => {
       file.type,
       blobKey,
       decoded.userId,
-      productLabel,
-      versionLabel,
-      languageLabel
+          productLabel,
+    versionLabel,
+    languageLabel,
+    confluenceLabel
     );
 
     // Datei automatisch allen Admin-Benutzern zuweisen
