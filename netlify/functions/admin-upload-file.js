@@ -105,20 +105,21 @@ export default async (req, context) => {
         });
         
         // Prüfen ob die ZIP-Datei gültig ist
+        // Zuerst prüfen wir die Größe ohne die ganze Datei zu laden
+        if (file.size > 100 * 1024 * 1024) { // 100MB Limit
+          return new Response(JSON.stringify({ 
+            error: 'File too large',
+            details: `File size ${file.size} bytes exceeds the 100MB limit`
+          }), {
+            status: 413,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        
         try {
+          console.log('Attempting to read ZIP file as ArrayBuffer...');
           const fileBuffer = await file.arrayBuffer();
-          console.log('ZIP file buffer read, size:', fileBuffer.byteLength);
-          
-          // Prüfen ob die Datei zu groß ist (Netlify hat Limits)
-          if (fileBuffer.byteLength > 100 * 1024 * 1024) { // 100MB Limit
-            return new Response(JSON.stringify({ 
-              error: 'File too large',
-              details: `File size ${fileBuffer.byteLength} bytes exceeds the 100MB limit`
-            }), {
-              status: 413,
-              headers: { 'Content-Type': 'application/json' }
-            });
-          }
+          console.log('ZIP file buffer read successfully, size:', fileBuffer.byteLength);
           
           // Prüfen ZIP-Header (verschiedene ZIP-Formate unterstützen)
           const uint8Array = new Uint8Array(fileBuffer);
@@ -133,7 +134,11 @@ export default async (req, context) => {
               '504b0506', // Empty ZIP archive (PK\x05\x06)
               '504b0708', // Spanned archive (PK\x07\x08)
               '504b4c49', // ZIP64 (PKLI)
-              '504b5370' // Self-extracting archive (PKSp)
+              '504b5370', // Self-extracting archive (PKSp)
+              '504b0102', // Central directory header
+              '504b0201', // Alternative central directory
+              '504b1e03', // ZIP64 end of central directory
+              '504b1f06'  // ZIP64 end of central directory locator
             ];
             
             const isValidZip = validZipHeaders.some(validHeader => headerHex.startsWith(validHeader.substring(0, 8)));
@@ -145,8 +150,21 @@ export default async (req, context) => {
             }
           }
           
-          await filesStore.set(blobKey, uint8Array);
-          console.log('ZIP file stored in Blobs successfully');
+          console.log('Attempting to store ZIP file in Netlify Blobs...');
+          console.log(`Blob key: ${blobKey}, Size: ${uint8Array.byteLength} bytes`);
+          
+          try {
+            await filesStore.set(blobKey, uint8Array);
+            console.log('ZIP file stored in Blobs successfully');
+          } catch (blobError) {
+            console.error('Netlify Blobs storage error:', blobError);
+            console.error('Blob Error details:', {
+              message: blobError.message,
+              code: blobError.code,
+              statusCode: blobError.statusCode
+            });
+            throw blobError;
+          }
         } catch (zipError) {
           console.error('Error processing ZIP file:', zipError);
           console.error('ZIP Error Stack:', zipError.stack);
@@ -154,25 +172,38 @@ export default async (req, context) => {
           // Versuche trotzdem die Datei zu speichern, falls es nur ein Validierungsproblem ist
           try {
             console.log('Attempting fallback upload for problematic ZIP file...');
-            const fallbackBuffer = await file.stream();
+            console.log('Using stream-based approach...');
+            
+            const fallbackBuffer = file.stream();
             const chunks = [];
             const reader = fallbackBuffer.getReader();
+            let totalSize = 0;
             
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
               chunks.push(value);
+              totalSize += value.length;
+              console.log(`Read chunk: ${value.length} bytes, total: ${totalSize} bytes`);
+              
+              // Sicherheitscheck während des Streamings
+              if (totalSize > 100 * 1024 * 1024) {
+                throw new Error(`File size exceeds limit during streaming: ${totalSize} bytes`);
+              }
             }
             
-            const combinedBuffer = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
+            console.log(`Stream reading complete: ${chunks.length} chunks, ${totalSize} bytes total`);
+            
+            const combinedBuffer = new Uint8Array(totalSize);
             let offset = 0;
             for (const chunk of chunks) {
               combinedBuffer.set(chunk, offset);
               offset += chunk.length;
             }
             
+            console.log('Attempting to store via fallback method...');
             await filesStore.set(blobKey, combinedBuffer);
-            console.log('ZIP file stored via fallback method');
+            console.log('ZIP file stored via fallback method successfully');
           } catch (fallbackError) {
             console.error('Fallback also failed:', fallbackError);
             return new Response(JSON.stringify({ 
@@ -180,7 +211,10 @@ export default async (req, context) => {
               details: zipError.message,
               fallbackError: fallbackError.message,
               fileType: file.type,
-              fileName: file.name
+              fileName: file.name,
+              fileSize: file.size,
+              recommendation: 'The ZIP file might be corrupted or use an unsupported format. Please try re-creating the ZIP archive or contact support.',
+              errorId: context.requestId || 'unknown'
             }), {
               status: 500,
               headers: { 'Content-Type': 'application/json' }
