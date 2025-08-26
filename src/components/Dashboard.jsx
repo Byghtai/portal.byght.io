@@ -234,14 +234,14 @@ const Dashboard = () => {
                   {uniqueProducts.length > 0 && (
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Produkt
+                        Product
                       </label>
                       <select
                         value={filterProduct}
                         onChange={(e) => setFilterProduct(e.target.value)}
                         className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
                       >
-                        <option value="">Alle Produkte</option>
+                        <option value="">All Products</option>
                         {uniqueProducts.map(product => (
                           <option key={product} value={product}>{product}</option>
                         ))}
@@ -259,7 +259,7 @@ const Dashboard = () => {
                         onChange={(e) => setFilterVersion(e.target.value)}
                         className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
                       >
-                        <option value="">Alle Versionen</option>
+                        <option value="">All Versions</option>
                         {uniqueVersions.map(version => (
                           <option key={version} value={version}>{version}</option>
                         ))}
@@ -270,14 +270,14 @@ const Dashboard = () => {
                   {uniqueLanguages.length > 0 && (
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Sprache
+                        Language
                       </label>
                       <select
                         value={filterLanguage}
                         onChange={(e) => setFilterLanguage(e.target.value)}
                         className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
                       >
-                        <option value="">Alle Sprachen</option>
+                        <option value="">All Languages</option>
                         {uniqueLanguages.map(language => (
                           <option key={language} value={language}>{language}</option>
                         ))}
@@ -295,7 +295,7 @@ const Dashboard = () => {
                       }}
                       className="w-full px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
                     >
-                      Filter zurücksetzen
+                      Reset Filters
                     </button>
                   </div>
                 </div>

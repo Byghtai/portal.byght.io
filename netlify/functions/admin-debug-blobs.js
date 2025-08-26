@@ -1,4 +1,3 @@
-import { getStore } from "@netlify/blobs";
 import jwt from 'jsonwebtoken';
 import { pool } from './db.js';
 
@@ -8,7 +7,7 @@ if (!JWT_SECRET) {
 }
 
 export default async (req, context) => {
-  if (req.method !== 'GET') {
+  if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
       headers: { 'Content-Type': 'application/json' }
@@ -44,66 +43,103 @@ export default async (req, context) => {
     }
 
     const client = await pool.connect();
-    const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
-    
     try {
-      // Alle Blob-Keys aus dem Blob Storage abrufen
-      const blobs = await filesStore.list();
-      const blobKeys = blobs.blobs.map(blob => blob.key);
+      console.log('Starting database structure check...');
       
-      // Alle Blob-Keys aus der Datenbank abrufen
-      const result = await client.query('SELECT id, filename, blob_key FROM files');
-      const dbFiles = result.rows;
-      const dbBlobKeys = dbFiles.map(row => row.blob_key);
+      // Check if label columns exist in files table
+      let hasProductLabel = false;
+      let hasVersionLabel = false;
+      let hasLanguageLabel = false;
       
-      // Waisen-Dateien finden (Blob-Keys, die nicht in der DB sind)
-      const orphanedBlobKeys = blobKeys.filter(key => !dbBlobKeys.includes(key));
+      try {
+        await client.query('SELECT product_label FROM files LIMIT 1');
+        hasProductLabel = true;
+        console.log('✓ product_label column exists');
+      } catch (error) {
+        if (error.message.includes('column "product_label" does not exist')) {
+          console.log('✗ product_label column missing');
+        } else {
+          throw error;
+        }
+      }
       
-      // Fehlende Blobs finden (DB-Einträge ohne Blob)
-      const missingBlobs = dbFiles.filter(file => !blobKeys.includes(file.blob_key));
+      try {
+        await client.query('SELECT version_label FROM files LIMIT 1');
+        hasVersionLabel = true;
+        console.log('✓ version_label column exists');
+      } catch (error) {
+        if (error.message.includes('column "version_label" does not exist')) {
+          console.log('✗ version_label column missing');
+        } else {
+          throw error;
+        }
+      }
       
-      // Detaillierte Informationen für jeden Blob
-      const blobDetails = await Promise.all(
-        blobKeys.map(async (key) => {
-          try {
-            const blob = await filesStore.get(key);
-            return {
-              key,
-              exists: !!blob,
-              size: blob ? blob.size : null,
-              lastAccessed: blob ? blob.lastAccessed : null
-            };
-          } catch (error) {
-            return {
-              key,
-              exists: false,
-              error: error.message
-            };
-          }
-        })
-      );
+      try {
+        await client.query('SELECT language_label FROM files LIMIT 1');
+        hasLanguageLabel = true;
+        console.log('✓ language_label column exists');
+      } catch (error) {
+        if (error.message.includes('column "language_label" does not exist')) {
+          console.log('✗ language_label column missing');
+        } else {
+          throw error;
+        }
+      }
+      
+      // Add missing columns
+      const addedColumns = [];
+      if (!hasProductLabel) {
+        console.log('Adding product_label column...');
+        await client.query('ALTER TABLE files ADD COLUMN product_label VARCHAR(50)');
+        addedColumns.push('product_label');
+      }
+      
+      if (!hasVersionLabel) {
+        console.log('Adding version_label column...');
+        await client.query('ALTER TABLE files ADD COLUMN version_label VARCHAR(20)');
+        addedColumns.push('version_label');
+      }
+      
+      if (!hasLanguageLabel) {
+        console.log('Adding language_label column...');
+        await client.query('ALTER TABLE files ADD COLUMN language_label VARCHAR(20)');
+        addedColumns.push('language_label');
+      }
+      
+      // Get current table structure
+      const structureResult = await client.query(`
+        SELECT column_name, data_type, is_nullable
+        FROM information_schema.columns
+        WHERE table_name = 'files'
+        ORDER BY ordinal_position
+      `);
+      
+      // Get file count
+      const fileCountResult = await client.query('SELECT COUNT(*) as count FROM files');
+      const fileCount = fileCountResult.rows[0].count;
+      
+      // Get sample files to check data
+      const sampleFilesResult = await client.query(`
+        SELECT id, filename, product_label, version_label, language_label
+        FROM files
+        LIMIT 5
+      `);
       
       return new Response(JSON.stringify({ 
         success: true,
-        summary: {
-          totalBlobs: blobKeys.length,
-          totalDbFiles: dbFiles.length,
-          orphanedBlobs: orphanedBlobKeys.length,
-          missingBlobs: missingBlobs.length
+        message: 'Database structure check completed',
+        structure: {
+          columns: structureResult.rows,
+          fileCount: fileCount,
+          sampleFiles: sampleFilesResult.rows
         },
-        blobKeys,
-        dbFiles: dbFiles.map(file => ({
-          id: file.id,
-          filename: file.filename,
-          blobKey: file.blob_key
-        })),
-        orphanedBlobKeys,
-        missingBlobs: missingBlobs.map(file => ({
-          id: file.id,
-          filename: file.filename,
-          blobKey: file.blob_key
-        })),
-        blobDetails
+        fixes: {
+          addedColumns: addedColumns,
+          hasProductLabel: hasProductLabel || addedColumns.includes('product_label'),
+          hasVersionLabel: hasVersionLabel || addedColumns.includes('version_label'),
+          hasLanguageLabel: hasLanguageLabel || addedColumns.includes('language_label')
+        }
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -113,7 +149,7 @@ export default async (req, context) => {
       client.release();
     }
   } catch (error) {
-    console.error('Debug blobs error:', error);
+    console.error('Database debug error:', error);
     return new Response(JSON.stringify({ 
       error: 'Server error', 
       details: error.message 

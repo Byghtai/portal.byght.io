@@ -51,6 +51,7 @@ const AdminPanel = () => {
   const [editingExpiryDate, setEditingExpiryDate] = useState({});
   const [updatingExpiryDate, setUpdatingExpiryDate] = useState({});
   const [cleaningUp, setCleaningUp] = useState(false);
+  const [debugging, setDebugging] = useState(false);
   
   // File editing states
   const [editingFile, setEditingFile] = useState(null);
@@ -288,6 +289,52 @@ const AdminPanel = () => {
       alert('Error during cleanup: ' + error.message);
     } finally {
       setCleaningUp(false);
+    }
+  };
+
+  const handleDebugDatabase = async () => {
+    setDebugging(true);
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-debug-blobs', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Database debug result:', result);
+        
+        let message = `Database structure check completed!\n\n`;
+        message += `File count: ${result.structure.fileCount}\n`;
+        message += `Columns: ${result.structure.columns.length}\n`;
+        
+        if (result.fixes.addedColumns.length > 0) {
+          message += `\nFixed missing columns: ${result.fixes.addedColumns.join(', ')}\n`;
+        }
+        
+        message += `\nLabel columns status:\n`;
+        message += `- Product label: ${result.fixes.hasProductLabel ? '✓' : '✗'}\n`;
+        message += `- Version label: ${result.fixes.hasVersionLabel ? '✓' : '✗'}\n`;
+        message += `- Language label: ${result.fixes.hasLanguageLabel ? '✓' : '✗'}\n`;
+        
+        alert(message);
+        
+        // Refresh files if columns were added
+        if (result.fixes.addedColumns.length > 0) {
+          await fetchFiles();
+        }
+      } else {
+        const error = await response.json();
+        alert('Error during debug: ' + error.error);
+      }
+    } catch (error) {
+      alert('Error during debug: ' + error.message);
+    } finally {
+      setDebugging(false);
     }
   };
 
@@ -661,14 +708,14 @@ const AdminPanel = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Produkt (optional)
+                      Product (optional)
                     </label>
                     <select
                       value={productLabel}
                       onChange={(e) => setProductLabel(e.target.value)}
                       className="input-field"
                     >
-                      <option value="">Kein Produkt</option>
+                      <option value="">No Product</option>
                       <option value="IMS SmartKit">IMS SmartKit</option>
                       <option value="ISMS SmartKit">ISMS SmartKit</option>
                       <option value="DSMS SmartKit">DSMS SmartKit</option>
@@ -690,20 +737,20 @@ const AdminPanel = () => {
                         setVersionLabel(value);
                       }}
                       className="input-field"
-                      placeholder="z.B. 1.2.3"
+                      placeholder="e.g. 1.2.3"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Sprache (optional)
+                      Language (optional)
                     </label>
                     <select
                       value={languageLabel}
                       onChange={(e) => setLanguageLabel(e.target.value)}
                       className="input-field"
                     >
-                      <option value="">Keine Sprache</option>
+                      <option value="">No Language</option>
                       <option value="EN">EN</option>
                       <option value="DE">DE</option>
                       <option value="EN/DE">EN/DE</option>
@@ -729,6 +776,14 @@ const AdminPanel = () => {
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-600">{filteredFiles.length} of {files.length} file(s)</span>
                   <button
+                    onClick={handleDebugDatabase}
+                    disabled={debugging}
+                    className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Check and fix database structure"
+                  >
+                    {debugging ? 'Checking...' : 'Debug DB'}
+                  </button>
+                  <button
                     onClick={handleCleanupOrphanedFiles}
                     disabled={cleaningUp}
                     className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -744,27 +799,27 @@ const AdminPanel = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Suche
+                      Search
                     </label>
                     <input
                       type="text"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
-                      placeholder="Dateiname oder Beschreibung..."
+                      placeholder="Filename or description..."
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Produkt
+                      Product
                     </label>
                     <select
                       value={filterProduct}
                       onChange={(e) => setFilterProduct(e.target.value)}
                       className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
                     >
-                      <option value="">Alle Produkte</option>
+                      <option value="">All Products</option>
                       {uniqueProducts.map(product => (
                         <option key={product} value={product}>{product}</option>
                       ))}
@@ -780,7 +835,7 @@ const AdminPanel = () => {
                       onChange={(e) => setFilterVersion(e.target.value)}
                       className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
                     >
-                      <option value="">Alle Versionen</option>
+                      <option value="">All Versions</option>
                       {uniqueVersions.map(version => (
                         <option key={version} value={version}>{version}</option>
                       ))}
@@ -789,14 +844,14 @@ const AdminPanel = () => {
 
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Sprache
+                      Language
                     </label>
                     <select
                       value={filterLanguage}
                       onChange={(e) => setFilterLanguage(e.target.value)}
                       className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
                     >
-                      <option value="">Alle Sprachen</option>
+                      <option value="">All Languages</option>
                       {uniqueLanguages.map(language => (
                         <option key={language} value={language}>{language}</option>
                       ))}
@@ -813,7 +868,7 @@ const AdminPanel = () => {
                       }}
                       className="w-full px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
                     >
-                      Filter zurücksetzen
+                      Reset Filters
                     </button>
                   </div>
                 </div>
@@ -1239,7 +1294,7 @@ const AdminPanel = () => {
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-byght-gray">
-                    Labels bearbeiten: {editingFile.filename}
+                    Edit Labels: {editingFile.filename}
                   </h3>
                   <button
                     onClick={() => setShowEditFileModal(false)}
@@ -1252,14 +1307,14 @@ const AdminPanel = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Produkt
+                      Product
                     </label>
                     <select
                       value={editFileLabels.productLabel}
                       onChange={(e) => setEditFileLabels({ ...editFileLabels, productLabel: e.target.value })}
                       className="input-field"
                     >
-                      <option value="">Kein Produkt</option>
+                      <option value="">No Product</option>
                       <option value="IMS SmartKit">IMS SmartKit</option>
                       <option value="ISMS SmartKit">ISMS SmartKit</option>
                       <option value="DSMS SmartKit">DSMS SmartKit</option>
@@ -1280,20 +1335,20 @@ const AdminPanel = () => {
                         setEditFileLabels({ ...editFileLabels, versionLabel: value });
                       }}
                       className="input-field"
-                      placeholder="z.B. 1.2.3"
+                      placeholder="e.g. 1.2.3"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-byght-gray mb-1">
-                      Sprache
+                      Language
                     </label>
                     <select
                       value={editFileLabels.languageLabel}
                       onChange={(e) => setEditFileLabels({ ...editFileLabels, languageLabel: e.target.value })}
                       className="input-field"
                     >
-                      <option value="">Keine Sprache</option>
+                      <option value="">No Language</option>
                       <option value="EN">EN</option>
                       <option value="DE">DE</option>
                       <option value="EN/DE">EN/DE</option>
@@ -1307,14 +1362,14 @@ const AdminPanel = () => {
                     onClick={() => setShowEditFileModal(false)}
                     className="btn-secondary"
                   >
-                    Abbrechen
+                    Cancel
                   </button>
                   <button
                     onClick={handleUpdateFileLabels}
                     disabled={updatingFile}
                     className="btn-primary"
                   >
-                    {updatingFile ? 'Speichern...' : 'Speichern'}
+                    {updatingFile ? 'Saving...' : 'Save'}
                   </button>
                 </div>
               </div>

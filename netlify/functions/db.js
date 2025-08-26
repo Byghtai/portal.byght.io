@@ -327,11 +327,72 @@ export async function updateUserExpiryDate(userId, expiryDate) {
 export async function saveFileMetadata(filename, fileSize, mimeType, description, blobKey, uploadedBy, productLabel = null, versionLabel = null, languageLabel = null) {
   const client = await pool.connect();
   try {
-    const result = await client.query(
-      `INSERT INTO files (filename, file_size, mime_type, description, blob_key, uploaded_by, product_label, version_label, language_label) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-      [filename, fileSize, mimeType, description, blobKey, uploadedBy, productLabel, versionLabel, languageLabel]
-    );
+    // Prüfen ob Label-Spalten existieren
+    let hasProductLabel = true;
+    let hasVersionLabel = true;
+    let hasLanguageLabel = true;
+    
+    try {
+      await client.query('SELECT product_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "product_label" does not exist')) {
+        hasProductLabel = false;
+      } else {
+        throw error;
+      }
+    }
+    
+    try {
+      await client.query('SELECT version_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "version_label" does not exist')) {
+        hasVersionLabel = false;
+      } else {
+        throw error;
+      }
+    }
+    
+    try {
+      await client.query('SELECT language_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "language_label" does not exist')) {
+        hasLanguageLabel = false;
+      } else {
+        throw error;
+      }
+    }
+    
+    // Query anpassen basierend auf Spaltenverfügbarkeit
+    const columns = ['filename', 'file_size', 'mime_type', 'description', 'blob_key', 'uploaded_by'];
+    const values = [filename, fileSize, mimeType, description, blobKey, uploadedBy];
+    const placeholders = ['$1', '$2', '$3', '$4', '$5', '$6'];
+    let paramIndex = 7;
+    
+    if (hasProductLabel) {
+      columns.push('product_label');
+      values.push(productLabel);
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    if (hasVersionLabel) {
+      columns.push('version_label');
+      values.push(versionLabel);
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    if (hasLanguageLabel) {
+      columns.push('language_label');
+      values.push(languageLabel);
+      placeholders.push(`$${paramIndex++}`);
+    }
+    
+    const query = `
+      INSERT INTO files (${columns.join(', ')}) 
+      VALUES (${placeholders.join(', ')}) 
+      RETURNING id
+    `;
+    
+    const result = await client.query(query, values);
     return result.rows[0].id;
   } finally {
     client.release();
@@ -357,17 +418,85 @@ export async function assignFileToUsers(fileId, userIds) {
 export async function getAllFiles() {
   const client = await pool.connect();
   try {
-    const result = await client.query(`
-      SELECT f.id, f.filename, f.file_size as size, f.mime_type as mimeType, 
-             f.description, f.uploaded_at as uploadedAt, f.blob_key as blobKey,
-             f.product_label as productLabel, f.version_label as versionLabel, f.language_label as languageLabel,
-             array_agg(u.username) as assigned_users
+    // Prüfen ob Label-Spalten existieren
+    let hasProductLabel = true;
+    let hasVersionLabel = true;
+    let hasLanguageLabel = true;
+    
+    try {
+      await client.query('SELECT product_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "product_label" does not exist')) {
+        hasProductLabel = false;
+      } else {
+        throw error;
+      }
+    }
+    
+    try {
+      await client.query('SELECT version_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "version_label" does not exist')) {
+        hasVersionLabel = false;
+      } else {
+        throw error;
+      }
+    }
+    
+    try {
+      await client.query('SELECT language_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "language_label" does not exist')) {
+        hasLanguageLabel = false;
+      } else {
+        throw error;
+      }
+    }
+    
+    // Query anpassen basierend auf Spaltenverfügbarkeit
+    const selectFields = [
+      'f.id', 'f.filename', 'f.file_size as size', 'f.mime_type as mimeType',
+      'f.description', 'f.uploaded_at as uploadedAt', 'f.blob_key as blobKey'
+    ];
+    
+    const groupByFields = [
+      'f.id', 'f.filename', 'f.file_size', 'f.mime_type', 
+      'f.description', 'f.uploaded_at', 'f.blob_key'
+    ];
+    
+    if (hasProductLabel) {
+      selectFields.push('f.product_label as productLabel');
+      groupByFields.push('f.product_label');
+    } else {
+      selectFields.push('NULL as productLabel');
+    }
+    
+    if (hasVersionLabel) {
+      selectFields.push('f.version_label as versionLabel');
+      groupByFields.push('f.version_label');
+    } else {
+      selectFields.push('NULL as versionLabel');
+    }
+    
+    if (hasLanguageLabel) {
+      selectFields.push('f.language_label as languageLabel');
+      groupByFields.push('f.language_label');
+    } else {
+      selectFields.push('NULL as languageLabel');
+    }
+    
+    selectFields.push('array_agg(u.username) as assigned_users');
+    
+    const query = `
+      SELECT ${selectFields.join(', ')}
       FROM files f
       LEFT JOIN file_user_assignments fua ON f.id = fua.file_id
       LEFT JOIN users u ON fua.user_id = u.id
-      GROUP BY f.id, f.filename, f.file_size, f.mime_type, f.description, f.uploaded_at, f.blob_key, f.product_label, f.version_label, f.language_label
+      GROUP BY ${groupByFields.join(', ')}
       ORDER BY f.uploaded_at DESC
-    `);
+    `;
+    
+    const result = await client.query(query);
     return result.rows.map(row => ({
       ...row,
       assignedUsers: row.assigned_users.filter(user => user !== null),
@@ -501,33 +630,90 @@ export async function assignFileToAllAdmins(fileId) {
 export async function getFilesForUser(userId) {
   const client = await pool.connect();
   try {
+    // Prüfen ob Label-Spalten existieren
+    let hasProductLabel = true;
+    let hasVersionLabel = true;
+    let hasLanguageLabel = true;
+    
+    try {
+      await client.query('SELECT product_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "product_label" does not exist')) {
+        hasProductLabel = false;
+      } else {
+        throw error;
+      }
+    }
+    
+    try {
+      await client.query('SELECT version_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "version_label" does not exist')) {
+        hasVersionLabel = false;
+      } else {
+        throw error;
+      }
+    }
+    
+    try {
+      await client.query('SELECT language_label FROM files LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "language_label" does not exist')) {
+        hasLanguageLabel = false;
+      } else {
+        throw error;
+      }
+    }
+    
+    // Query anpassen basierend auf Spaltenverfügbarkeit
+    const selectFields = [
+      'f.id', 'f.filename', 'f.file_size as size', 'f.mime_type as mimeType',
+      'f.description', 'f.uploaded_at as uploadedAt', 'f.blob_key as blobKey'
+    ];
+    
+    if (hasProductLabel) {
+      selectFields.push('f.product_label as productLabel');
+    } else {
+      selectFields.push('NULL as productLabel');
+    }
+    
+    if (hasVersionLabel) {
+      selectFields.push('f.version_label as versionLabel');
+    } else {
+      selectFields.push('NULL as versionLabel');
+    }
+    
+    if (hasLanguageLabel) {
+      selectFields.push('f.language_label as languageLabel');
+    } else {
+      selectFields.push('NULL as languageLabel');
+    }
+    
     // Prüfen ob Benutzer Admin ist
     const isAdmin = await isUserAdmin(userId);
     
     if (isAdmin) {
       // Admins bekommen alle Dateien
-      const result = await client.query(`
-        SELECT f.id, f.filename, f.file_size as size, f.mime_type as mimeType, 
-               f.description, f.uploaded_at as uploadedAt, f.blob_key as blobKey,
-               f.product_label as productLabel, f.version_label as versionLabel, f.language_label as languageLabel
+      const query = `
+        SELECT ${selectFields.join(', ')}
         FROM files f
         ORDER BY f.uploaded_at DESC
-      `);
+      `;
+      const result = await client.query(query);
       return result.rows.map(row => ({
         ...row,
         uploadedAt: row.uploadedat ? new Date(row.uploadedat).toISOString() : null
       }));
     } else {
       // Standard-Benutzer bekommen nur zugewiesene Dateien
-      const result = await client.query(`
-        SELECT f.id, f.filename, f.file_size as size, f.mime_type as mimeType, 
-               f.description, f.uploaded_at as uploadedAt, f.blob_key as blobKey,
-               f.product_label as productLabel, f.version_label as versionLabel, f.language_label as languageLabel
+      const query = `
+        SELECT ${selectFields.join(', ')}
         FROM files f
         INNER JOIN file_user_assignments fua ON f.id = fua.file_id
         WHERE fua.user_id = $1
         ORDER BY f.uploaded_at DESC
-      `, [userId]);
+      `;
+      const result = await client.query(query, [userId]);
       return result.rows.map(row => ({
         ...row,
         uploadedAt: row.uploadedat ? new Date(row.uploadedat).toISOString() : null
