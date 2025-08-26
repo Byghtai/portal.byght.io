@@ -16,11 +16,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import Cookies from 'js-cookie';
-import TestUpload from './TestUpload';
-import ZipDebugTest from './ZipDebugTest';
-import BasicFileTest from './BasicFileTest';
 import ChunkedUpload from './ChunkedUpload';
-import LazyUpload from './LazyUpload';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -1007,45 +1003,6 @@ const AdminPanel = () => {
             </div>
           </button>
           <button
-            onClick={() => setActiveTab('test')}
-            className={`px-6 py-2.5 rounded-md font-medium transition-colors ${
-              activeTab === 'test'
-                ? 'bg-byght-turquoise text-white'
-                : 'text-byght-gray hover:bg-gray-100'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Upload size={18} />
-              <span>Test Upload</span>
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('debug')}
-            className={`px-6 py-2.5 rounded-md font-medium transition-colors ${
-              activeTab === 'debug'
-                ? 'bg-byght-turquoise text-white'
-                : 'text-byght-gray hover:bg-gray-100'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <FileText size={18} />
-              <span>ZIP Debug</span>
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('basic')}
-            className={`px-6 py-2.5 rounded-md font-medium transition-colors ${
-              activeTab === 'basic'
-                ? 'bg-byght-turquoise text-white'
-                : 'text-byght-gray hover:bg-gray-100'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <FileText size={18} />
-              <span>Basic Test</span>
-            </div>
-          </button>
-          <button
             onClick={() => setActiveTab('chunked')}
             className={`px-6 py-2.5 rounded-md font-medium transition-colors ${
               activeTab === 'chunked'
@@ -1056,19 +1013,6 @@ const AdminPanel = () => {
             <div className="flex items-center gap-2">
               <Upload size={18} />
               <span>Large Files</span>
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('lazy')}
-            className={`px-6 py-2.5 rounded-md font-medium transition-colors ${
-              activeTab === 'lazy'
-                ? 'bg-byght-turquoise text-white'
-                : 'text-byght-gray hover:bg-gray-100'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Upload size={18} />
-              <span>Lazy Upload</span>
             </div>
           </button>
         </div>
@@ -1362,16 +1306,8 @@ const AdminPanel = () => {
               )}
             </div>
           </div>
-        ) : activeTab === 'test' ? (
-          <TestUpload />
-        ) : activeTab === 'debug' ? (
-          <ZipDebugTest />
-        ) : activeTab === 'basic' ? (
-          <BasicFileTest />
         ) : activeTab === 'chunked' ? (
           <ChunkedUpload />
-        ) : activeTab === 'lazy' ? (
-          <LazyUpload />
         ) : (
           <div className="space-y-6">
             {/* User Creation Button */}
