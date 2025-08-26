@@ -7,7 +7,7 @@ if (!JWT_SECRET) {
 }
 
 export default async (req, context) => {
-  if (req.method !== 'PUT') {
+  if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
       headers: { 'Content-Type': 'application/json' }
