@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Download, FileText, LogOut, User, Folder, Calendar, HardDrive, Settings, AlertCircle, Menu, X, Cloud, Key, CheckCircle, Upload, Users, FileCheck, HelpCircle, Mail, ChevronRight } from 'lucide-react';
+import { Download, FileText, LogOut, User, Folder, Calendar, HardDrive, Settings, AlertCircle, Menu, X, Cloud, Key, CheckCircle, Upload, Users, FileCheck, HelpCircle, Mail, ChevronRight, ChevronDown } from 'lucide-react';
 import ByghtLogo from '../assets/byght-logo.svg';
 import Cookies from 'js-cookie';
 
@@ -18,6 +18,9 @@ const Dashboard = () => {
   const [filterVersion, setFilterVersion] = useState('');
   const [filterLanguage, setFilterLanguage] = useState('');
   const [filterConfluence, setFilterConfluence] = useState('');
+  
+  // FAQ collapse states
+  const [expandedFaq, setExpandedFaq] = useState(null);
 
   useEffect(() => {
     fetchUserFiles();
@@ -110,6 +113,10 @@ const Dashboard = () => {
   const uniqueVersions = [...new Set(files.map(f => f.versionLabel).filter(Boolean))];
   const uniqueLanguages = [...new Set(files.map(f => f.languageLabel).filter(Boolean))];
   const uniqueConfluences = [...new Set(files.map(f => f.confluenceLabel).filter(Boolean))];
+
+  const toggleFaq = (faqId) => {
+    setExpandedFaq(expandedFaq === faqId ? null : faqId);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -230,6 +237,9 @@ const Dashboard = () => {
               </li>
             </ul>
           </div>
+
+          {/* Separator */}
+          <div className="border-t border-gray-200 mb-8"></div>
 
           {/* Step-by-step guide */}
           <div className="mb-8">
@@ -555,6 +565,9 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Separator */}
+          <div className="border-t border-gray-200 mb-8"></div>
+
           {/* Hand-off to Byght */}
           <div className="mb-8 bg-green-50 border-l-4 border-green-400 p-6 rounded-r-lg">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -606,6 +619,9 @@ const Dashboard = () => {
             </p>
           </div>
 
+          {/* Separator */}
+          <div className="border-t border-gray-200 mb-8"></div>
+
           {/* FAQs */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
@@ -613,61 +629,112 @@ const Dashboard = () => {
               FAQs
             </h2>
             
-            <div className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-5">
-                <h3 className="font-semibold text-gray-800 mb-2">
-                  Q1: "File type or format not recognized." What now?
-                </h3>
-                <p className="text-gray-600 flex items-start gap-2">
-                  <span className="text-amber-500">👉</span>
-                  <span>Upload the original <code className="bg-gray-200 px-1 rounded">.zip</code> (don't unzip) via <strong>Data management → Import spaces</strong> using <strong>Space import</strong>.</span>
-                </p>
+            <div className="space-y-3">
+              {/* FAQ 1 */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => toggleFaq('faq1')}
+                  className="w-full px-5 py-4 text-left bg-white hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors flex items-center justify-between"
+                >
+                  <h3 className="font-semibold text-gray-800">
+                    "File type or format not recognized." What now?
+                  </h3>
+                  <div className="flex-shrink-0 ml-4">
+                    {expandedFaq === 'faq1' ? (
+                      <ChevronDown className="h-5 w-5 text-gray-500" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-gray-500" />
+                    )}
+                  </div>
+                </button>
+                {expandedFaq === 'faq1' && (
+                  <div className="px-5 pb-4 bg-gray-50">
+                    <p className="text-gray-600 flex items-start gap-2">
+                      <span className="text-amber-500">👉</span>
+                      <span>Upload the original <code className="bg-gray-200 px-1 rounded">.zip</code> (don't unzip) via <strong>Data management → Import spaces</strong> using <strong>Space import</strong>.</span>
+                    </p>
+                  </div>
+                )}
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-5">
-                <h3 className="font-semibold text-gray-800 mb-2">
-                  Q2: "Space key already exists" or name conflict.
-                </h3>
-                <p className="text-gray-600 flex items-start gap-2">
-                  <span className="text-amber-500">👉</span>
-                  <span>An earlier import or a conflicting key likely exists. Either remove/rename the existing space or import using a different space key/name. If you're unsure, tell us and we'll help.</span>
-                </p>
+              {/* FAQ 2 */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => toggleFaq('faq2')}
+                  className="w-full px-5 py-4 text-left bg-white hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors flex items-center justify-between"
+                >
+                  <h3 className="font-semibold text-gray-800">
+                    "Space key already exists" or name conflict.
+                  </h3>
+                  <div className="flex-shrink-0 ml-4">
+                    {expandedFaq === 'faq2' ? (
+                      <ChevronDown className="h-5 w-5 text-gray-500" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-gray-500" />
+                    )}
+                  </div>
+                </button>
+                {expandedFaq === 'faq2' && (
+                  <div className="px-5 pb-4 bg-gray-50">
+                    <p className="text-gray-600 flex items-start gap-2">
+                      <span className="text-amber-500">👉</span>
+                      <span>An earlier import or a conflicting key likely exists. Either remove/rename the existing space or import using a different space key/name. If you're unsure, tell us and we'll help.</span>
+                    </p>
+                  </div>
+                )}
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-5">
-                <h3 className="font-semibold text-gray-800 mb-2">
-                  Q3: Can't find the space after import / need to reset access.
-                </h3>
-                <div className="text-gray-600">
-                  <p className="flex items-start gap-2 mb-2">
-                    <span className="text-amber-500">👉</span>
-                    <span>As a <strong>Confluence Site Admin</strong>:</span>
-                  </p>
-                  <ul className="ml-8 space-y-2">
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-400">•</span>
-                      <span>Go to <strong>Settings → Space permissions</strong>, find the space by name or key.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-400">•</span>
-                      <span>Use <strong>Recover permissions / Grant space permissions</strong> to add yourself as <strong>Space Admin</strong>.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-400">•</span>
-                      <span>Open the space → <strong>Space settings → Permissions</strong> and:</span>
-                    </li>
-                  </ul>
-                  <ul className="ml-14 mt-2 space-y-1">
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-400">◦</span>
-                      <span>Add your standard user groups (e.g., <code className="bg-gray-200 px-1 rounded">confluence-users</code>) with <strong>View</strong> (and any additional) rights.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-400">◦</span>
-                      <span>Add your admin group/users with <strong>Admin</strong>.</span>
-                    </li>
-                  </ul>
-                </div>
+              {/* FAQ 3 */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => toggleFaq('faq3')}
+                  className="w-full px-5 py-4 text-left bg-white hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors flex items-center justify-between"
+                >
+                  <h3 className="font-semibold text-gray-800">
+                    Can't find the space after import / need to reset access.
+                  </h3>
+                  <div className="flex-shrink-0 ml-4">
+                    {expandedFaq === 'faq3' ? (
+                      <ChevronDown className="h-5 w-5 text-gray-500" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-gray-500" />
+                    )}
+                  </div>
+                </button>
+                {expandedFaq === 'faq3' && (
+                  <div className="px-5 pb-4 bg-gray-50">
+                    <div className="text-gray-600">
+                      <p className="flex items-start gap-2 mb-2">
+                        <span className="text-amber-500">👉</span>
+                        <span>As a <strong>Confluence Site Admin</strong>:</span>
+                      </p>
+                      <ul className="ml-8 space-y-2">
+                        <li className="flex items-start gap-2">
+                          <span className="text-gray-400">•</span>
+                          <span>Go to <strong>Settings → Space permissions</strong>, find the space by name or key.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-gray-400">•</span>
+                          <span>Use <strong>Recover permissions / Grant space permissions</strong> to add yourself as <strong>Space Admin</strong>.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-gray-400">•</span>
+                          <span>Open the space → <strong>Space settings → Permissions</strong> and:</span>
+                        </li>
+                      </ul>
+                      <ul className="ml-14 mt-2 space-y-1">
+                        <li className="flex items-start gap-2">
+                          <span className="text-gray-400">◦</span>
+                          <span>Add your standard user groups (e.g., <code className="bg-gray-200 px-1 rounded">confluence-users</code>) with <strong>View</strong> (and any additional) rights.</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-gray-400">◦</span>
+                          <span>Add your admin group/users with <strong>Admin</strong>.</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
