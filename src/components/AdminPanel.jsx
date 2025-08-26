@@ -35,6 +35,7 @@ const AdminPanel = () => {
     username: '', 
     password: '', 
     isAdmin: false,
+    customer: '',
     expiryDate: new Date(Date.now() + 4 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 4 weeks from today
   });
   const [showNewUserForm, setShowNewUserForm] = useState(false);
@@ -358,6 +359,7 @@ const AdminPanel = () => {
           username: '', 
           password: '', 
           isAdmin: false,
+          customer: '',
           expiryDate: new Date(Date.now() + 4 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         });
         setShowNewUserForm(false);
@@ -559,7 +561,8 @@ const AdminPanel = () => {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = !userSearchTerm || 
-      user.username.toLowerCase().includes(userSearchTerm.toLowerCase());
+      user.username.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+      (user.customer && user.customer.toLowerCase().includes(userSearchTerm.toLowerCase()));
     
     return matchesSearch;
   });
@@ -1012,6 +1015,19 @@ const AdminPanel = () => {
                     </div>
                   </div>
                   
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Customer (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.customer}
+                      onChange={(e) => setNewUser({ ...newUser, customer: e.target.value })}
+                      className="input-field"
+                      placeholder="Customer name"
+                    />
+                  </div>
+                  
                   <div className="flex items-center">
                     <input
                       type="checkbox"
@@ -1065,7 +1081,7 @@ const AdminPanel = () => {
                     value={userSearchTerm}
                     onChange={(e) => setUserSearchTerm(e.target.value)}
                     className="w-full px-4 py-2 pl-10 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-byght-turquoise focus:border-transparent"
-                    placeholder="Nach Benutzernamen suchen..."
+                    placeholder="Nach Benutzernamen oder Customer suchen..."
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Users size={16} className="text-gray-400" />
@@ -1091,7 +1107,12 @@ const AdminPanel = () => {
                     <div key={user.id} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center space-x-3">
-                          <span className="text-sm font-medium text-byght-gray">{user.username}</span>
+                          <span className="text-sm font-medium text-byght-gray">
+                            {user.username}
+                            {user.customer && (
+                              <span className="text-gray-500 font-normal ml-1">({user.customer})</span>
+                            )}
+                          </span>
                           {user.isAdmin ? (
                             <span className="px-1.5 py-0.5 text-xs font-medium rounded-full bg-byght-yellow/20 text-byght-gray">
                               Admin

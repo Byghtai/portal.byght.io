@@ -18,6 +18,7 @@ export async function initDatabase() {
         password_hash VARCHAR(255) NOT NULL,
         is_admin BOOLEAN DEFAULT FALSE,
         expiry_date DATE,
+        customer VARCHAR(100),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -30,6 +31,18 @@ export async function initDatabase() {
       if (error.message.includes('column "expiry_date" does not exist')) {
         console.log('Adding expiry_date column to users table...');
         await client.query('ALTER TABLE users ADD COLUMN expiry_date DATE');
+      } else {
+        throw error;
+      }
+    }
+
+    // Prüfen ob customer Spalte existiert und hinzufügen falls nicht
+    try {
+      await client.query('SELECT customer FROM users LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "customer" does not exist')) {
+        console.log('Adding customer column to users table...');
+        await client.query('ALTER TABLE users ADD COLUMN customer VARCHAR(100)');
       } else {
         throw error;
       }
@@ -191,8 +204,33 @@ export async function getAllUsers() {
       }
     }
 
+    // Prüfen ob customer Spalte existiert
+    let hasCustomer = true;
+    try {
+      await client.query('SELECT customer FROM users LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "customer" does not exist')) {
+        hasCustomer = false;
+      } else {
+        throw error;
+      }
+    }
+
     // Query anpassen basierend auf Spaltenverfügbarkeit
-    const query = hasExpiryDate 
+    const query = hasExpiryDate && hasCustomer
+      ? `SELECT 
+          u.id, 
+          u.username, 
+          u.is_admin, 
+          u.expiry_date, 
+          u.customer,
+          u.created_at,
+          COUNT(fua.file_id) as file_count
+        FROM users u
+        LEFT JOIN file_user_assignments fua ON u.id = fua.user_id
+        GROUP BY u.id, u.username, u.is_admin, u.expiry_date, u.customer, u.created_at
+        ORDER BY u.created_at DESC`
+      : hasExpiryDate
       ? `SELECT 
           u.id, 
           u.username, 
@@ -222,6 +260,7 @@ export async function getAllUsers() {
       username: row.username,
       isAdmin: row.is_admin,
       expiryDate: hasExpiryDate ? row.expiry_date : null,
+      customer: hasCustomer ? row.customer : null,
       createdAt: row.created_at,
       fileCount: parseInt(row.file_count)
     }));
@@ -231,7 +270,7 @@ export async function getAllUsers() {
 }
 
 // Neuen Benutzer erstellen
-export async function createUser(username, passwordHash, isAdmin = false, expiryDate = null) {
+export async function createUser(username, passwordHash, isAdmin = false, expiryDate = null, customer = null) {
   const client = await pool.connect();
   try {
     // Prüfen ob expiry_date Spalte existiert
@@ -246,9 +285,26 @@ export async function createUser(username, passwordHash, isAdmin = false, expiry
       }
     }
 
+    // Prüfen ob customer Spalte existiert
+    let hasCustomer = true;
+    try {
+      await client.query('SELECT customer FROM users LIMIT 1');
+    } catch (error) {
+      if (error.message.includes('column "customer" does not exist')) {
+        hasCustomer = false;
+      } else {
+        throw error;
+      }
+    }
+
     // Query anpassen basierend auf Spaltenverfügbarkeit
     let result;
-    if (hasExpiryDate) {
+    if (hasExpiryDate && hasCustomer) {
+      result = await client.query(
+        'INSERT INTO users (username, password_hash, is_admin, expiry_date, customer) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, is_admin, expiry_date, customer, created_at',
+        [username, passwordHash, isAdmin, expiryDate, customer]
+      );
+    } else if (hasExpiryDate) {
       result = await client.query(
         'INSERT INTO users (username, password_hash, is_admin, expiry_date) VALUES ($1, $2, $3, $4) RETURNING id, username, is_admin, expiry_date, created_at',
         [username, passwordHash, isAdmin, expiryDate]
@@ -266,6 +322,7 @@ export async function createUser(username, passwordHash, isAdmin = false, expiry
         username: result.rows[0].username,
         isAdmin: result.rows[0].is_admin,
         expiryDate: hasExpiryDate ? result.rows[0].expiry_date : null,
+        customer: hasCustomer ? result.rows[0].customer : null,
         createdAt: result.rows[0].created_at
       };
     }

@@ -42,7 +42,7 @@ export default async (req, context) => {
       });
     }
 
-    const { username, password, isAdmin, expiryDate } = await req.json();
+    const { username, password, isAdmin, expiryDate, customer } = await req.json();
 
     if (!username || !password) {
       return new Response(JSON.stringify({ error: 'Username and password required' }), {
@@ -63,7 +63,7 @@ export default async (req, context) => {
     // Passwort hashen und neuen Benutzer erstellen
     const bcrypt = await import('bcryptjs');
     const hashedPassword = await bcrypt.default.hash(password, 10);
-    const newUser = await createUser(username, hashedPassword, isAdmin || false, expiryDate);
+    const newUser = await createUser(username, hashedPassword, isAdmin || false, expiryDate, customer);
 
     return new Response(JSON.stringify({ user: newUser }), {
       status: 200,
