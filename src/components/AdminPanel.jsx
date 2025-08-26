@@ -49,6 +49,17 @@ const AdminPanel = () => {
   const [updatingExpiryDate, setUpdatingExpiryDate] = useState({});
   const [cleaningUp, setCleaningUp] = useState(false);
   
+  // New states for inline editing
+  const [editingUsername, setEditingUsername] = useState({});
+  const [editingCompany, setEditingCompany] = useState({});
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordModalUserId, setPasswordModalUserId] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [updatingUser, setUpdatingUser] = useState({});
+  
   // File editing states
   const [editingFile, setEditingFile] = useState(null);
   const [showEditFileModal, setShowEditFileModal] = useState(false);
@@ -328,6 +339,14 @@ const AdminPanel = () => {
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
+    
+    // Validate password before sending
+    const validation = validatePassword(newUser.password);
+    if (!validation.isValid) {
+      alert(validation.message);
+      return;
+    }
+    
     try {
       const token = Cookies.get('auth_token');
       const response = await fetch('/.netlify/functions/admin-create-user', {
@@ -451,6 +470,141 @@ const AdminPanel = () => {
     } finally {
       setUpdatingExpiryDate({ ...updatingExpiryDate, [userId]: false });
     }
+  };
+
+  const handleUpdateUsername = async (userId, newUsername) => {
+    setUpdatingUser({ ...updatingUser, [userId]: true });
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-update-user', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          username: newUsername,
+        }),
+      });
+
+      if (response.ok) {
+        setEditingUsername({ ...editingUsername, [userId]: false });
+        await fetchUsers();
+      } else {
+        const error = await response.json();
+        alert('Error updating username: ' + error.error);
+      }
+    } catch (error) {
+      alert('Error updating username: ' + error.message);
+    } finally {
+      setUpdatingUser({ ...updatingUser, [userId]: false });
+    }
+  };
+
+  const handleUpdateCompany = async (userId, newCompany) => {
+    setUpdatingUser({ ...updatingUser, [userId]: true });
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-update-user', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          customer: newCompany,
+        }),
+      });
+
+      if (response.ok) {
+        setEditingCompany({ ...editingCompany, [userId]: false });
+        await fetchUsers();
+      } else {
+        const error = await response.json();
+        alert('Error updating company: ' + error.error);
+      }
+    } catch (error) {
+      alert('Error updating company: ' + error.message);
+    } finally {
+      setUpdatingUser({ ...updatingUser, [userId]: false });
+    }
+  };
+
+  const validatePassword = (password) => {
+    if (!password || password.length < 12) {
+      return { isValid: false, message: 'Password must be at least 12 characters long' };
+    }
+
+    let criteriaCount = 0;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+    if (hasUppercase) criteriaCount++;
+    if (hasLowercase) criteriaCount++;
+    if (hasNumbers) criteriaCount++;
+    if (hasSpecialChars) criteriaCount++;
+
+    if (criteriaCount < 3) {
+      return { 
+        isValid: false, 
+        message: 'Password must contain at least 3 of the following: uppercase letters, lowercase letters, numbers, special characters' 
+      };
+    }
+
+    return { isValid: true };
+  };
+
+  const handlePasswordReset = async () => {
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+
+    const validation = validatePassword(newPassword);
+    if (!validation.isValid) {
+      setPasswordError(validation.message);
+      return;
+    }
+
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-update-user', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: passwordModalUserId,
+          password: newPassword,
+        }),
+      });
+
+      if (response.ok) {
+        setShowPasswordModal(false);
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordError('');
+        alert('Password successfully updated');
+      } else {
+        const error = await response.json();
+        setPasswordError(error.error);
+      }
+    } catch (error) {
+      setPasswordError('Error updating password: ' + error.message);
+    }
+  };
+
+  const openPasswordModal = (userId) => {
+    setPasswordModalUserId(userId);
+    setShowPasswordModal(true);
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError('');
   };
 
   const handleEditFile = (file) => {
@@ -991,6 +1145,17 @@ const AdminPanel = () => {
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
+                    <div className="mt-1">
+                      <p className="text-xs text-gray-600">Requirements:</p>
+                      <ul className="text-xs text-gray-500 mt-1 space-y-0.5">
+                        <li className={`${newUser.password.length >= 12 ? 'text-green-600' : ''}`}>
+                          • At least 12 characters
+                        </li>
+                        <li className={`${newUser.password && (/[A-Z]/.test(newUser.password) + /[a-z]/.test(newUser.password) + /\d/.test(newUser.password) + /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newUser.password)) >= 3 ? 'text-green-600' : ''}`}>
+                          • At least 3 of: uppercase, lowercase, numbers, special characters
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                   
                   <div>
@@ -1046,9 +1211,11 @@ const AdminPanel = () => {
 
             {/* Users List */}
             <div className="card">
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="text-lg font-semibold text-byght-gray">Manage Users</h2>
-                <span className="text-xs text-gray-600">{filteredUsers.length} of {users.length} users</span>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-byght-gray">Manage Users</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">{filteredUsers.length} of {users.length} users</span>
+                </div>
               </div>
 
               {/* User Search */}
@@ -1059,7 +1226,7 @@ const AdminPanel = () => {
                     value={userSearchTerm}
                     onChange={(e) => setUserSearchTerm(e.target.value)}
                     className="w-full px-4 py-2 pl-10 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-byght-turquoise focus:border-transparent"
-                    placeholder="Nach Benutzernamen oder Customer suchen..."
+                    placeholder="Search by username or company..."
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Users size={16} className="text-gray-400" />
@@ -1080,150 +1247,248 @@ const AdminPanel = () => {
                   {users.length === 0 ? 'No users available' : 'No users match the current search'}
                 </p>
               ) : (
-                <div className="space-y-2">
-                  {filteredUsers.map((user) => (
-                    <div key={user.id} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
-
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-sm font-medium text-byght-gray">
-                            {user.username}
-                            {user.customer && user.customer.trim() !== '' && (
-                              <span className="text-gray-500 font-normal ml-1">({user.customer})</span>
-                            )}
-                          </span>
-                          {user.isAdmin ? (
-                            <span className="px-1.5 py-0.5 text-xs font-medium rounded-full bg-byght-yellow/20 text-byght-gray">
-                              Admin
-                            </span>
-                          ) : (
-                            <span className="px-1.5 py-0.5 text-xs font-medium rounded-full bg-gray-200 text-gray-700">
-                              User
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex space-x-1">
-                          {!user.isAdmin && (
-                            <button
-                              onClick={() => handleEditUserFiles(user)}
-                              className="text-byght-turquoise hover:text-byght-turquoise/80 transition-colors p-1"
-                              title="Assign files"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleDeleteUser(user.id, user.username)}
-                            className="text-red-500 hover:text-red-700 transition-colors p-1"
-                            title="Delete"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {/* Expiry date for standard users */}
-                      {!user.isAdmin && (
-                        <div className="mb-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-gray-600">Expiry date:</span>
-                            {editingExpiryDate[user.id] ? (
-                              <div className="flex items-center space-x-2">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Username
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Company
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Role
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Expiry Date
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Files
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Password
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredUsers.map((user) => (
+                        <tr key={user.id} className="hover:bg-gray-50 group">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {editingUsername[user.id] ? (
+                              <div className="flex items-center space-x-1">
                                 <input
-                                  type="date"
-                                  defaultValue={user.expiryDate || ''}
-                                  className="text-xs border border-gray-300 rounded px-2 py-1"
-                                  min={new Date().toISOString().split('T')[0]}
-                                  data-user-id={user.id}
+                                  type="text"
+                                  defaultValue={user.username}
+                                  className="text-sm border border-gray-300 rounded px-2 py-1 w-32"
+                                  data-username-id={user.id}
+                                  autoFocus
                                 />
                                 <button
                                   onClick={() => {
-                                    const input = document.querySelector(`input[type="date"][data-user-id="${user.id}"]`);
-                                    if (input && input.value) {
-                                      handleUpdateExpiryDate(user.id, input.value);
+                                    const input = document.querySelector(`input[data-username-id="${user.id}"]`);
+                                    if (input && input.value && input.value !== user.username) {
+                                      handleUpdateUsername(user.id, input.value);
+                                    } else {
+                                      setEditingUsername({ ...editingUsername, [user.id]: false });
                                     }
                                   }}
-                                  disabled={updatingExpiryDate[user.id]}
-                                  className="text-green-600 hover:text-green-700 transition-colors p-1"
+                                  disabled={updatingUser[user.id]}
+                                  className="text-green-600 hover:text-green-700"
                                   title="Save"
                                 >
-                                  <Check size={12} />
+                                  <Check size={14} />
                                 </button>
                                 <button
-                                  onClick={() => setEditingExpiryDate({ ...editingExpiryDate, [user.id]: false })}
-                                  className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                                  onClick={() => setEditingUsername({ ...editingUsername, [user.id]: false })}
+                                  className="text-gray-500 hover:text-gray-700"
                                   title="Cancel"
                                 >
-                                  <X size={12} />
+                                  <X size={14} />
                                 </button>
                               </div>
                             ) : (
                               <div className="flex items-center space-x-2">
-                                <span className={`text-xs ${
-                                  isUserExpired(user.expiryDate) 
-                                    ? 'text-red-600 font-medium' 
-                                    : getDaysUntilExpiry(user.expiryDate) <= 7 
-                                      ? 'text-orange-600 font-medium'
-                                      : 'text-gray-700'
-                                }`}>
-                                  {formatExpiryDate(user.expiryDate)}
-                                  {!isUserExpired(user.expiryDate) && getDaysUntilExpiry(user.expiryDate) !== null && (
-                                    <span className="ml-1">
-                                      ({getDaysUntilExpiry(user.expiryDate)} days)
-                                    </span>
-                                  )}
-                                </span>
+                                <span className="text-sm font-medium text-byght-gray">{user.username}</span>
                                 <button
-                                  onClick={() => setEditingExpiryDate({ ...editingExpiryDate, [user.id]: true })}
-                                  className="text-byght-turquoise hover:text-byght-turquoise/80 transition-colors p-1"
-                                  title="Edit expiry date"
+                                  onClick={() => setEditingUsername({ ...editingUsername, [user.id]: true })}
+                                  className="text-gray-400 hover:text-byght-turquoise opacity-0 group-hover:opacity-100 transition-opacity"
+                                  title="Edit username"
                                 >
                                   <Edit2 size={12} />
                                 </button>
                               </div>
                             )}
-                          </div>
-                          {isUserExpired(user.expiryDate) && (
-                            <div className="text-xs text-red-600 font-medium mt-1">
-                              ⚠️ User has expired and can no longer log in
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Assigned files */}
-                      <div className="mt-2">
-                        {loadingUserFiles[user.id] ? (
-                          <div className="flex items-center space-x-2">
-                            <div className="animate-spin rounded-full h-3 w-3 border-b border-byght-turquoise"></div>
-                            <span className="text-xs text-gray-500">Loading files...</span>
-                          </div>
-                        ) : user.isAdmin ? (
-                          <div className="text-xs text-gray-600 italic">
-                            Admins always have access to all files
-                          </div>
-                        ) : userFiles[user.id] && userFiles[user.id].length > 0 ? (
-                          <div>
-                            <div className="text-xs font-medium text-gray-600 mb-1">
-                              Assigned files ({userFiles[user.id].length}):
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
-                              {userFiles[user.id].map((file) => (
-                                <div key={file.id} className="flex items-center space-x-2 p-1 bg-gray-100 rounded text-xs">
-                                  <FileText className="h-3 w-3 text-byght-turquoise flex-shrink-0" />
-                                  <span className="text-gray-700 truncate">{file.filename}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-xs text-gray-500 italic">
-                            No files assigned
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                          </td>
+                          
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {editingCompany[user.id] ? (
+                              <div className="flex items-center space-x-1">
+                                <input
+                                  type="text"
+                                  defaultValue={user.customer || ''}
+                                  className="text-sm border border-gray-300 rounded px-2 py-1 w-32"
+                                  data-company-id={user.id}
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => {
+                                    const input = document.querySelector(`input[data-company-id="${user.id}"]`);
+                                    if (input) {
+                                      handleUpdateCompany(user.id, input.value);
+                                    }
+                                  }}
+                                  disabled={updatingUser[user.id]}
+                                  className="text-green-600 hover:text-green-700"
+                                  title="Save"
+                                >
+                                  <Check size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setEditingCompany({ ...editingCompany, [user.id]: false })}
+                                  className="text-gray-500 hover:text-gray-700"
+                                  title="Cancel"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm text-gray-600">{user.customer || '-'}</span>
+                                <button
+                                  onClick={() => setEditingCompany({ ...editingCompany, [user.id]: true })}
+                                  className="text-gray-400 hover:text-byght-turquoise opacity-0 group-hover:opacity-100 transition-opacity"
+                                  title="Edit company"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                          
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {user.isAdmin ? (
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-byght-yellow/20 text-byght-gray">
+                                Admin
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-200 text-gray-700">
+                                User
+                              </span>
+                            )}
+                          </td>
+                          
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {!user.isAdmin && (
+                              <div>
+                                {editingExpiryDate[user.id] ? (
+                                  <div className="flex items-center space-x-1">
+                                    <input
+                                      type="date"
+                                      defaultValue={user.expiryDate || ''}
+                                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                                      min={new Date().toISOString().split('T')[0]}
+                                      data-expiry-id={user.id}
+                                    />
+                                    <button
+                                      onClick={() => {
+                                        const input = document.querySelector(`input[data-expiry-id="${user.id}"]`);
+                                        if (input && input.value) {
+                                          handleUpdateExpiryDate(user.id, input.value);
+                                        }
+                                      }}
+                                      disabled={updatingExpiryDate[user.id]}
+                                      className="text-green-600 hover:text-green-700"
+                                      title="Save"
+                                    >
+                                      <Check size={14} />
+                                    </button>
+                                    <button
+                                      onClick={() => setEditingExpiryDate({ ...editingExpiryDate, [user.id]: false })}
+                                      className="text-gray-500 hover:text-gray-700"
+                                      title="Cancel"
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`text-sm ${
+                                      isUserExpired(user.expiryDate) 
+                                        ? 'text-red-600 font-medium' 
+                                        : getDaysUntilExpiry(user.expiryDate) <= 7 
+                                          ? 'text-orange-600 font-medium'
+                                          : 'text-gray-700'
+                                    }`}>
+                                      {formatExpiryDate(user.expiryDate)}
+                                      {!isUserExpired(user.expiryDate) && getDaysUntilExpiry(user.expiryDate) !== null && getDaysUntilExpiry(user.expiryDate) <= 30 && (
+                                        <span className="ml-1 text-xs">
+                                          ({getDaysUntilExpiry(user.expiryDate)}d)
+                                        </span>
+                                      )}
+                                    </span>
+                                    <button
+                                      onClick={() => setEditingExpiryDate({ ...editingExpiryDate, [user.id]: true })}
+                                      className="text-gray-400 hover:text-byght-turquoise opacity-0 group-hover:opacity-100 transition-opacity"
+                                      title="Edit expiry date"
+                                    >
+                                      <Edit2 size={12} />
+                                    </button>
+                                  </div>
+                                )}
+                                {isUserExpired(user.expiryDate) && (
+                                  <div className="text-xs text-red-600 font-medium mt-1">
+                                    Expired
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                          
+                          <td className="px-4 py-3">
+                            {user.isAdmin ? (
+                              <span className="text-xs text-gray-500 italic">All files</span>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm text-gray-700">
+                                  {userFiles[user.id]?.length || 0} files
+                                </span>
+                                <button
+                                  onClick={() => handleEditUserFiles(user)}
+                                  className="text-byght-turquoise hover:text-byght-turquoise/80"
+                                  title="Manage files"
+                                >
+                                  <FileText size={14} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                          
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <button
+                              onClick={() => openPasswordModal(user.id)}
+                              className="text-sm text-byght-turquoise hover:text-byght-turquoise/80"
+                            >
+                              Reset
+                            </button>
+                          </td>
+                          
+                          <td className="px-4 py-3 whitespace-nowrap text-right">
+                            <button
+                              onClick={() => handleDeleteUser(user.id, user.username)}
+                              className="text-red-500 hover:text-red-700 transition-colors"
+                              title="Delete user"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -1370,6 +1635,116 @@ const AdminPanel = () => {
                     className="btn-primary"
                   >
                     {updatingFile ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Password Reset Modal */}
+        {showPasswordModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-byght-gray">
+                    Set New Password
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setNewPassword('');
+                      setConfirmPassword('');
+                      setPasswordError('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {passwordError && (
+                    <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+                      {passwordError}
+                    </div>
+                  )}
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      New Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => {
+                          setNewPassword(e.target.value);
+                          setPasswordError('');
+                        }}
+                        className="input-field pr-10"
+                        placeholder="Enter new password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      >
+                        {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Confirm Password
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        setPasswordError('');
+                      }}
+                      className="input-field"
+                      placeholder="Confirm new password"
+                    />
+                  </div>
+                  
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-600 font-medium">Password Requirements:</p>
+                    <ul className="text-xs text-gray-500 mt-1 space-y-0.5">
+                      <li className={`${newPassword.length >= 12 ? 'text-green-600' : ''}`}>
+                        • At least 12 characters
+                      </li>
+                      <li className={`${newPassword && (/[A-Z]/.test(newPassword) + /[a-z]/.test(newPassword) + /\d/.test(newPassword) + /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) >= 3 ? 'text-green-600' : ''}`}>
+                        • At least 3 of: uppercase, lowercase, numbers, special characters
+                      </li>
+                      <li className={`${newPassword && confirmPassword && newPassword === confirmPassword ? 'text-green-600' : ''}`}>
+                        • Passwords match
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-2 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setNewPassword('');
+                      setConfirmPassword('');
+                      setPasswordError('');
+                    }}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePasswordReset}
+                    className="btn-primary"
+                  >
+                    Set Password
                   </button>
                 </div>
               </div>

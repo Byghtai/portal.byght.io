@@ -380,6 +380,69 @@ export async function updateUserExpiryDate(userId, expiryDate) {
   }
 }
 
+// Benutzerdetails aktualisieren (Username, Customer, Password)
+export async function updateUserDetails(userId, updates) {
+  const client = await pool.connect();
+  try {
+    const updateFields = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (updates.username !== undefined) {
+      updateFields.push(`username = $${paramCount}`);
+      values.push(updates.username);
+      paramCount++;
+    }
+
+    if (updates.customer !== undefined) {
+      updateFields.push(`customer = $${paramCount}`);
+      values.push(updates.customer);
+      paramCount++;
+    }
+
+    if (updates.passwordHash !== undefined) {
+      updateFields.push(`password_hash = $${paramCount}`);
+      values.push(updates.passwordHash);
+      paramCount++;
+    }
+
+    if (updates.expiryDate !== undefined) {
+      updateFields.push(`expiry_date = $${paramCount}`);
+      values.push(updates.expiryDate);
+      paramCount++;
+    }
+
+    if (updateFields.length === 0) {
+      throw new Error('No fields to update');
+    }
+
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(userId);
+
+    const query = `
+      UPDATE users 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING id, username, is_admin, expiry_date, customer
+    `;
+
+    const result = await client.query(query, values);
+    
+    if (result.rows[0]) {
+      return {
+        id: result.rows[0].id,
+        username: result.rows[0].username,
+        isAdmin: result.rows[0].is_admin,
+        expiryDate: result.rows[0].expiry_date,
+        customer: result.rows[0].customer
+      };
+    }
+    return null;
+  } finally {
+    client.release();
+  }
+}
+
 // Datei-Metadaten speichern
 export async function saveFileMetadata(filename, fileSize, mimeType, blobKey, uploadedBy, productLabel = null, versionLabel = null, languageLabel = null) {
   const client = await pool.connect();

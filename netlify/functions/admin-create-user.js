@@ -6,6 +6,33 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is not set');
 }
 
+// Password validation function
+function validatePassword(password) {
+  if (!password || password.length < 12) {
+    return { isValid: false, message: 'Password must be at least 12 characters long' };
+  }
+
+  let criteriaCount = 0;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumbers = /\d/.test(password);
+  const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+  if (hasUppercase) criteriaCount++;
+  if (hasLowercase) criteriaCount++;
+  if (hasNumbers) criteriaCount++;
+  if (hasSpecialChars) criteriaCount++;
+
+  if (criteriaCount < 3) {
+    return { 
+      isValid: false, 
+      message: 'Password must contain at least 3 of the following: uppercase letters, lowercase letters, numbers, special characters' 
+    };
+  }
+
+  return { isValid: true };
+}
+
 export default async (req, context) => {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -46,6 +73,15 @@ export default async (req, context) => {
 
     if (!username || !password) {
       return new Response(JSON.stringify({ error: 'Username and password required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Validate password
+    const validation = validatePassword(password);
+    if (!validation.isValid) {
+      return new Response(JSON.stringify({ error: validation.message }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
