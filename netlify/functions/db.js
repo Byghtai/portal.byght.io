@@ -629,8 +629,8 @@ export async function getAllFiles() {
     
     // Query anpassen basierend auf Spaltenverfügbarkeit
     const selectFields = [
-      'f.id', 'f.filename', 'f.file_size as size', 'f.mime_type as mimeType',
-      'f.uploaded_at as uploadedAt', 'f.blob_key as blobKey'
+      'f.id', 'f.filename', 'f.file_size as "size"', 'f.mime_type as "mimeType"',
+      'f.uploaded_at as "uploadedAt"', 'f.blob_key as "blobKey"'
     ];
     
     const groupByFields = [
@@ -681,7 +681,7 @@ export async function getAllFiles() {
     return result.rows.map(row => ({
       ...row,
       assignedUsers: row.assigned_users.filter(user => user !== null),
-      uploadedAt: row.uploadedat ? new Date(row.uploadedat).toISOString() : null
+      uploadedAt: row.uploadedAt ? new Date(row.uploadedAt).toISOString() : null
     }));
   } finally {
     client.release();
@@ -859,32 +859,32 @@ export async function getFilesForUser(userId) {
     
     // Query anpassen basierend auf Spaltenverfügbarkeit
     const selectFields = [
-      'f.id', 'f.filename', 'f.file_size as size', 'f.mime_type as mimeType',
-      'f.uploaded_at as uploadedAt', 'f.blob_key as blobKey'
+      'f.id', 'f.filename', 'f.file_size as "size"', 'f.mime_type as "mimeType"',
+      'f.uploaded_at as "uploadedAt"', 'f.blob_key as "blobKey"'
     ];
     
     if (hasProductLabel) {
-      selectFields.push('f.product_label as productLabel');
+      selectFields.push('f.product_label as "productLabel"');
     } else {
-      selectFields.push('NULL as productLabel');
+      selectFields.push('NULL as "productLabel"');
     }
     
     if (hasVersionLabel) {
-      selectFields.push('f.version_label as versionLabel');
+      selectFields.push('f.version_label as "versionLabel"');
     } else {
-      selectFields.push('NULL as versionLabel');
+      selectFields.push('NULL as "versionLabel"');
     }
     
     if (hasLanguageLabel) {
-      selectFields.push('f.language_label as languageLabel');
+      selectFields.push('f.language_label as "languageLabel"');
     } else {
-      selectFields.push('NULL as languageLabel');
+      selectFields.push('NULL as "languageLabel"');
     }
     
     if (hasConfluenceLabel) {
-      selectFields.push('f.confluence_label as confluenceLabel');
+      selectFields.push('f.confluence_label as "confluenceLabel"');
     } else {
-      selectFields.push('NULL as confluenceLabel');
+      selectFields.push('NULL as "confluenceLabel"');
     }
     
     // Prüfen ob Benutzer Admin ist
@@ -900,7 +900,7 @@ export async function getFilesForUser(userId) {
       const result = await client.query(query);
       return result.rows.map(row => ({
         ...row,
-        uploadedAt: row.uploadedat ? new Date(row.uploadedat).toISOString() : null
+        uploadedAt: row.uploadedAt ? new Date(row.uploadedAt).toISOString() : null
       }));
     } else {
       // Standard-Benutzer bekommen nur zugewiesene Dateien
@@ -914,7 +914,7 @@ export async function getFilesForUser(userId) {
       const result = await client.query(query, [userId]);
       return result.rows.map(row => ({
         ...row,
-        uploadedAt: row.uploadedat ? new Date(row.uploadedat).toISOString() : null
+        uploadedAt: row.uploadedAt ? new Date(row.uploadedAt).toISOString() : null
       }));
     }
   } finally {
