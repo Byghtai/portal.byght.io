@@ -32,15 +32,27 @@ OBJECT_STORAGE_REGION=nbg1
 
 ### Unterstützte Operationen:
 - ✅ **Upload**: Dateien hochladen (bis 100MB)
-- ✅ **Download**: Dateien herunterladen
-- ✅ **Delete**: Dateien löschen
+- ✅ **Download**: Dateien herunterladen (mit Signed URLs für große Dateien)
+- ✅ **Delete**: Dateien löschen (mit Retry-Logic)
 - ✅ **Exists Check**: Prüfen ob Datei existiert
 - ✅ **Signed URLs**: Generierung von temporären Download-Links
+- ✅ **List Objects**: Auflisten aller Objekte im Bucket
+- ✅ **Cleanup**: Bereinigung verwaister Dateien
 
 ### Dateitypen:
 - Alle Dateitypen werden unterstützt
 - Spezielle Validierung für ZIP-Dateien
 - MIME-Type wird automatisch erkannt und gespeichert
+
+### Dateigrößen-Limits:
+- **Maximum**: 100MB pro Datei
+- **Empfohlen**: Bis 50MB für optimale Performance
+- **Timeout**: 60 Sekunden für Upload-Funktionen
+
+### Download-Strategien:
+- **Direkte Downloads**: Für Dateien unter 50MB
+- **Signed URLs**: Für große Dateien (>50MB) oder bei Problemen
+- **Automatische Fallback**: Bei Download-Fehlern wird automatisch auf Signed URLs zurückgegriffen
 
 ## Technische Details
 
@@ -53,45 +65,79 @@ OBJECT_STORAGE_REGION=nbg1
 - Zugangsdaten werden über Umgebungsvariablen verwaltet
 - Keine hartcodierten Credentials
 - JWT-basierte Authentifizierung für alle Operationen
+- Signed URLs mit 1-Stunden-Ablaufzeit
 
 ### Fehlerbehandlung:
 - Detaillierte Logging für alle Storage-Operationen
 - Graceful Error Handling
-- Automatische Wiederholungsversuche bei Löschoperationen
+- Automatische Wiederholungsversuche bei Löschoperationen (3 Versuche)
+- Verifikation nach Löschoperationen
+- Spezifische Fehlermeldungen für verschiedene S3-Fehler
+
+### Verbesserte Löschfunktionalität:
+- **Retry-Logic**: Bis zu 3 Löschversuche mit Wartezeiten
+- **Verifikation**: Prüfung nach jeder Löschoperation
+- **Orphaned File Cleanup**: Automatische Bereinigung verwaister Dateien
+- **Detaillierte Logs**: Umfassende Protokollierung aller Operationen
+
+### Verbesserte Download-Funktionalität:
+- **Stream-to-Buffer Konvertierung**: Bessere Handhabung von S3-Response-Streams
+- **Signed URL Support**: Für große Dateien und bessere Performance
+- **Automatische Größenprüfung**: Wählt optimale Download-Methode
+- **Detaillierte Fehlerbehandlung**: Spezifische Fehlermeldungen für verschiedene Probleme
+- **Frontend-Integration**: Intelligente Download-Strategien im Dashboard
 
 ## Migration von Netlify Blobs
 
 **Wichtig**: Bestehende Dateien in Netlify Blobs sind nicht mehr zugänglich, da das System jetzt ausschließlich S3 verwendet.
 
-### Empfohlene Schritte:
-1. Konfigurieren Sie die S3-Umgebungsvariablen
-2. Testen Sie das System mit neuen Uploads
-3. Laden Sie bei Bedarf wichtige Dateien neu hoch
-
 ## Troubleshooting
 
-### Häufige Fehler:
+### Große Dateien können nicht hochgeladen werden:
+1. Prüfen Sie die `netlify.toml` Konfiguration
+2. Stellen Sie sicher, dass `request_body_size = "100mb"` gesetzt ist
+3. Überprüfen Sie die Dateigröße (Maximum 100MB)
 
-**"Missing required S3 storage environment variables"**
-- Überprüfen Sie, ob alle erforderlichen Umgebungsvariablen gesetzt sind
-- Stellen Sie sicher, dass die Variablen in Netlify korrekt konfiguriert sind
+### Dateien werden nicht aus S3 gelöscht:
+1. Prüfen Sie die S3-Zugangsdaten
+2. Überprüfen Sie die Logs für detaillierte Fehlermeldungen
+3. Verwenden Sie die "Cleanup Orphaned Files" Funktion
+4. Stellen Sie sicher, dass die S3-Bucket-Berechtigungen korrekt sind
 
-**"Access Denied"**
-- Überprüfen Sie Ihre S3-Zugangsdaten
-- Stellen Sie sicher, dass der Bucket existiert und zugänglich ist
-- Prüfen Sie die IAM-Berechtigungen
+### Download-Probleme:
+1. **"Download failed"**: Überprüfen Sie die S3-Zugangsdaten und Bucket-Berechtigungen
+2. **Leere Dateien**: Prüfen Sie, ob die Datei korrekt in S3 gespeichert wurde
+3. **Große Dateien**: Verwenden Sie Signed URLs für Dateien über 50MB
+4. **Timeout-Fehler**: Erhöhen Sie die Function-Timeout-Werte in `netlify.toml`
 
-**"Endpoint not found"**
-- Überprüfen Sie die Endpoint-URL
-- Stellen Sie sicher, dass der Service erreichbar ist
+### Performance-Probleme:
+1. Reduzieren Sie die Dateigröße auf unter 50MB
+2. Verwenden Sie ZIP-Dateien für mehrere Dateien
+3. Überprüfen Sie die Netzwerkverbindung zum S3-Speicher
+4. Nutzen Sie Signed URLs für große Dateien
 
-### Logs überprüfen:
-- Alle Storage-Operationen werden in den Netlify Function Logs protokolliert
-- Überprüfen Sie die Logs im Netlify Dashboard unter **Functions**
+## Admin-Funktionen
 
-## Support
+### Datei-Upload:
+- Drag & Drop oder Dateiauswahl
+- Automatische Größenprüfung
+- Fortschrittsanzeige für große Dateien
+- Validierung von ZIP-Dateien
 
-Bei Problemen mit der S3-Konfiguration:
-1. Überprüfen Sie die Umgebungsvariablen
-2. Testen Sie die S3-Verbindung separat
-3. Kontaktieren Sie den Systemadministrator
+### Datei-Löschung:
+- Einzelne Dateien löschen
+- Automatische S3-Bereinigung
+- Verifikation der Löschung
+- Detaillierte Rückmeldungen
+
+### Download-Funktionen:
+- Direkte Downloads für kleine Dateien
+- Signed URLs für große Dateien
+- Automatische Fallback-Strategien
+- Detaillierte Fehlerbehandlung
+
+### Cleanup-Funktionen:
+- Bereinigung verwaister S3-Dateien
+- Vergleich zwischen Datenbank und S3
+- Automatische Löschung nicht referenzierter Dateien
+- Detaillierte Berichte über Bereinigungsaktionen

@@ -7,6 +7,10 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is not set');
 }
 
+// File size limits
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_FILE_SIZE_MB = 100;
+
 export default async (req, context) => {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -60,15 +64,32 @@ export default async (req, context) => {
       type: file.type
     } : 'No file found');
     console.log('Users JSON from FormData:', usersJson);
+    
     // Labels werden nach dem Upload gesetzt
-      const productLabel = null;
-  const versionLabel = null;
-  const languageLabel = null;
-  const confluenceLabel = null;
+    const productLabel = null;
+    const versionLabel = null;
+    const languageLabel = null;
+    const confluenceLabel = null;
 
     if (!file) {
       return new Response(JSON.stringify({ error: 'No file provided' }), {
         status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Check file size before processing
+    if (file.size > MAX_FILE_SIZE) {
+      const fileSizeMB = Math.round(file.size / (1024 * 1024) * 100) / 100;
+      return new Response(JSON.stringify({ 
+        error: 'File too large',
+        details: `File size ${fileSizeMB}MB exceeds the ${MAX_FILE_SIZE_MB}MB limit`,
+        fileSize: file.size,
+        maxSize: MAX_FILE_SIZE,
+        fileSizeMB: fileSizeMB,
+        maxSizeMB: MAX_FILE_SIZE_MB
+      }), {
+        status: 413,
         headers: { 'Content-Type': 'application/json' }
       });
     }
@@ -103,18 +124,6 @@ export default async (req, context) => {
           size: file.size,
           type: file.type
         });
-        
-        // Prüfen ob die ZIP-Datei gültig ist
-        // Zuerst prüfen wir die Größe ohne die ganze Datei zu laden
-        if (file.size > 100 * 1024 * 1024) { // 100MB Limit
-          return new Response(JSON.stringify({ 
-            error: 'File too large',
-            details: `File size ${file.size} bytes exceeds the 100MB limit`
-          }), {
-            status: 413,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        }
         
         try {
           console.log('Attempting to read ZIP file as ArrayBuffer...');
@@ -187,7 +196,7 @@ export default async (req, context) => {
               console.log(`Read chunk: ${value.length} bytes, total: ${totalSize} bytes`);
               
               // Sicherheitscheck während des Streamings
-              if (totalSize > 100 * 1024 * 1024) {
+              if (totalSize > MAX_FILE_SIZE) {
                 throw new Error(`File size exceeds limit during streaming: ${totalSize} bytes`);
               }
             }
@@ -223,19 +232,9 @@ export default async (req, context) => {
         }
       } else {
         // Normale Dateiverarbeitung für andere Dateitypen
+        console.log('Processing regular file...');
         const fileBuffer = await file.arrayBuffer();
         console.log('File buffer read, size:', fileBuffer.byteLength);
-        
-        // Prüfen ob die Datei zu groß ist (Netlify hat Limits)
-        if (fileBuffer.byteLength > 100 * 1024 * 1024) { // 100MB Limit
-          return new Response(JSON.stringify({ 
-            error: 'File too large',
-            details: `File size ${fileBuffer.byteLength} bytes exceeds the 100MB limit`
-          }), {
-            status: 413,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        }
         
         await s3Storage.uploadFile(blobKey, new Uint8Array(fileBuffer), file.type);
         console.log('File stored in S3 successfully');
@@ -246,7 +245,8 @@ export default async (req, context) => {
         error: 'Error reading file',
         details: bufferError.message,
         fileType: file.type,
-        fileName: file.name
+        fileName: file.name,
+        fileSize: file.size
       }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -276,12 +276,16 @@ export default async (req, context) => {
       await assignFileToUsers(fileId, assignedUsers);
     }
 
+    const fileSizeMB = Math.round(file.size / (1024 * 1024) * 100) / 100;
+    console.log(`✅ File uploaded successfully: ${file.name} (${fileSizeMB}MB)`);
+
     return new Response(JSON.stringify({ 
       success: true,
       file: {
         id: fileId,
         filename: file.name,
         size: file.size,
+        sizeMB: fileSizeMB,
         mimeType: file.type,
         uploadedAt: new Date().toISOString()
       }

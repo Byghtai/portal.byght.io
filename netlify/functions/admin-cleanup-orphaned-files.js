@@ -1,6 +1,6 @@
-import { getStore } from "@netlify/blobs";
 import jwt from 'jsonwebtoken';
-import { pool } from './db.js';
+import { getAllFiles } from './db.js';
+import S3Storage from './s3-storage.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -43,107 +43,116 @@ export default async (req, context) => {
       });
     }
 
-    const client = await pool.connect();
-    const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
-    
-    try {
-      console.log('Starting cleanup of orphaned files...');
-      
-      // Get all blob keys from blob storage
-      const blobs = await filesStore.list();
-      const blobKeys = blobs.blobs.map(blob => blob.key);
-      console.log(`Found blobs: ${blobKeys.length}`);
-      
-      // Get all blob keys from database
-      const result = await client.query('SELECT blob_key FROM files');
-      const dbBlobKeys = result.rows.map(row => row.blob_key);
-      console.log(`Found DB entries: ${dbBlobKeys.length}`);
-      
-      // Find orphaned files (blob keys that are not in the DB)
-      const orphanedBlobKeys = blobKeys.filter(key => !dbBlobKeys.includes(key));
-      console.log(`Found orphaned files: ${orphanedBlobKeys.length}`);
-      
-      let deletedCount = 0;
-      const errors = [];
-      const deletedBlobs = [];
-      
-      // Delete orphaned files from blob storage
-      for (const blobKey of orphanedBlobKeys) {
-        try {
-          console.log(`Attempting to delete orphaned file: ${blobKey}`);
+    console.log('Starting cleanup of orphaned files in S3 storage...');
+
+    // Get all files from database
+    const dbFiles = await getAllFiles();
+    const dbBlobKeys = new Set(dbFiles.map(file => file.blobKey).filter(key => key));
+
+    console.log(`Found ${dbFiles.length} files in database with ${dbBlobKeys.size} blob keys`);
+
+    // Initialize S3 storage and get all objects
+    const s3Storage = new S3Storage();
+    const s3Objects = await s3Storage.listAllObjects();
+    const s3Keys = new Set(s3Objects.map(obj => obj.key));
+
+    console.log(`Found ${s3Objects.length} objects in S3 storage`);
+
+    // Find orphaned files (S3 objects that are not in the DB)
+    const orphanedKeys = s3Objects
+      .map(obj => obj.key)
+      .filter(key => !dbBlobKeys.has(key));
+
+    console.log(`Found ${orphanedKeys.length} orphaned files in S3 storage`);
+
+    let deletedCount = 0;
+    const errors = [];
+    const deletedBlobs = [];
+
+    // Delete orphaned files from S3 storage
+    for (const orphanedKey of orphanedKeys) {
+      try {
+        console.log(`Attempting to delete orphaned file: ${orphanedKey}`);
+        
+        // Delete file with retry logic
+        const maxRetries = 3;
+        let retryCount = 0;
+        let deleted = false;
+        
+        while (retryCount < maxRetries && !deleted) {
+          retryCount++;
+          console.log(`Deletion attempt ${retryCount}/${maxRetries} for: ${orphanedKey}`);
           
-          // Delete blob
-          await filesStore.delete(blobKey);
-          
-          // Wait briefly and check if really deleted
-          await new Promise(resolve => setTimeout(resolve, 50));
-          
-          let stillExists = false;
           try {
-            const checkBlob = await filesStore.get(blobKey);
-            stillExists = !!checkBlob;
-          } catch (e) {
-            // Blob not found = successfully deleted
-            stillExists = false;
-          }
-          
-          if (!stillExists) {
-            deletedCount++;
-            deletedBlobs.push(blobKey);
-            console.log(`Orphaned file successfully deleted: ${blobKey}`);
-          } else {
-            // Second attempt
-            console.log(`Second deletion attempt for: ${blobKey}`);
-            await filesStore.delete(blobKey);
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await s3Storage.deleteFile(orphanedKey);
+            console.log(`S3 deletion command executed for: ${orphanedKey}`);
             
-            // Check again
+            // Wait briefly for deletion to take effect
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Verify deletion
             try {
-              const checkBlob2 = await filesStore.get(blobKey);
-              if (!checkBlob2) {
+              const stillExists = await s3Storage.fileExists(orphanedKey);
+              if (!stillExists) {
+                deleted = true;
                 deletedCount++;
-                deletedBlobs.push(blobKey);
-                console.log(`Orphaned file deleted on second attempt: ${blobKey}`);
+                deletedBlobs.push(orphanedKey);
+                console.log(`✅ Orphaned file successfully deleted: ${orphanedKey}`);
               } else {
-                errors.push({ blobKey, error: 'Blob could not be deleted' });
-                console.error(`Orphaned file could not be deleted: ${blobKey}`);
+                console.log(`⚠️ File still exists after deletion attempt ${retryCount}: ${orphanedKey}`);
+                if (retryCount < maxRetries) {
+                  await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retry
+                }
               }
-            } catch (e) {
+            } catch (verifyError) {
+              // If fileExists throws an error, it likely means the file was deleted
+              deleted = true;
               deletedCount++;
-              deletedBlobs.push(blobKey);
-              console.log(`Orphaned file deleted on second attempt: ${blobKey}`);
+              deletedBlobs.push(orphanedKey);
+              console.log(`✅ Orphaned file successfully deleted (verified by error): ${orphanedKey}`);
+            }
+          } catch (deleteError) {
+            console.error(`Error on deletion attempt ${retryCount}: ${deleteError.message}`);
+            if (retryCount < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retry
             }
           }
-        } catch (error) {
-          console.error(`Error deleting orphaned file ${blobKey}:`, error);
-          errors.push({ blobKey, error: error.message });
         }
+        
+        if (!deleted) {
+          console.error(`❌ Failed to delete orphaned file after ${maxRetries} attempts: ${orphanedKey}`);
+          errors.push({ key: orphanedKey, error: 'Failed to delete after multiple attempts' });
+        }
+        
+      } catch (error) {
+        console.error(`Error deleting orphaned file ${orphanedKey}:`, error);
+        errors.push({ key: orphanedKey, error: error.message });
       }
-      
-      console.log(`Cleanup completed. Deleted: ${deletedCount}/${orphanedBlobKeys.length}`);
-      
-      return new Response(JSON.stringify({ 
-        success: true,
-        message: `Cleanup completed`,
-        summary: {
-          totalBlobs: blobKeys.length,
-          totalDbFiles: dbBlobKeys.length,
-          orphanedBlobs: orphanedBlobKeys.length,
-          deletedCount: deletedCount,
-          errorCount: errors.length
-        },
-        deletedBlobs: deletedBlobs,
-        errors: errors.length > 0 ? errors : undefined
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-    } finally {
-      client.release();
     }
+
+    console.log(`Cleanup completed. Deleted: ${deletedCount}/${orphanedKeys.length} orphaned files`);
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Cleanup completed',
+      summary: {
+        totalS3Objects: s3Objects.length,
+        totalDbFiles: dbFiles.length,
+        totalDbBlobKeys: dbBlobKeys.size,
+        orphanedFiles: orphanedKeys.length,
+        deletedCount: deletedCount,
+        errorCount: errors.length
+      },
+      deletedBlobs: deletedBlobs,
+      errors: errors.length > 0 ? errors : undefined,
+      orphanedKeys: orphanedKeys
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+
   } catch (error) {
-    console.error('Cleanup orphaned files error:', error);
+    console.error('Cleanup error:', error);
     return new Response(JSON.stringify({ 
       error: 'Server error', 
       details: error.message 

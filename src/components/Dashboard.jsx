@@ -44,30 +44,84 @@ const Dashboard = () => {
     }
   };
 
-  const handleDownload = async (fileId, filename) => {
+  const handleDownload = async (fileId, filename, fileSize = 0) => {
     try {
+      console.log(`Starting download for file: ${filename} (ID: ${fileId}, Size: ${fileSize} bytes)`);
+      
       const token = Cookies.get('auth_token');
-      const response = await fetch(`/.netlify/functions/files-download?fileId=${fileId}`, {
+      
+      // Use signed URL for large files (>50MB) or when direct download fails
+      const useSignedUrl = fileSize > 50 * 1024 * 1024; // 50MB threshold
+      
+      const response = await fetch(`/.netlify/functions/files-download?fileId=${fileId}${useSignedUrl ? '&signed=true' : ''}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Download failed');
+        // Try to get error details from response
+        let errorMessage = 'Download failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.details || errorMessage;
+        } catch (e) {
+          // If we can't parse the error response, use the status text
+          errorMessage = `${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
+      // Check if response is a signed URL (JSON) or direct file
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        // This is a signed URL response
+        const data = await response.json();
+        
+        if (data.downloadUrl) {
+          console.log(`Using signed URL for download: ${filename}`);
+          
+          // Create a temporary link to trigger the download
+          const a = document.createElement('a');
+          a.href = data.downloadUrl;
+          a.download = filename;
+          a.target = '_blank';
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          
+          console.log(`Signed URL download initiated: ${filename}`);
+          return;
+        } else {
+          // This is an error response
+          throw new Error(data.error || data.details || 'Download failed');
+        }
+      }
+
+      // Direct file download
       const blob = await response.blob();
+      
+      if (blob.size === 0) {
+        throw new Error('Downloaded file is empty');
+      }
+      
+      console.log(`Download successful: ${filename} (${blob.size} bytes)`);
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      console.log(`File download completed: ${filename}`);
     } catch (error) {
-      alert('Error downloading: ' + error.message);
+      console.error('Download error:', error);
+      alert(`Download failed: ${error.message}`);
     }
   };
 
@@ -359,7 +413,7 @@ const Dashboard = () => {
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-right">
                                 <button
-                                  onClick={() => handleDownload(file.id, file.filename)}
+                                  onClick={() => handleDownload(file.id, file.filename, file.size)}
                                   className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-byght-turquoise hover:bg-byght-turquoise/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-byght-turquoise transition-colors"
                                 >
                                   <Download size={14} className="mr-1" />
@@ -404,7 +458,7 @@ const Dashboard = () => {
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                     <Folder className="text-byght-turquoise" size={20} />
-                    Import the space
+                    Import the space(s)
                   </h3>
                   <p className="text-gray-600 mb-3">
                     <strong>Data management → Import spaces →</strong> select the <strong>Space export file (.zip)</strong>.
@@ -644,7 +698,7 @@ const Dashboard = () => {
                   <div className="px-5 pb-4 bg-gray-50">
                     <p className="text-gray-600 flex items-start gap-2">
                       <span className="text-amber-500">👉</span>
-                      <span>Yes, but we are a bit limited as guest users. There will be 1-2 things remaining which we need to adjust together with you during the intro…</span>
+                      <span>Yes, but we are a bit limited as guest users. There will be 1-2 things remaining which we need to adjust together with you during the intro.</span>
                     </p>
                   </div>
                 )}

@@ -23,3 +23,12 @@
 # Erhöhe das Request-Body-Limit für Functions
 [functions."*"]
   timeout = 30
+
+# Erhöhe das Request-Body-Limit für Upload-Funktionen
+[functions."admin-upload-file"]
+  timeout = 60
+  request_body_size = "100mb"
+
+[functions."files-download"]
+  timeout = 30
+  request_body_size = "10mb"

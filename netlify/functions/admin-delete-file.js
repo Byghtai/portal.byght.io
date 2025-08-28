@@ -68,9 +68,8 @@ export default async (req, context) => {
     console.log(`Starting deletion of file ${fileId} with blob key: ${blobKey}`);
     
     // Delete file from S3 storage (BEFORE DB deletion)
-    let fileDeleted = false;
+    let s3DeletionSuccess = false;
     let fileExistedBefore = false;
-    let fileExistsAfter = false;
     
     if (blobKey) {
       try {
@@ -86,86 +85,81 @@ export default async (req, context) => {
           fileExistedBefore = false;
         }
         
-        // Delete file - with explicit await and try-catch
+        // Delete file with retry logic
         if (fileExistedBefore) {
-          try {
-            await s3Storage.deleteFile(blobKey);
-            console.log(`S3 file deletion command executed for: ${blobKey}`);
-          } catch (deleteError) {
-            console.error(`Error on first S3 deletion attempt: ${deleteError.message}`);
-            // Continue anyway and check
-          }
-        }
-        
-        // Only check if file existed before
-        if (fileExistedBefore) {
-          // Wait briefly for deletion to take effect
-          await new Promise(resolve => setTimeout(resolve, 100));
+          const maxRetries = 3;
+          let retryCount = 0;
           
-          // Check if file still exists after deletion
-          try {
-            fileExistsAfter = await s3Storage.fileExists(blobKey);
-            console.log(`File still exists in S3 after deletion: ${fileExistsAfter}`);
+          while (retryCount < maxRetries && !s3DeletionSuccess) {
+            retryCount++;
+            console.log(`S3 deletion attempt ${retryCount}/${maxRetries} for: ${blobKey}`);
             
-            // If file still exists, try deleting again
-            if (fileExistsAfter) {
-              console.log(`Second S3 deletion attempt for stubborn file: ${blobKey}`);
-              try {
-                await s3Storage.deleteFile(blobKey);
-                await new Promise(resolve => setTimeout(resolve, 100));
-              } catch (deleteError2) {
-                console.error(`Error on second S3 deletion attempt: ${deleteError2.message}`);
-              }
+            try {
+              await s3Storage.deleteFile(blobKey);
+              console.log(`S3 file deletion command executed for: ${blobKey}`);
               
-              // Check again
+              // Wait briefly for deletion to take effect
+              await new Promise(resolve => setTimeout(resolve, 200));
+              
+              // Verify deletion
               try {
-                fileExistsAfter = await s3Storage.fileExists(blobKey);
-                console.log(`File exists in S3 after second deletion attempt: ${fileExistsAfter}`);
-              } catch (e) {
-                fileExistsAfter = false;
-                console.log(`File successfully removed from S3 after second deletion attempt`);
+                const stillExists = await s3Storage.fileExists(blobKey);
+                if (!stillExists) {
+                  s3DeletionSuccess = true;
+                  console.log(`✅ File successfully deleted from S3: ${blobKey}`);
+                } else {
+                  console.log(`⚠️ File still exists after deletion attempt ${retryCount}: ${blobKey}`);
+                  if (retryCount < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retry
+                  }
+                }
+              } catch (verifyError) {
+                // If fileExists throws an error, it likely means the file was deleted
+                s3DeletionSuccess = true;
+                console.log(`✅ File successfully deleted from S3 (verified by error): ${blobKey}`);
+              }
+            } catch (deleteError) {
+              console.error(`Error on S3 deletion attempt ${retryCount}: ${deleteError.message}`);
+              if (retryCount < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retry
               }
             }
-          } catch (e) {
-            console.log(`File no longer exists in S3 after deletion: ${blobKey}`);
-            fileExistsAfter = false;
           }
           
-          fileDeleted = !fileExistsAfter;
+          if (!s3DeletionSuccess) {
+            console.error(`❌ Failed to delete file from S3 after ${maxRetries} attempts: ${blobKey}`);
+          }
         } else {
           // File didn't exist, so mark as "deleted"
-          fileDeleted = true;
-          console.log(`File did not exist in S3, no deletion necessary`);
+          s3DeletionSuccess = true;
+          console.log(`ℹ️ File did not exist in S3, no deletion necessary: ${blobKey}`);
         }
         
-        console.log(`S3 file deletion status - Existed before: ${fileExistedBefore}, Exists after: ${fileExistsAfter}, Deleted: ${fileDeleted}`);
-        
       } catch (storageError) {
-        console.error('Error deleting from S3 storage:', storageError);
+        console.error('Error with S3 storage operations:', storageError);
         // We continue despite storage error, as DB deletion is more important
       }
     } else {
       console.warn(`No blob key found for file ${fileId}`);
+      s3DeletionSuccess = true; // No S3 file to delete
     }
     
     // Delete file from database (including all assignments)
     await deleteFile(fileId);
-    console.log(`File successfully deleted from database: ${fileId}`);
+    console.log(`✅ File successfully deleted from database: ${fileId}`);
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: fileDeleted 
+      message: s3DeletionSuccess 
         ? 'File and associated storage data successfully deleted' 
-        : fileExistedBefore 
-          ? 'File deleted from database, but storage deletion failed'
-          : 'File deleted from database (no storage data present)',
-      fileDeleted: fileDeleted,
+        : 'File deleted from database, but S3 storage deletion failed',
+      fileDeleted: s3DeletionSuccess,
       blobKey: blobKey,
       fileId: fileId,
       debugInfo: {
         fileExistedBefore: fileExistedBefore,
-        fileExistsAfter: fileExistsAfter,
-        fileDeleted: fileDeleted
+        s3DeletionSuccess: s3DeletionSuccess,
+        blobKey: blobKey
       }
     }), {
       status: 200,
