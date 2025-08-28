@@ -15,7 +15,7 @@ class S3Storage {
     this.region = S3_CONFIG.region;
 
     this.client = new S3Client({
-      endpoint: `https://${this.bucket}.${this.endpoint}`,
+      endpoint: `https://${this.endpoint}`,
       region: this.region,
       credentials: {
         accessKeyId: this.accessKeyId,
@@ -205,6 +205,7 @@ class S3Storage {
 
       const url = await getSignedUrl(this.client, command, { expiresIn });
       console.log(`Generated signed upload URL for key: ${key}`);
+      console.log(`URL: ${url}`);
       return url;
     } catch (error) {
       console.error(`Error generating signed upload URL for ${key}:`, error);
