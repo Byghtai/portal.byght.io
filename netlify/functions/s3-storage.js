@@ -22,9 +22,11 @@ class S3Storage {
         secretAccessKey: this.secretAccessKey,
       },
       forcePathStyle: false, // Use virtual-hosted-style URLs for Hetzner
-      // Use signature version 4 explicitly
-      signatureVersion: 'v4'
     });
+    
+    // Remove the flexible checksums middleware that adds checksum headers
+    // This middleware causes CORS issues with S3-compatible storages
+    this.client.middlewareStack.remove('flexibleChecksumsMiddleware');
   }
 
   async uploadFile(key, data, contentType = 'application/octet-stream') {
@@ -199,22 +201,44 @@ class S3Storage {
         throw new Error('No S3 key provided for signed upload URL generation');
       }
       
-      // Simplest possible command
+      // Create command without any checksum algorithm
       const command = new PutObjectCommand({
         Bucket: this.bucket,
-        Key: key
-        // Don't set ContentType in the command
+        Key: key,
+        // Explicitly set ChecksumAlgorithm to undefined
+        ChecksumAlgorithm: undefined
       });
+      
+      // Remove checksum from the command's input
+      delete command.input.ChecksumAlgorithm;
 
-      // Generate URL with default settings - let AWS SDK handle everything
+      // Generate URL with options to exclude checksum headers
       const url = await getSignedUrl(this.client, command, { 
-        expiresIn
+        expiresIn,
+        unhoistableHeaders: new Set([
+          'x-amz-checksum-algorithm',
+          'x-amz-checksum-crc32',
+          'x-amz-checksum-crc32c', 
+          'x-amz-checksum-sha1',
+          'x-amz-checksum-sha256',
+          'x-amz-sdk-checksum-algorithm'
+        ])
       });
+      
+      // Final safety check - if URL still contains checksum params, remove them
+      // This is a last resort and might break the signature, but it's better than CORS failure
+      let cleanUrl = url;
+      if (url.includes('x-amz-checksum') || url.includes('x-amz-sdk-checksum')) {
+        console.warn('WARNING: URL contains checksum parameters, attempting to remove...');
+        // Remove the checksum parameters from the URL
+        cleanUrl = url.replace(/&x-amz-checksum-[^&]*/g, '')
+                      .replace(/&x-amz-sdk-checksum-[^&]*/g, '');
+      }
       
       console.log(`Generated signed upload URL for key: ${key}`);
-      console.log(`URL: ${url}`);
+      console.log(`URL: ${cleanUrl}`);
       
-      return url;
+      return cleanUrl;
     } catch (error) {
       console.error(`Error generating signed upload URL for ${key}:`, error);
       throw error;
