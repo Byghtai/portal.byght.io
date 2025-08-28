@@ -5,7 +5,9 @@
       "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"],
       "AllowedOrigins": [
         "https://portal-byght-io.netlify.app",
-        "https://portal.byght.io"
+        "https://portal.byght.io",
+        "http://localhost:5173",
+        "http://localhost:3000"
       ],
       "ExposeHeaders": [
         "ETag",

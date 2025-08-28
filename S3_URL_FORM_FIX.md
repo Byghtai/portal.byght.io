@@ -9,7 +9,7 @@ Der Upload zum Hetzner S3 Bucket funktionierte nicht, weil die URL-Form inkonsis
 Diese gemischte Form ist unüblich und führt zu Problemen bei der Signierung.
 
 ## Lösung
-Konsequente Verwendung von **virtual-hosted-style URLs**:
+Umstellung auf **path-style URLs** zur Vermeidung von SSL-Zertifikatsproblemen:
 
 ### Änderungen in `netlify/functions/s3-config.js`:
 ```javascript
@@ -23,19 +23,19 @@ endpoint: process.env.OBJECT_STORAGE_ENDPOINT || 'nbg1.your-objectstorage.com',
 ### Änderungen in `netlify/functions/s3-storage.js`:
 ```javascript
 // Vorher:
-endpoint: `https://${this.endpoint}`,
-forcePathStyle: true,
-
-// Nachher:
 endpoint: `https://${this.bucket}.${this.endpoint}`,
 forcePathStyle: false,
+
+// Nachher:
+endpoint: `https://${this.endpoint}`,
+forcePathStyle: true,
 ```
 
 ## Ergebnis
-Jetzt werden konsequent virtual-hosted-style URLs verwendet:
-- **URL-Form**: `https://bucket-name.nbg1.your-objectstorage.com/key`
-- **Konsistente Signierung**: Alle URLs folgen dem gleichen Muster
-- **Bessere Kompatibilität**: Hetzner S3 unterstützt virtual-hosted-style URLs optimal
+Jetzt werden konsequent path-style URLs verwendet:
+- **URL-Form**: `https://nbg1.your-objectstorage.com/bucket-name/key`
+- **SSL-Kompatibilität**: Verwendet die Basis-Domain mit gültigem SSL-Zertifikat
+- **Bessere Kompatibilität**: Funktioniert mit allen S3-kompatiblen Storage-Providern
 
 ## Umgebungsvariablen Update
 Aktualisieren Sie Ihre Netlify-Umgebungsvariablen:
@@ -48,11 +48,13 @@ OBJECT_STORAGE_ENDPOINT=portal-byght-io.nbg1.your-objectstorage.com
 OBJECT_STORAGE_ENDPOINT=nbg1.your-objectstorage.com
 ```
 
+**Wichtig**: Stellen Sie sicher, dass `OBJECT_STORAGE_BUCKET=portal-byght-io` gesetzt ist.
+
 ## Vorteile
-1. **Konsistente URL-Form**: Alle S3-Operationen verwenden das gleiche URL-Muster
-2. **Bessere Hetzner-Kompatibilität**: Virtual-hosted-style URLs werden optimal unterstützt
-3. **Korrekte Signierung**: AWS SDK kann URLs korrekt signieren
-4. **Weniger Konfigurationsfehler**: Klare Trennung zwischen Endpoint und Bucket
+1. **SSL-Kompatibilität**: Verwendet die Basis-Domain mit gültigem SSL-Zertifikat
+2. **Weniger Konfiguration**: Keine spezielle DNS-Konfiguration erforderlich
+3. **Bessere Kompatibilität**: Funktioniert mit allen S3-kompatiblen Storage-Providern
+4. **Korrekte Signierung**: AWS SDK kann URLs korrekt signieren
 
 ## Testing
 Nach der Änderung sollten alle S3-Operationen funktionieren:
