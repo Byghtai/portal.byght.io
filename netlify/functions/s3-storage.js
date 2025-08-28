@@ -198,33 +198,46 @@ class S3Storage {
     }
   }
 
-  async getSignedUploadUrl(key, expiresIn = 3600, contentType = 'application/octet-stream') {
+  async getSignedUploadUrl(key, expiresIn = 3600, contentType = null) {
     try {
       if (!key) {
         throw new Error('No S3 key provided for signed upload URL generation');
       }
       
-      // Create command without any checksum algorithm
+      // Create minimal command - only bucket and key, nothing else!
       const command = new PutObjectCommand({
         Bucket: this.bucket,
-        Key: key,
-        // Explicitly set ChecksumAlgorithm to undefined
-        ChecksumAlgorithm: undefined
+        Key: key
+        // NO ContentType - don't sign it to avoid mismatches
+        // NO ChecksumAlgorithm - avoid CORS preflight
       });
       
-      // Remove checksum from the command's input
-      delete command.input.ChecksumAlgorithm;
+      // Ensure no automatic checksums are added
+      if (command.input) {
+        delete command.input.ChecksumAlgorithm;
+        delete command.input.ContentType;
+      }
 
-      // Generate URL with options to exclude checksum headers
+      // Generate URL with MINIMAL headers - only what's absolutely necessary
       const url = await getSignedUrl(this.client, command, { 
         expiresIn,
+        // Don't sign ANY headers except the absolute minimum
+        signableHeaders: new Set([
+          'host'
+          // That's it! No content-type, no checksums, nothing else
+        ]),
+        // Exclude all optional headers
         unhoistableHeaders: new Set([
           'x-amz-checksum-algorithm',
           'x-amz-checksum-crc32',
           'x-amz-checksum-crc32c', 
           'x-amz-checksum-sha1',
           'x-amz-checksum-sha256',
-          'x-amz-sdk-checksum-algorithm'
+          'x-amz-sdk-checksum-algorithm',
+          'x-amz-content-sha256',
+          'content-type',
+          'x-amz-date',
+          'x-amz-security-token'
         ])
       });
       

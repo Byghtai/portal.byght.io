@@ -80,11 +80,12 @@ export default async (req, context) => {
     const blobKey = `${Date.now()}-${Math.random().toString(36).substring(7)}-${safeFileName}`;
 
     // Presigned Upload URL generieren
+    // WICHTIG: Keine ContentType übergeben - das vermeidet Signatur-Mismatches
     const s3Storage = new S3Storage();
     const uploadUrl = await s3Storage.getSignedUploadUrl(
       blobKey,
-      3600, // URL ist 1 Stunde gültig
-      contentType || 'application/octet-stream'
+      900  // URL ist nur 15 Minuten gültig (reduziert Timing-Probleme)
+      // Kein contentType - wird nicht signiert
     );
 
     console.log(`Generated presigned upload URL for file: ${filename}, key: ${blobKey}`);
@@ -94,7 +95,9 @@ export default async (req, context) => {
       uploadUrl,
       blobKey,
       uploaderId: decoded.userId,
-      expiresIn: 3600
+      expiresIn: 900,  // 15 Minuten
+      generatedAt: new Date().toISOString(),  // Server-Zeit für Debugging
+      serverTime: Date.now()  // Unix timestamp für Zeitsynchronisation
     }), {
       status: 200,
       headers: { 

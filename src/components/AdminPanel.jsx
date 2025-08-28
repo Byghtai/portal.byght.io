@@ -232,8 +232,14 @@ const AdminPanel = () => {
           throw new Error(errorData.details || errorData.error || 'Failed to get upload URL');
         }
 
-        const { uploadUrl, blobKey } = await urlResponse.json();
+        const { uploadUrl, blobKey, serverTime, expiresIn } = await urlResponse.json();
         console.log(`Got upload URL for ${file.name}, uploading directly to S3...`);
+        
+        // Check if there's a significant time difference between client and server
+        const timeDiff = Math.abs(Date.now() - serverTime);
+        if (timeDiff > 60000) { // More than 1 minute difference
+          console.warn(`Time sync issue detected: ${timeDiff}ms difference between client and server`);
+        }
 
         // Step 2: Try direct S3 upload first, fallback to proxy if CORS fails
         setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 0, status: 'uploading' } }));
@@ -341,7 +347,13 @@ const AdminPanel = () => {
               throw new Error('Failed to get upload URL on retry');
             }
 
-            const { uploadUrl, blobKey } = await urlResponse.json();
+            const { uploadUrl, blobKey, serverTime } = await urlResponse.json();
+            
+            // Check time sync on retry too
+            const timeDiff = Math.abs(Date.now() - serverTime);
+            if (timeDiff > 60000) {
+              console.warn(`Time sync issue on retry: ${timeDiff}ms difference`);
+            }
             
             // Retry upload with new URL
             setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 50, status: 'uploading' } }));
