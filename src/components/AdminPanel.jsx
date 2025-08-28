@@ -242,46 +242,23 @@ const AdminPanel = () => {
         
         // Try direct S3 upload
         try {
-          await new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            
-            xhr.upload.addEventListener('progress', (event) => {
-              if (event.lengthComputable) {
-                const percentComplete = Math.round((event.loaded / event.total) * 100);
-                setUploadProgress(prev => ({ 
-                  ...prev, 
-                  [fileKey]: { percent: percentComplete, status: 'uploading' } 
-                }));
-              }
-            });
-            
-            xhr.addEventListener('load', () => {
-              if (xhr.status === 200 || xhr.status === 204) {
-                console.log(`File uploaded to S3 successfully: ${file.name}`);
-                setUploadProgress(prev => ({ 
-                  ...prev, 
-                  [fileKey]: { percent: 100, status: 'uploaded' } 
-                }));
-                uploadSuccessful = true;
-                resolve();
-              } else {
-                reject(new Error(`S3 upload failed with status ${xhr.status}`));
-              }
-            });
-            
-            xhr.addEventListener('error', () => {
-              reject(new Error('S3 direct upload failed - likely CORS issue'));
-            });
-            
-            xhr.addEventListener('abort', () => {
-              reject(new Error('Upload aborted'));
-            });
-            
-            xhr.open('PUT', uploadUrl);
-            file.arrayBuffer().then((buf) => {
-              xhr.send(new Uint8Array(buf));
-            });
+          setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 50, status: 'uploading' } }));
+          
+          const uploadResponse = await fetch(uploadUrl, { 
+            method: "PUT", 
+            body: file 
           });
+          
+          if (uploadResponse.ok) {
+            console.log(`File uploaded to S3 successfully: ${file.name}`);
+            setUploadProgress(prev => ({ 
+              ...prev, 
+              [fileKey]: { percent: 100, status: 'uploaded' } 
+            }));
+            uploadSuccessful = true;
+          } else {
+            throw new Error(`S3 upload failed with status ${uploadResponse.status}`);
+          }
         } catch (directUploadError) {
           console.error(`Direct S3 upload failed: ${directUploadError.message}`);
           throw new Error(`Direct S3 upload failed: ${directUploadError.message}. Please ensure CORS is properly configured on your S3 bucket.`);
@@ -363,39 +340,21 @@ const AdminPanel = () => {
             const { uploadUrl, blobKey } = await urlResponse.json();
             
             // Retry upload with new URL
-            await new Promise((resolve, reject) => {
-              const xhr = new XMLHttpRequest();
-              
-              xhr.upload.addEventListener('progress', (event) => {
-                if (event.lengthComputable) {
-                  const percentComplete = Math.round((event.loaded / event.total) * 100);
-                  setUploadProgress(prev => ({ 
-                    ...prev, 
-                    [fileKey]: { percent: percentComplete, status: 'uploading' } 
-                  }));
-                }
-              });
-              
-              xhr.addEventListener('load', () => {
-                if (xhr.status === 200 || xhr.status === 204) {
-                  setUploadProgress(prev => ({ 
-                    ...prev, 
-                    [fileKey]: { percent: 100, status: 'uploaded' } 
-                  }));
-                  resolve();
-                } else {
-                  reject(new Error(`S3 upload failed with status ${xhr.status}`));
-                }
-              });
-              
-              xhr.addEventListener('error', () => reject(new Error('S3 upload failed')));
-              xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
-              
-              xhr.open('PUT', uploadUrl);
-              file.arrayBuffer().then((buf) => {
-                xhr.send(new Uint8Array(buf));
-              });
+            setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 50, status: 'uploading' } }));
+            
+            const uploadResponse = await fetch(uploadUrl, { 
+              method: "PUT", 
+              body: file 
             });
+            
+            if (uploadResponse.ok) {
+              setUploadProgress(prev => ({ 
+                ...prev, 
+                [fileKey]: { percent: 100, status: 'uploaded' } 
+              }));
+            } else {
+              throw new Error(`S3 upload failed with status ${uploadResponse.status}`);
+            }
 
             // Confirm upload
             const confirmResponse = await fetch('/.netlify/functions/admin-confirm-upload', {
