@@ -22,10 +22,12 @@ class S3Storage {
         secretAccessKey: this.secretAccessKey,
       },
       forcePathStyle: false, // Use virtual-hosted-style URLs
-      // Disable automatic checksums for better S3-compatible storage compatibility
-      disableS3ExpressSessionAuth: true,
-      requestChecksumCalculation: 'WHEN_REQUIRED',
-      responseChecksumValidation: 'WHEN_REQUIRED'
+      // Special configuration for Hetzner S3-compatible storage
+      disableHostPrefix: true,
+      // Disable all automatic checksums
+      checksumValidation: false,
+      requestChecksumCalculation: 'NEVER',
+      responseChecksumValidation: 'NEVER'
     });
   }
 
@@ -195,32 +197,51 @@ class S3Storage {
     }
   }
 
-  async getSignedUploadUrl(key, expiresIn = 3600) {
+  async getSignedUploadUrl(key, expiresIn = 3600, contentType = 'application/octet-stream') {
     try {
       if (!key) {
         throw new Error('No S3 key provided for signed upload URL generation');
       }
       
+      // Minimal command for Hetzner compatibility
       const command = new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
+        ContentType: contentType,
+        // No checksum algorithm
+        ChecksumAlgorithm: undefined,
+        // No additional metadata
+        Metadata: {}
       });
 
-      // Generate URL without checksum headers for S3-compatible storage
+      // Generate URL with absolute minimum headers
       const url = await getSignedUrl(this.client, command, { 
         expiresIn,
+        // Only sign the absolute minimum required headers
         signableHeaders: new Set([
           'host',
+          'content-type'
         ]),
-        unsignableHeaders: new Set([
+        // Explicitly exclude all checksum-related headers
+        unhoistableHeaders: new Set([
+          'x-amz-checksum-algorithm',
           'x-amz-checksum-crc32',
+          'x-amz-checksum-crc32c',
+          'x-amz-checksum-sha1',
+          'x-amz-checksum-sha256',
           'x-amz-sdk-checksum-algorithm',
+          'x-amz-trailer',
           'x-amz-content-sha256'
         ])
       });
+      
+      // Clean URL from any checksum parameters
+      const cleanUrl = url.replace(/[&?]x-amz-checksum[^&]*/g, '')
+                          .replace(/[&?]x-amz-sdk-checksum[^&]*/g, '');
+      
       console.log(`Generated signed upload URL for key: ${key}`);
-      console.log(`URL: ${url}`);
-      return url;
+      console.log(`Clean URL: ${cleanUrl}`);
+      return cleanUrl;
     } catch (error) {
       console.error(`Error generating signed upload URL for ${key}:`, error);
       throw error;
