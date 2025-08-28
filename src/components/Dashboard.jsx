@@ -669,7 +669,7 @@ const Dashboard = () => {
                         </li>
                         <li className="flex items-start gap-2">
                           <span className="text-gray-400">◦</span>
-                          <span>Add your admin group/users with <strong>Admin</strong>.</span>
+                          <span>Add your admin group/users with <strong>Admin</strong>. </span>
                         </li>
                       </ul>
                     </div>
