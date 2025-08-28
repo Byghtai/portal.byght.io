@@ -190,6 +190,27 @@ class S3Storage {
       throw error;
     }
   }
+
+  async getSignedUploadUrl(key, contentType = 'application/octet-stream', expiresIn = 3600) {
+    try {
+      if (!key) {
+        throw new Error('No S3 key provided for signed upload URL generation');
+      }
+      
+      const command = new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: contentType,
+      });
+
+      const url = await getSignedUrl(this.client, command, { expiresIn });
+      console.log(`Generated signed upload URL for key: ${key}`);
+      return url;
+    } catch (error) {
+      console.error(`Error generating signed upload URL for ${key}:`, error);
+      throw error;
+    }
+  }
 }
 
 export default S3Storage;

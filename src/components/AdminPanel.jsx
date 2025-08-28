@@ -29,6 +29,7 @@ const AdminPanel = () => {
   const [uploadFiles, setUploadFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({});
   const [newUser, setNewUser] = useState({ 
     username: '', 
     password: '', 
@@ -199,24 +200,105 @@ const AdminPanel = () => {
     }
 
     setUploading(true);
+    setUploadProgress({});
     const uploadedFileData = [];
     
-    for (const file of uploadFiles) {
-      const formData = new FormData();
-      formData.append('file', file);
-
+    for (let i = 0; i < uploadFiles.length; i++) {
+      const file = uploadFiles[i];
+      const fileKey = `${file.name}-${i}`;
+      
       try {
         const token = Cookies.get('auth_token');
-        const response = await fetch('/.netlify/functions/admin-upload-file', {
+        
+        // Step 1: Get presigned upload URL from backend
+        console.log(`Getting upload URL for ${file.name}...`);
+        setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 0, status: 'preparing' } }));
+        
+        const urlResponse = await fetch('/.netlify/functions/admin-get-upload-url', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
-          body: formData,
+          body: JSON.stringify({
+            filename: file.name,
+            fileSize: file.size,
+            contentType: file.type || 'application/octet-stream'
+          }),
         });
 
-        if (response.ok) {
-          const result = await response.json();
+        if (!urlResponse.ok) {
+          const errorData = await urlResponse.json();
+          throw new Error(errorData.details || errorData.error || 'Failed to get upload URL');
+        }
+
+        const { uploadUrl, blobKey } = await urlResponse.json();
+        console.log(`Got upload URL for ${file.name}, uploading directly to S3...`);
+
+        // Step 2: Upload file directly to S3 using presigned URL with progress tracking
+        setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 0, status: 'uploading' } }));
+        
+        await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              const percentComplete = Math.round((event.loaded / event.total) * 100);
+              setUploadProgress(prev => ({ 
+                ...prev, 
+                [fileKey]: { percent: percentComplete, status: 'uploading' } 
+              }));
+            }
+          });
+          
+          xhr.addEventListener('load', () => {
+            if (xhr.status === 200 || xhr.status === 204) {
+              console.log(`File uploaded to S3 successfully: ${file.name}`);
+              setUploadProgress(prev => ({ 
+                ...prev, 
+                [fileKey]: { percent: 100, status: 'uploaded' } 
+              }));
+              resolve();
+            } else {
+              reject(new Error(`S3 upload failed with status ${xhr.status}`));
+            }
+          });
+          
+          xhr.addEventListener('error', () => {
+            reject(new Error('S3 upload failed'));
+          });
+          
+          xhr.addEventListener('abort', () => {
+            reject(new Error('Upload aborted'));
+          });
+          
+          xhr.open('PUT', uploadUrl);
+          xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+          xhr.send(file);
+        });
+
+        // Step 3: Confirm upload with backend to save metadata
+        const confirmResponse = await fetch('/.netlify/functions/admin-confirm-upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            blobKey,
+            filename: file.name,
+            fileSize: file.size,
+            contentType: file.type || 'application/octet-stream',
+            assignedUsers: [],  // Will be handled separately if needed
+            productLabel: null,
+            versionLabel: null,
+            languageLabel: null,
+            confluenceLabel: null
+          }),
+        });
+
+        if (confirmResponse.ok) {
+          const result = await confirmResponse.json();
           uploadedFileData.push({
             id: result.file.id,
             filename: file.name,
@@ -226,31 +308,120 @@ const AdminPanel = () => {
             languageLabel: ''
           });
         } else {
-          let errorMessage = 'Unknown error occurred';
-          let errorDetails = '';
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.error || errorMessage;
-            if (errorData.details) {
-              errorDetails = `\nDetails: ${errorData.details}`;
-            }
-            if (errorData.fallbackError) {
-              errorDetails += `\nFallback error: ${errorData.fallbackError}`;
-            }
-          } catch (jsonError) {
-            // Wenn JSON-Parsing fehlschlägt, versuche den Text zu lesen
-            try {
-              const errorText = await response.text();
-              errorMessage = errorText || errorMessage;
-            } catch (textError) {
-              errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-            }
-          }
-          console.error(`Upload error for ${file.name}:`, errorMessage, errorDetails);
-          alert(`Error uploading ${file.name}: ${errorMessage}${errorDetails}`);
+          const errorData = await confirmResponse.json();
+          throw new Error(errorData.details || errorData.error || 'Failed to confirm upload');
         }
       } catch (error) {
-        alert(`Error uploading ${file.name}: ${error.message}`);
+        console.error(`Upload failed for ${file.name}:`, error);
+        setUploadProgress(prev => ({ 
+          ...prev, 
+          [fileKey]: { percent: 0, status: 'failed', error: error.message } 
+        }));
+        
+        // Ask user if they want to retry
+        const retry = confirm(`Failed to upload ${file.name}: ${error.message}\n\nDo you want to retry?`);
+        
+        if (retry) {
+          // Retry once
+          try {
+            const token = Cookies.get('auth_token');
+            
+            // Get new presigned URL
+            setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 0, status: 'retrying' } }));
+            
+            const urlResponse = await fetch('/.netlify/functions/admin-get-upload-url', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                filename: file.name,
+                fileSize: file.size,
+                contentType: file.type || 'application/octet-stream'
+              }),
+            });
+
+            if (!urlResponse.ok) {
+              throw new Error('Failed to get upload URL on retry');
+            }
+
+            const { uploadUrl, blobKey } = await urlResponse.json();
+            
+            // Retry upload with new URL
+            await new Promise((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              
+              xhr.upload.addEventListener('progress', (event) => {
+                if (event.lengthComputable) {
+                  const percentComplete = Math.round((event.loaded / event.total) * 100);
+                  setUploadProgress(prev => ({ 
+                    ...prev, 
+                    [fileKey]: { percent: percentComplete, status: 'uploading' } 
+                  }));
+                }
+              });
+              
+              xhr.addEventListener('load', () => {
+                if (xhr.status === 200 || xhr.status === 204) {
+                  setUploadProgress(prev => ({ 
+                    ...prev, 
+                    [fileKey]: { percent: 100, status: 'uploaded' } 
+                  }));
+                  resolve();
+                } else {
+                  reject(new Error(`S3 upload failed with status ${xhr.status}`));
+                }
+              });
+              
+              xhr.addEventListener('error', () => reject(new Error('S3 upload failed')));
+              xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+              
+              xhr.open('PUT', uploadUrl);
+              xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+              xhr.send(file);
+            });
+
+            // Confirm upload
+            const confirmResponse = await fetch('/.netlify/functions/admin-confirm-upload', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                blobKey,
+                filename: file.name,
+                fileSize: file.size,
+                contentType: file.type || 'application/octet-stream',
+                assignedUsers: [],
+                productLabel: null,
+                versionLabel: null,
+                languageLabel: null,
+                confluenceLabel: null
+              }),
+            });
+
+            if (confirmResponse.ok) {
+              const result = await confirmResponse.json();
+              uploadedFileData.push({
+                id: result.file.id,
+                filename: file.name,
+                size: file.size,
+                productLabel: '',
+                versionLabel: '',
+                languageLabel: ''
+              });
+            } else {
+              throw new Error('Failed to confirm upload on retry');
+            }
+          } catch (retryError) {
+            console.error(`Retry failed for ${file.name}:`, retryError);
+            alert(`Retry failed for ${file.name}: ${retryError.message}`);
+          }
+        }
+        // Continue with next file
+        continue;
       }
     }
 
@@ -1070,12 +1241,40 @@ const AdminPanel = () => {
                 {uploadFiles.length > 0 && (
                   <div className="mt-4 p-3 bg-byght-turquoise/10 rounded-lg border border-byght-turquoise/20">
                     <p className="font-medium text-byght-turquoise mb-2 text-sm">Selected files:</p>
-                    <ul className="space-y-1">
-                      {uploadFiles.map((file, index) => (
-                        <li key={index} className="text-sm text-gray-600">
-                          {file.name} ({formatFileSize(file.size)})
-                        </li>
-                      ))}
+                    <ul className="space-y-2">
+                      {uploadFiles.map((file, index) => {
+                        const fileKey = `${file.name}-${index}`;
+                        const progress = uploadProgress[fileKey];
+                        
+                        return (
+                          <li key={index} className="text-sm text-gray-600">
+                            <div className="flex justify-between items-center mb-1">
+                              <span>{file.name} ({formatFileSize(file.size)})</span>
+                              {progress && (
+                                <span className={`text-xs ${
+                                  progress.status === 'failed' ? 'text-red-500' : 
+                                  progress.status === 'retrying' ? 'text-yellow-500' : 
+                                  'text-byght-turquoise'
+                                }`}>
+                                  {progress.status === 'preparing' && 'Preparing...'}
+                                  {progress.status === 'uploading' && `${progress.percent}%`}
+                                  {progress.status === 'uploaded' && '✓ Uploaded'}
+                                  {progress.status === 'failed' && '✗ Failed'}
+                                  {progress.status === 'retrying' && 'Retrying...'}
+                                </span>
+                              )}
+                            </div>
+                            {progress && progress.status === 'uploading' && (
+                              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                <div 
+                                  className="bg-byght-turquoise h-1.5 rounded-full transition-all duration-300"
+                                  style={{ width: `${progress.percent}%` }}
+                                />
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
@@ -1616,7 +1815,7 @@ const AdminPanel = () => {
               )}
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Edit User Files Modal */}
         {showEditUserFiles && editingUser && (
