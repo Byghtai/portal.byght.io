@@ -21,13 +21,9 @@ class S3Storage {
         accessKeyId: this.accessKeyId,
         secretAccessKey: this.secretAccessKey,
       },
-      forcePathStyle: false, // Use virtual-hosted-style URLs
-      // Special configuration for Hetzner S3-compatible storage
-      disableHostPrefix: true,
-      // Disable all automatic checksums
-      checksumValidation: false,
-      requestChecksumCalculation: 'NEVER',
-      responseChecksumValidation: 'NEVER'
+      forcePathStyle: false, // Use virtual-hosted-style URLs for Hetzner
+      // Use signature version 4 explicitly
+      signatureVersion: 'v4'
     });
   }
 
@@ -203,41 +199,21 @@ class S3Storage {
         throw new Error('No S3 key provided for signed upload URL generation');
       }
       
-      // Minimal command for Hetzner compatibility - NO ContentType in URL!
+      // Simplest possible command
       const command = new PutObjectCommand({
         Bucket: this.bucket,
-        Key: key,
-        // Don't include ContentType in presigned URL to avoid CORS issues
-        // Content-Type will be sent as header during actual upload
-        // No checksum algorithm
-        ChecksumAlgorithm: undefined,
-        // No additional metadata
-        Metadata: {}
+        Key: key
+        // Don't set ContentType in the command
       });
 
-      // Generate URL with absolute minimum headers
+      // Generate URL with default settings - let AWS SDK handle everything
       const url = await getSignedUrl(this.client, command, { 
-        expiresIn,
-        // Only sign the host header - nothing else!
-        signableHeaders: new Set([
-          'host'
-        ]),
-        // Explicitly exclude all checksum-related headers
-        unhoistableHeaders: new Set([
-          'x-amz-checksum-algorithm',
-          'x-amz-checksum-crc32',
-          'x-amz-checksum-crc32c',
-          'x-amz-checksum-sha1',
-          'x-amz-checksum-sha256',
-          'x-amz-sdk-checksum-algorithm',
-          'x-amz-trailer',
-          'x-amz-content-sha256'
-        ])
+        expiresIn
       });
       
-      // DO NOT clean/modify the URL - it would break the signature!
       console.log(`Generated signed upload URL for key: ${key}`);
       console.log(`URL: ${url}`);
+      
       return url;
     } catch (error) {
       console.error(`Error generating signed upload URL for ${key}:`, error);

@@ -247,8 +247,7 @@ const AdminPanel = () => {
           const uploadResponse = await fetch(uploadUrl, { 
             method: "PUT", 
             body: file
-            // NO headers - only what's signed in the URL!
-            // mode: 'cors' is default, no need to set explicitly
+            // No headers - use exactly what was signed in the URL
           });
           
           if (uploadResponse.ok) {
@@ -347,7 +346,7 @@ const AdminPanel = () => {
             const uploadResponse = await fetch(uploadUrl, { 
               method: "PUT", 
               body: file
-              // NO headers - only what's signed in the URL!
+              // No headers - use exactly what was signed in the URL
             });
             
             if (uploadResponse.ok) {
