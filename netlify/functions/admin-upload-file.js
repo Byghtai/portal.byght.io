@@ -1,6 +1,6 @@
-import { getStore } from "@netlify/blobs";
 import jwt from 'jsonwebtoken';
 import { saveFileMetadata, assignFileToUsers, assignFileToAllAdmins } from './db.js';
+import S3Storage from './s3-storage.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -89,10 +89,10 @@ export default async (req, context) => {
     const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const blobKey = `${Date.now()}-${safeFileName}`;
 
-    // Datei in Netlify Blobs speichern
-    console.log('Storing file in Netlify Blobs...');
-    const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
-    console.log('Blob store created, reading file buffer...');
+    // Datei in S3 Storage speichern
+    console.log('Storing file in S3 Storage...');
+    const s3Storage = new S3Storage();
+    console.log('S3 Storage initialized, reading file buffer...');
     
     try {
       // Zusätzliche Validierung für ZIP-Dateien
@@ -150,20 +150,20 @@ export default async (req, context) => {
             }
           }
           
-          console.log('Attempting to store ZIP file in Netlify Blobs...');
-          console.log(`Blob key: ${blobKey}, Size: ${uint8Array.byteLength} bytes`);
+          console.log(`Attempting to store ZIP file...`);
+          console.log(`File key: ${blobKey}, Size: ${uint8Array.byteLength} bytes`);
           
           try {
-            await filesStore.set(blobKey, uint8Array);
-            console.log('ZIP file stored in Blobs successfully');
-          } catch (blobError) {
-            console.error('Netlify Blobs storage error:', blobError);
-            console.error('Blob Error details:', {
-              message: blobError.message,
-              code: blobError.code,
-              statusCode: blobError.statusCode
+            await s3Storage.uploadFile(blobKey, uint8Array, file.type);
+            console.log('ZIP file stored in S3 successfully');
+          } catch (storageError) {
+            console.error('S3 Storage error:', storageError);
+            console.error('S3 Storage Error details:', {
+              message: storageError.message,
+              code: storageError.code,
+              statusCode: storageError.statusCode
             });
-            throw blobError;
+            throw storageError;
           }
         } catch (zipError) {
           console.error('Error processing ZIP file:', zipError);
@@ -202,8 +202,8 @@ export default async (req, context) => {
             }
             
             console.log('Attempting to store via fallback method...');
-            await filesStore.set(blobKey, combinedBuffer);
-            console.log('ZIP file stored via fallback method successfully');
+            await s3Storage.uploadFile(blobKey, combinedBuffer, file.type);
+            console.log('ZIP file stored via S3 fallback method successfully');
           } catch (fallbackError) {
             console.error('Fallback also failed:', fallbackError);
             return new Response(JSON.stringify({ 
@@ -237,8 +237,8 @@ export default async (req, context) => {
           });
         }
         
-        await filesStore.set(blobKey, new Uint8Array(fileBuffer));
-        console.log('File stored in Blobs successfully');
+        await s3Storage.uploadFile(blobKey, new Uint8Array(fileBuffer), file.type);
+        console.log('File stored in S3 successfully');
       }
     } catch (bufferError) {
       console.error('Error reading file buffer:', bufferError);

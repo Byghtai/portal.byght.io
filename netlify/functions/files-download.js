@@ -1,6 +1,6 @@
-import { getStore } from "@netlify/blobs";
 import jwt from 'jsonwebtoken';
 import { getFileById, hasFileAccess } from './db.js';
+import S3Storage from './s3-storage.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -66,11 +66,12 @@ export default async (req, context) => {
       });
     }
 
-    // Datei aus Blob Storage abrufen
-    const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
-    const fileBlob = await filesStore.get(fileMetadata.blobKey, { type: 'stream' });
+    // Datei aus S3 Storage abrufen
+    const s3Storage = new S3Storage();
+    const fileData = await s3Storage.downloadFile(fileMetadata.blobKey);
+    console.log('File retrieved from S3 successfully');
     
-    if (!fileBlob) {
+    if (!fileData) {
       return new Response(JSON.stringify({ error: 'File data not found' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
@@ -78,7 +79,7 @@ export default async (req, context) => {
     }
 
     // Datei als Download zurückgeben
-    return new Response(fileBlob, {
+    return new Response(fileData, {
       status: 200,
       headers: {
         'Content-Type': fileMetadata.mimeType || 'application/octet-stream',

@@ -128,9 +128,12 @@ As an admin you can:
 - **Frontend**: React, Vite, Tailwind CSS, React Router
 - **Backend**: Netlify Functions (Serverless)
 - **Database**: Neon PostgreSQL (for users and file metadata)
-- **File Storage**: Netlify Blobs (for actual files)
+- **File Storage**: S3-compatible Object Storage (for actual files)
 - **Authentication**: JWT Tokens
 - **Hosting**: Netlify
+
+### S3 Storage Configuration:
+Das System verwendet S3-kompatiblen Object Storage für die Dateispeicherung. Siehe `S3_STORAGE_SETUP.md` für detaillierte Konfigurationsanweisungen.
 
 ### Project Structure:
 ```

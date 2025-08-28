@@ -1,6 +1,6 @@
-import { getStore } from "@netlify/blobs";
 import jwt from 'jsonwebtoken';
 import { deleteFile, getFileById } from './db.js';
+import S3Storage from './s3-storage.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -67,85 +67,82 @@ export default async (req, context) => {
     
     console.log(`Starting deletion of file ${fileId} with blob key: ${blobKey}`);
     
-    // Delete file from blob storage (BEFORE DB deletion)
-    let blobDeleted = false;
-    let blobExistedBefore = false;
-    let blobExistsAfter = false;
+    // Delete file from S3 storage (BEFORE DB deletion)
+    let fileDeleted = false;
+    let fileExistedBefore = false;
+    let fileExistsAfter = false;
     
     if (blobKey) {
       try {
-        const filesStore = getStore({ name: 'portal-files', siteID: context.site.id });
-        console.log(`Attempting to delete blob: ${blobKey}`);
+        const s3Storage = new S3Storage();
+        console.log(`Attempting to delete file from S3: ${blobKey}`);
         
-        // Check if blob exists before deletion
+        // Check if file exists before deletion
         try {
-          const blobBefore = await filesStore.get(blobKey);
-          blobExistedBefore = !!blobBefore;
-          console.log(`Blob exists before deletion: ${blobExistedBefore}`);
+          fileExistedBefore = await s3Storage.fileExists(blobKey);
+          console.log(`File exists in S3 before deletion: ${fileExistedBefore}`);
         } catch (e) {
-          console.log(`Blob does not exist before deletion: ${blobKey}`);
-          blobExistedBefore = false;
+          console.log(`File does not exist in S3 before deletion: ${blobKey}`);
+          fileExistedBefore = false;
         }
         
-        // Delete blob - with explicit await and try-catch
-        if (blobExistedBefore) {
+        // Delete file - with explicit await and try-catch
+        if (fileExistedBefore) {
           try {
-            await filesStore.delete(blobKey);
-            console.log(`Blob deletion command executed for: ${blobKey}`);
+            await s3Storage.deleteFile(blobKey);
+            console.log(`S3 file deletion command executed for: ${blobKey}`);
           } catch (deleteError) {
-            console.error(`Error on first deletion attempt: ${deleteError.message}`);
+            console.error(`Error on first S3 deletion attempt: ${deleteError.message}`);
             // Continue anyway and check
           }
         }
         
-        // Only check if blob existed before
-        if (blobExistedBefore) {
+        // Only check if file existed before
+        if (fileExistedBefore) {
           // Wait briefly for deletion to take effect
           await new Promise(resolve => setTimeout(resolve, 100));
           
-          // Check if blob still exists after deletion
+          // Check if file still exists after deletion
           try {
-            const blobAfter = await filesStore.get(blobKey);
-            blobExistsAfter = !!blobAfter;
-            console.log(`Blob still exists after deletion: ${blobExistsAfter}`);
+            fileExistsAfter = await s3Storage.fileExists(blobKey);
+            console.log(`File still exists in S3 after deletion: ${fileExistsAfter}`);
             
-            // If blob still exists, try deleting again
-            if (blobExistsAfter) {
-              console.log(`Second deletion attempt for stubborn blob: ${blobKey}`);
+            // If file still exists, try deleting again
+            if (fileExistsAfter) {
+              console.log(`Second S3 deletion attempt for stubborn file: ${blobKey}`);
               try {
-                await filesStore.delete(blobKey);
+                await s3Storage.deleteFile(blobKey);
                 await new Promise(resolve => setTimeout(resolve, 100));
               } catch (deleteError2) {
-                console.error(`Error on second deletion attempt: ${deleteError2.message}`);
+                console.error(`Error on second S3 deletion attempt: ${deleteError2.message}`);
               }
               
               // Check again
               try {
-                const blobAfterSecond = await filesStore.get(blobKey);
-                blobExistsAfter = !!blobAfterSecond;
-                console.log(`Blob exists after second deletion attempt: ${blobExistsAfter}`);
+                fileExistsAfter = await s3Storage.fileExists(blobKey);
+                console.log(`File exists in S3 after second deletion attempt: ${fileExistsAfter}`);
               } catch (e) {
-                blobExistsAfter = false;
-                console.log(`Blob successfully removed after second deletion attempt`);
+                fileExistsAfter = false;
+                console.log(`File successfully removed from S3 after second deletion attempt`);
               }
             }
           } catch (e) {
-            console.log(`Blob no longer exists after deletion: ${blobKey}`);
-            blobExistsAfter = false;
+            console.log(`File no longer exists in S3 after deletion: ${blobKey}`);
+            fileExistsAfter = false;
           }
           
-          blobDeleted = !blobExistsAfter;
+          fileDeleted = !fileExistsAfter;
         } else {
-          // Blob didn't exist, so mark as "deleted"
-          blobDeleted = true;
-          console.log(`Blob did not exist, no deletion necessary`);
+          // File didn't exist, so mark as "deleted"
+          fileDeleted = true;
+          console.log(`File did not exist in S3, no deletion necessary`);
         }
         
-        console.log(`Blob deletion status - Existed before: ${blobExistedBefore}, Exists after: ${blobExistsAfter}, Deleted: ${blobDeleted}`);
+        console.log(`S3 file deletion status - Existed before: ${fileExistedBefore}, Exists after: ${fileExistsAfter}, Deleted: ${fileDeleted}`);
         
-      } catch (blobError) {
-        console.error('Error deleting from blob storage:', blobError);
-        // We continue despite blob error, as DB deletion is more important
+      } catch (storageError) {
+        console.error('Error deleting from S3 storage:', storageError);
+        // We continue despite storage error, as DB deletion is more important
       }
     } else {
       console.warn(`No blob key found for file ${fileId}`);
@@ -157,18 +154,18 @@ export default async (req, context) => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: blobDeleted 
-        ? 'File and associated blob data successfully deleted' 
-        : blobExistedBefore 
-          ? 'File deleted from database, but blob deletion failed'
-          : 'File deleted from database (no blob present)',
-      blobDeleted: blobDeleted,
+      message: fileDeleted 
+        ? 'File and associated storage data successfully deleted' 
+        : fileExistedBefore 
+          ? 'File deleted from database, but storage deletion failed'
+          : 'File deleted from database (no storage data present)',
+      fileDeleted: fileDeleted,
       blobKey: blobKey,
       fileId: fileId,
       debugInfo: {
-        blobExistedBefore: blobExistedBefore,
-        blobExistsAfter: blobExistsAfter,
-        blobDeleted: blobDeleted
+        fileExistedBefore: fileExistedBefore,
+        fileExistsAfter: fileExistsAfter,
+        fileDeleted: fileDeleted
       }
     }), {
       status: 200,
