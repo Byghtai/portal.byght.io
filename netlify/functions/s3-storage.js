@@ -203,11 +203,12 @@ class S3Storage {
         throw new Error('No S3 key provided for signed upload URL generation');
       }
       
-      // Minimal command for Hetzner compatibility
+      // Minimal command for Hetzner compatibility - NO ContentType in URL!
       const command = new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
-        ContentType: contentType,
+        // Don't include ContentType in presigned URL to avoid CORS issues
+        // Content-Type will be sent as header during actual upload
         // No checksum algorithm
         ChecksumAlgorithm: undefined,
         // No additional metadata
@@ -217,10 +218,9 @@ class S3Storage {
       // Generate URL with absolute minimum headers
       const url = await getSignedUrl(this.client, command, { 
         expiresIn,
-        // Only sign the absolute minimum required headers
+        // Only sign the host header - nothing else!
         signableHeaders: new Set([
-          'host',
-          'content-type'
+          'host'
         ]),
         // Explicitly exclude all checksum-related headers
         unhoistableHeaders: new Set([
