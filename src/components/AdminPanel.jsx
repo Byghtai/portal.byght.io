@@ -278,8 +278,9 @@ const AdminPanel = () => {
             });
             
             xhr.open('PUT', uploadUrl);
-            xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-            xhr.send(file);
+            file.arrayBuffer().then((buf) => {
+              xhr.send(new Uint8Array(buf));
+            });
           });
         } catch (directUploadError) {
           console.error(`Direct S3 upload failed: ${directUploadError.message}`);
@@ -391,8 +392,9 @@ const AdminPanel = () => {
               xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
               
               xhr.open('PUT', uploadUrl);
-              xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-              xhr.send(file);
+              file.arrayBuffer().then((buf) => {
+                xhr.send(new Uint8Array(buf));
+              });
             });
 
             // Confirm upload

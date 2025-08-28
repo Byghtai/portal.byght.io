@@ -83,7 +83,6 @@ export default async (req, context) => {
     const s3Storage = new S3Storage();
     const uploadUrl = await s3Storage.getSignedUploadUrl(
       blobKey,
-      contentType || 'application/octet-stream',
       3600 // URL ist 1 Stunde gültig
     );
 
