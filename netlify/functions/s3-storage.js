@@ -1,35 +1,47 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { S3_CONFIG, validateS3Config } from './s3-config.js';
 
+/**
+ * S3 Storage Class - Optimized for Hetzner Object Storage
+ * Uses best practices to minimize CORS issues
+ */
 class S3Storage {
   constructor() {
-    if (!validateS3Config()) {
+    // Get configuration from environment
+    this.endpoint = process.env.OBJECT_STORAGE_ENDPOINT || 'nbg1.your-objectstorage.com';
+    this.accessKeyId = process.env.OBJECT_STORAGE_ACCESS_KEY;
+    this.secretAccessKey = process.env.OBJECT_STORAGE_SECRET_KEY;
+    this.bucket = process.env.OBJECT_STORAGE_BUCKET;
+    this.region = process.env.OBJECT_STORAGE_REGION || 'nbg1';
+
+    // Validate configuration
+    if (!this.accessKeyId || !this.secretAccessKey || !this.bucket) {
       throw new Error('Missing required S3 storage environment variables');
     }
 
-    this.endpoint = S3_CONFIG.endpoint;
-    this.accessKeyId = S3_CONFIG.accessKeyId;
-    this.secretAccessKey = S3_CONFIG.secretAccessKey;
-    this.bucket = S3_CONFIG.bucket;
-    this.region = S3_CONFIG.region;
-
-    // Für Hetzner S3-kompatiblen Storage verwenden wir PATH-STYLE URLs
-    // Das vermeidet CORS-Probleme, da alle Requests zum gleichen Host gehen
-    // Ergebnis: https://nbg1.your-objectstorage.com/portal-byght-io/key
+    // Initialize S3 Client - optimized configuration
     this.client = new S3Client({
       endpoint: `https://${this.endpoint}`,
       region: this.region,
       credentials: {
         accessKeyId: this.accessKeyId,
-        secretAccessKey: this.secretAccessKey,
+        secretAccessKey: this.secretAccessKey
       },
-      forcePathStyle: true, // Path-style URLs für bessere CORS-Kompatibilität
+      // Use path-style URLs for better compatibility with Hetzner
+      // Format: https://endpoint/bucket/key
+      forcePathStyle: true,
+      // Disable features that might not be supported
+      disableS3ExpressSessionAuth: true
     });
     
-    // Remove the flexible checksums middleware that adds checksum headers
-    // This middleware causes CORS issues with S3-compatible storages
-    this.client.middlewareStack.remove('flexibleChecksumsMiddleware');
+    // Try to remove checksum middleware to prevent CORS issues
+    try {
+      this.client.middlewareStack.remove('flexibleChecksumsMiddleware');
+    } catch (e) {
+      // Middleware might not exist in all versions
+    }
+
+
   }
 
   async uploadFile(key, data, contentType = 'application/octet-stream') {
@@ -42,10 +54,10 @@ class S3Storage {
       });
 
       await this.client.send(command);
-      console.log(`File uploaded successfully: ${key}`);
+
       return true;
     } catch (error) {
-      console.error(`Error uploading file ${key}:`, error);
+
       throw error;
     }
   }
@@ -56,7 +68,7 @@ class S3Storage {
         throw new Error('No S3 key provided for download');
       }
       
-      console.log(`Attempting to download file from S3: ${key}`);
+
       
       const command = new GetObjectCommand({
         Bucket: this.bucket,
@@ -69,7 +81,7 @@ class S3Storage {
         throw new Error('No file data received from S3');
       }
       
-      console.log(`File downloaded successfully from S3: ${key}`);
+
       
       // Convert the readable stream to a buffer for easier handling
       const chunks = [];
@@ -91,11 +103,11 @@ class S3Storage {
         offset += chunk.length;
       }
       
-      console.log(`File buffer created successfully: ${key} (${buffer.length} bytes)`);
+
       return buffer;
       
     } catch (error) {
-      console.error(`Error downloading file ${key}:`, error);
+
       
       // Provide more specific error messages
       if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
@@ -120,10 +132,10 @@ class S3Storage {
       });
 
       await this.client.send(command);
-      console.log(`File deleted successfully: ${key}`);
+
       return true;
     } catch (error) {
-      console.error(`Error deleting file ${key}:`, error);
+
       throw error;
     }
   }
@@ -172,10 +184,10 @@ class S3Storage {
         continuationToken = response.NextContinuationToken;
       } while (continuationToken);
 
-      console.log(`Listed ${allObjects.length} objects from S3 bucket`);
+
       return allObjects;
     } catch (error) {
-      console.error('Error listing S3 objects:', error);
+
       throw error;
     }
   }
@@ -193,68 +205,39 @@ class S3Storage {
 
       return await getSignedUrl(this.client, command, { expiresIn });
     } catch (error) {
-      console.error(`Error generating signed URL for ${key}:`, error);
+
       throw error;
     }
   }
 
-  async getSignedUploadUrl(key, expiresIn = 3600, contentType = null) {
+  /**
+   * Generate a presigned URL for uploading
+   * Best Practice: Keep it as simple as possible to avoid CORS issues
+   */
+  async getSignedUploadUrl(key, expiresIn = 300) {
     try {
       if (!key) {
         throw new Error('No S3 key provided for signed upload URL generation');
       }
       
-      // Create minimal command - only bucket and key, nothing else!
+      // Create the simplest possible PutObjectCommand
+      // DO NOT include ContentType or any other optional parameters
       const command = new PutObjectCommand({
         Bucket: this.bucket,
         Key: key
-        // NO ContentType - don't sign it to avoid mismatches
-        // NO ChecksumAlgorithm - avoid CORS preflight
       });
-      
-      // Ensure no automatic checksums are added
-      if (command.input) {
-        delete command.input.ChecksumAlgorithm;
-        delete command.input.ContentType;
-      }
 
-      // Generate URL with MINIMAL headers - only what's absolutely necessary
-      const url = await getSignedUrl(this.client, command, { 
-        expiresIn,
-        // Don't sign ANY headers except the absolute minimum
-        signableHeaders: new Set([
-          'host'
-          // That's it! No content-type, no checksums, nothing else
-        ]),
-        // Exclude all optional headers
-        unhoistableHeaders: new Set([
-          'x-amz-checksum-algorithm',
-          'x-amz-checksum-crc32',
-          'x-amz-checksum-crc32c', 
-          'x-amz-checksum-sha1',
-          'x-amz-checksum-sha256',
-          'x-amz-sdk-checksum-algorithm',
-          'x-amz-content-sha256',
-          'content-type',
-          'x-amz-date',
-          'x-amz-security-token'
-        ])
+      // Generate presigned URL with default settings
+      // Let AWS SDK handle the minimum required headers
+      const url = await getSignedUrl(this.client, command, {
+        expiresIn // Default 5 minutes
       });
+
+
       
-      // Log warning if URL still contains checksum parameters
-      if (url.includes('x-amz-checksum') || url.includes('x-amz-sdk-checksum')) {
-        console.warn('WARNING: URL still contains checksum parameters that may cause CORS issues');
-        console.warn('These parameters should not be present. Check AWS SDK configuration.');
-      }
-      
-      console.log(`Generated signed upload URL for key: ${key}`);
-      console.log(`URL structure: ${url.split('?')[0]}`);
-      console.log(`URL length: ${url.length} characters`);
-      
-      // Return the URL as-is - don't modify it or the signature will break
       return url;
     } catch (error) {
-      console.error(`Error generating signed upload URL for ${key}:`, error);
+
       throw error;
     }
   }

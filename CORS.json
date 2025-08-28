@@ -5,16 +5,10 @@
       "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"],
       "AllowedOrigins": [
         "https://portal-byght-io.netlify.app",
-        "https://portal.byght.io"
+        "https://portal.byght.io",
+        "http://localhost:5173"
       ],
-      "ExposeHeaders": [
-        "ETag",
-        "x-amz-server-side-encryption",
-        "x-amz-request-id",
-        "x-amz-id-2",
-        "Content-Length",
-        "Content-Type"
-      ],
+      "ExposeHeaders": ["*"],
       "MaxAgeSeconds": 3600
     }
   ]

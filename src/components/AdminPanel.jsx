@@ -232,50 +232,44 @@ const AdminPanel = () => {
           throw new Error(errorData.details || errorData.error || 'Failed to get upload URL');
         }
 
-        const { uploadUrl, blobKey, serverTime, expiresIn } = await urlResponse.json();
-        console.log(`Got upload URL for ${file.name}, uploading directly to S3...`);
-        
-        // Check if there's a significant time difference between client and server
-        const timeDiff = Math.abs(Date.now() - serverTime);
-        if (timeDiff > 60000) { // More than 1 minute difference
-          console.warn(`Time sync issue detected: ${timeDiff}ms difference between client and server`);
-        }
+        const { uploadUrl, blobKey } = await urlResponse.json();
 
-        // Step 2: Try direct S3 upload first, fallback to proxy if CORS fails
-        setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 0, status: 'uploading' } }));
+        // Step 2: Upload file to S3 using presigned URL
+        setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 10, status: 'uploading' } }));
         
-        let uploadSuccessful = false;
-        
-        // Try direct S3 upload
         try {
-          setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 50, status: 'uploading' } }));
+
           
-          // Simple PUT request without any custom headers
-          // This should avoid CORS preflight on most browsers
+          // CRITICAL: Use the simplest possible PUT request
+          // No headers, no options - just method and body
           const uploadResponse = await fetch(uploadUrl, { 
-            method: "PUT", 
-            body: file,
-            // Don't set any headers - let browser use defaults
-            // This might help avoid CORS preflight
+            method: 'PUT',
+            body: file
           });
           
-          if (uploadResponse.ok) {
-            console.log(`File uploaded to S3 successfully: ${file.name}`);
-            setUploadProgress(prev => ({ 
-              ...prev, 
-              [fileKey]: { percent: 100, status: 'uploaded' } 
-            }));
-            uploadSuccessful = true;
-          } else {
-            throw new Error(`S3 upload failed with status ${uploadResponse.status}`);
+          setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 90, status: 'verifying' } }));
+                    
+          if (!uploadResponse.ok) {
+            throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
           }
-        } catch (directUploadError) {
-          console.error(`Direct S3 upload failed: ${directUploadError.message}`);
-          throw new Error(`Direct S3 upload failed: ${directUploadError.message}. Please ensure CORS is properly configured on your S3 bucket.`);
-        }
-        
-        if (!uploadSuccessful) {
-          throw new Error('Upload failed through all methods');
+          
+
+          setUploadProgress(prev => ({ 
+            ...prev, 
+            [fileKey]: { percent: 100, status: 'uploaded' } 
+          }));
+          
+        } catch (uploadError) {
+          
+          // Check if it's a CORS error
+          if (uploadError.message.includes('CORS') || uploadError.message.includes('Failed to fetch')) {
+            throw new Error(
+              'CORS error: The S3 bucket may not be configured to accept uploads from this domain. ' +
+              'Please check the CORS configuration on your S3 bucket.'
+            );
+          }
+          
+          throw uploadError;
         }
 
         // Step 3: Confirm upload with backend to save metadata
@@ -347,22 +341,16 @@ const AdminPanel = () => {
               throw new Error('Failed to get upload URL on retry');
             }
 
-            const { uploadUrl, blobKey, serverTime } = await urlResponse.json();
-            
-            // Check time sync on retry too
-            const timeDiff = Math.abs(Date.now() - serverTime);
-            if (timeDiff > 60000) {
-              console.warn(`Time sync issue on retry: ${timeDiff}ms difference`);
-            }
+            const { uploadUrl, blobKey } = await urlResponse.json();
             
             // Retry upload with new URL
-            setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 50, status: 'uploading' } }));
+            setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 50, status: 'retrying' } }));
             
-            // Simple PUT request without any custom headers
+            // CRITICAL: Simple PUT request - no headers!
             const uploadResponse = await fetch(uploadUrl, { 
-              method: "PUT", 
+              method: 'PUT',
               body: file
-            });
+                        });
             
             if (uploadResponse.ok) {
               setUploadProgress(prev => ({ 
@@ -370,7 +358,7 @@ const AdminPanel = () => {
                 [fileKey]: { percent: 100, status: 'uploaded' } 
               }));
             } else {
-              throw new Error(`S3 upload failed with status ${uploadResponse.status}`);
+              throw new Error(`Retry failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
             }
 
             // Confirm upload

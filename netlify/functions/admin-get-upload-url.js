@@ -18,7 +18,7 @@ export default async (req, context) => {
     });
   }
 
-  console.log('Get upload URL function called');
+
 
   try {
     // Token und Admin-Status verifizieren
@@ -79,25 +79,19 @@ export default async (req, context) => {
     const safeFileName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
     const blobKey = `${Date.now()}-${Math.random().toString(36).substring(7)}-${safeFileName}`;
 
-    // Presigned Upload URL generieren
-    // WICHTIG: Keine ContentType übergeben - das vermeidet Signatur-Mismatches
+    // Generate presigned upload URL using best practices
     const s3Storage = new S3Storage();
     const uploadUrl = await s3Storage.getSignedUploadUrl(
       blobKey,
-      900  // URL ist nur 15 Minuten gültig (reduziert Timing-Probleme)
-      // Kein contentType - wird nicht signiert
+      300  // 5 minutes expiration - shorter is better for security
     );
-
-    console.log(`Generated presigned upload URL for file: ${filename}, key: ${blobKey}`);
 
     return new Response(JSON.stringify({ 
       success: true,
       uploadUrl,
       blobKey,
       uploaderId: decoded.userId,
-      expiresIn: 900,  // 15 Minuten
-      generatedAt: new Date().toISOString(),  // Server-Zeit für Debugging
-      serverTime: Date.now()  // Unix timestamp für Zeitsynchronisation
+      expiresIn: 300
     }), {
       status: 200,
       headers: { 
