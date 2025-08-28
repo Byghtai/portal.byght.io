@@ -22,6 +22,10 @@ class S3Storage {
         secretAccessKey: this.secretAccessKey,
       },
       forcePathStyle: false, // Use virtual-hosted-style URLs
+      // Disable automatic checksums for better S3-compatible storage compatibility
+      disableS3ExpressSessionAuth: true,
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED'
     });
   }
 
@@ -202,7 +206,18 @@ class S3Storage {
         Key: key,
       });
 
-      const url = await getSignedUrl(this.client, command, { expiresIn });
+      // Generate URL without checksum headers for S3-compatible storage
+      const url = await getSignedUrl(this.client, command, { 
+        expiresIn,
+        signableHeaders: new Set([
+          'host',
+        ]),
+        unsignableHeaders: new Set([
+          'x-amz-checksum-crc32',
+          'x-amz-sdk-checksum-algorithm',
+          'x-amz-content-sha256'
+        ])
+      });
       console.log(`Generated signed upload URL for key: ${key}`);
       console.log(`URL: ${url}`);
       return url;

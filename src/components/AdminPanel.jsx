@@ -246,7 +246,11 @@ const AdminPanel = () => {
           
           const uploadResponse = await fetch(uploadUrl, { 
             method: "PUT", 
-            body: file 
+            body: file,
+            headers: {
+              'Content-Type': file.type || 'application/octet-stream'
+            },
+            mode: 'cors' // Explicitly set CORS mode
           });
           
           if (uploadResponse.ok) {
@@ -344,7 +348,11 @@ const AdminPanel = () => {
             
             const uploadResponse = await fetch(uploadUrl, { 
               method: "PUT", 
-              body: file 
+              body: file,
+              headers: {
+                'Content-Type': file.type || 'application/octet-stream'
+              },
+              mode: 'cors'
             });
             
             if (uploadResponse.ok) {
