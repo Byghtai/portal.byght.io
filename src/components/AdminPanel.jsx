@@ -206,7 +206,7 @@ const AdminPanel = () => {
     for (let i = 0; i < uploadFiles.length; i++) {
       const file = uploadFiles[i];
       const fileKey = `${file.name}-${i}`;
-      
+
       try {
         const token = Cookies.get('auth_token');
         
@@ -235,47 +235,121 @@ const AdminPanel = () => {
         const { uploadUrl, blobKey } = await urlResponse.json();
         console.log(`Got upload URL for ${file.name}, uploading directly to S3...`);
 
-        // Step 2: Upload file directly to S3 using presigned URL with progress tracking
+        // Step 2: Try direct S3 upload first, fallback to proxy if CORS fails
         setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 0, status: 'uploading' } }));
         
-        await new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          
-          xhr.upload.addEventListener('progress', (event) => {
-            if (event.lengthComputable) {
-              const percentComplete = Math.round((event.loaded / event.total) * 100);
-              setUploadProgress(prev => ({ 
-                ...prev, 
-                [fileKey]: { percent: percentComplete, status: 'uploading' } 
-              }));
-            }
+        let uploadSuccessful = false;
+        
+        // Try direct S3 upload
+        try {
+          await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', (event) => {
+              if (event.lengthComputable) {
+                const percentComplete = Math.round((event.loaded / event.total) * 100);
+                setUploadProgress(prev => ({ 
+                  ...prev, 
+                  [fileKey]: { percent: percentComplete, status: 'uploading' } 
+                }));
+              }
+            });
+            
+            xhr.addEventListener('load', () => {
+              if (xhr.status === 200 || xhr.status === 204) {
+                console.log(`File uploaded to S3 successfully: ${file.name}`);
+                setUploadProgress(prev => ({ 
+                  ...prev, 
+                  [fileKey]: { percent: 100, status: 'uploaded' } 
+                }));
+                uploadSuccessful = true;
+                resolve();
+              } else {
+                reject(new Error(`S3 upload failed with status ${xhr.status}`));
+              }
+            });
+            
+            xhr.addEventListener('error', () => {
+              reject(new Error('S3 direct upload failed - likely CORS issue'));
+            });
+            
+            xhr.addEventListener('abort', () => {
+              reject(new Error('Upload aborted'));
+            });
+            
+            xhr.open('PUT', uploadUrl);
+            xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+            xhr.send(file);
           });
+        } catch (directUploadError) {
+          console.log(`Direct S3 upload failed: ${directUploadError.message}`);
           
-          xhr.addEventListener('load', () => {
-            if (xhr.status === 200 || xhr.status === 204) {
-              console.log(`File uploaded to S3 successfully: ${file.name}`);
-              setUploadProgress(prev => ({ 
-                ...prev, 
-                [fileKey]: { percent: 100, status: 'uploaded' } 
-              }));
-              resolve();
-            } else {
-              reject(new Error(`S3 upload failed with status ${xhr.status}`));
-            }
-          });
+          // Check if file is small enough for proxy upload (5MB limit to be safe)
+          const MAX_PROXY_SIZE = 5 * 1024 * 1024; // 5MB
+          if (file.size > MAX_PROXY_SIZE) {
+            console.error(`File too large for proxy upload: ${file.size} bytes > ${MAX_PROXY_SIZE} bytes`);
+            throw new Error(`CORS error prevents direct upload, and file is too large (>${Math.round(MAX_PROXY_SIZE/1024/1024)}MB) for proxy upload. Please configure CORS on your S3 bucket.`);
+          }
           
-          xhr.addEventListener('error', () => {
-            reject(new Error('S3 upload failed'));
-          });
+          console.log(`Trying proxy upload for small file (${Math.round(file.size/1024)}KB)...`);
           
-          xhr.addEventListener('abort', () => {
-            reject(new Error('Upload aborted'));
-          });
+          // Fallback to proxy upload through Netlify Function
+          setUploadProgress(prev => ({ 
+            ...prev, 
+            [fileKey]: { percent: 0, status: 'uploading (proxy)' } 
+          }));
           
-          xhr.open('PUT', uploadUrl);
-          xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-          xhr.send(file);
-        });
+          try {
+            await new Promise((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              
+              xhr.upload.addEventListener('progress', (event) => {
+                if (event.lengthComputable) {
+                  const percentComplete = Math.round((event.loaded / event.total) * 100);
+                  setUploadProgress(prev => ({ 
+                    ...prev, 
+                    [fileKey]: { percent: percentComplete, status: 'uploading (proxy)' } 
+                  }));
+                }
+              });
+              
+              xhr.addEventListener('load', () => {
+                if (xhr.status === 200) {
+                  console.log(`File uploaded via proxy successfully: ${file.name}`);
+                  setUploadProgress(prev => ({ 
+                    ...prev, 
+                    [fileKey]: { percent: 100, status: 'uploaded' } 
+                  }));
+                  uploadSuccessful = true;
+                  resolve();
+                } else {
+                  reject(new Error(`Proxy upload failed with status ${xhr.status}`));
+                }
+              });
+              
+              xhr.addEventListener('error', () => {
+                reject(new Error('Proxy upload failed'));
+              });
+              
+              xhr.addEventListener('abort', () => {
+                reject(new Error('Upload aborted'));
+              });
+              
+              xhr.open('PUT', '/.netlify/functions/admin-upload-proxy');
+              xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+              xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+              xhr.setRequestHeader('x-blob-key', blobKey);
+              xhr.send(file);
+            });
+          } catch (proxyError) {
+            console.error(`Proxy upload also failed: ${proxyError.message}`);
+            throw new Error(`Both direct and proxy uploads failed: ${proxyError.message}`);
+          }
+        }
+        
+        if (!uploadSuccessful) {
+          throw new Error('Upload failed through all methods');
+        }
 
         // Step 3: Confirm upload with backend to save metadata
         const confirmResponse = await fetch('/.netlify/functions/admin-confirm-upload', {
@@ -1247,7 +1321,7 @@ const AdminPanel = () => {
                         const progress = uploadProgress[fileKey];
                         
                         return (
-                          <li key={index} className="text-sm text-gray-600">
+                        <li key={index} className="text-sm text-gray-600">
                             <div className="flex justify-between items-center mb-1">
                               <span>{file.name} ({formatFileSize(file.size)})</span>
                               {progress && (
@@ -1258,13 +1332,14 @@ const AdminPanel = () => {
                                 }`}>
                                   {progress.status === 'preparing' && 'Preparing...'}
                                   {progress.status === 'uploading' && `${progress.percent}%`}
+                                  {progress.status === 'uploading (proxy)' && `${progress.percent}% (via proxy)`}
                                   {progress.status === 'uploaded' && '✓ Uploaded'}
                                   {progress.status === 'failed' && '✗ Failed'}
                                   {progress.status === 'retrying' && 'Retrying...'}
                                 </span>
                               )}
                             </div>
-                            {progress && progress.status === 'uploading' && (
+                            {progress && (progress.status === 'uploading' || progress.status === 'uploading (proxy)') && (
                               <div className="w-full bg-gray-200 rounded-full h-1.5">
                                 <div 
                                   className="bg-byght-turquoise h-1.5 rounded-full transition-all duration-300"
@@ -1272,7 +1347,7 @@ const AdminPanel = () => {
                                 />
                               </div>
                             )}
-                          </li>
+                        </li>
                         );
                       })}
                     </ul>
