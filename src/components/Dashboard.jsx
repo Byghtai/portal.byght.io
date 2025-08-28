@@ -13,11 +13,7 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
-  // Filter states
-  const [filterProduct, setFilterProduct] = useState('');
-  const [filterVersion, setFilterVersion] = useState('');
-  const [filterLanguage, setFilterLanguage] = useState('');
-  const [filterConfluence, setFilterConfluence] = useState('');
+
   
   // FAQ collapse states
   const [expandedFaq, setExpandedFaq] = useState(null);
@@ -99,20 +95,7 @@ const Dashboard = () => {
     });
   };
 
-  const filteredFiles = files.filter(file => {
-    const matchesProduct = !filterProduct || file.productLabel === filterProduct;
-    const matchesVersion = !filterVersion || file.versionLabel === filterVersion;
-    const matchesLanguage = !filterLanguage || file.languageLabel === filterLanguage;
-    const matchesConfluence = !filterConfluence || file.confluenceLabel === filterConfluence;
-    
-    return matchesProduct && matchesVersion && matchesLanguage && matchesConfluence;
-  });
 
-  // Get unique values for filter dropdowns
-  const uniqueProducts = [...new Set(files.map(f => f.productLabel).filter(Boolean))];
-  const uniqueVersions = [...new Set(files.map(f => f.versionLabel).filter(Boolean))];
-  const uniqueLanguages = [...new Set(files.map(f => f.languageLabel).filter(Boolean))];
-  const uniqueConfluences = [...new Set(files.map(f => f.confluenceLabel).filter(Boolean))];
 
   const toggleFaq = (faqId) => {
     setExpandedFaq(expandedFaq === faqId ? null : faqId);
@@ -209,10 +192,10 @@ const Dashboard = () => {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-800 mb-3 flex items-center gap-3">
               <Upload className="text-byght-turquoise" size={32} />
-              Importing the IMS / ISMS / DSMS SmartKit into Confluence (Cloud)
+              Importing the SmartKit into Confluence (Cloud)
             </h1>
             <p className="text-lg text-gray-600">
-              A quick, friendly guide to import the IMS / ISMS / DSMS SmartKit into your <strong>Confluence Cloud</strong> — and hand it off to us for final setup & testing. ✨
+              A quick, friendly guide to import the IMS / ISMS / DPMS/DSMS / EMS/UMS SmartKit into your <strong>Confluence Cloud</strong> — and hand it off to us for final setup & testing. ✨
             </p>
           </div>
 
@@ -265,102 +248,8 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Dateitabelle mit Filteroptionen */}
+              {/* Dateitabelle */}
               <div className="ml-14 mb-6">
-                {/* Filter Section */}
-                {files.length > 0 && (uniqueProducts.length > 0 || uniqueVersions.length > 0 || uniqueLanguages.length > 0) && (
-                  <div className="mb-4">
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
-                        {uniqueProducts.length > 0 && (
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                              Produkt
-                            </label>
-                            <select
-                              value={filterProduct}
-                              onChange={(e) => setFilterProduct(e.target.value)}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
-                            >
-                              <option value="">Alle Produkte</option>
-                              {uniqueProducts.map(product => (
-                                <option key={product} value={product}>{product}</option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-
-                        {uniqueVersions.length > 0 && (
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                              Version
-                            </label>
-                            <select
-                              value={filterVersion}
-                              onChange={(e) => setFilterVersion(e.target.value)}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
-                            >
-                              <option value="">Alle Versionen</option>
-                              {uniqueVersions.map(version => (
-                                <option key={version} value={version}>{version}</option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-
-                        {uniqueLanguages.length > 0 && (
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                              Sprache
-                            </label>
-                            <select
-                              value={filterLanguage}
-                              onChange={(e) => setFilterLanguage(e.target.value)}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
-                            >
-                              <option value="">Alle Sprachen</option>
-                              {uniqueLanguages.map(language => (
-                                <option key={language} value={language}>{language}</option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-
-                        {uniqueConfluences.length > 0 && (
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                              Confluence
-                            </label>
-                            <select
-                              value={filterConfluence}
-                              onChange={(e) => setFilterConfluence(e.target.value)}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
-                            >
-                              <option value="">Alle Confluence</option>
-                              {uniqueConfluences.map(confluence => (
-                                <option key={confluence} value={confluence}>{confluence}</option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-
-                        <div className="flex items-end">
-                          <button
-                            onClick={() => {
-                              setFilterProduct('');
-                              setFilterVersion('');
-                              setFilterLanguage('');
-                              setFilterConfluence('');
-                            }}
-                            className="w-full px-2 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
-                          >
-                            Filter zurücksetzen
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {loading ? (
                   <div className="flex justify-center py-8 bg-gray-50 rounded-lg">
@@ -376,19 +265,16 @@ const Dashboard = () => {
                       <span>{error}</span>
                     </div>
                   </div>
-                ) : filteredFiles.length === 0 ? (
+                ) : files.length === 0 ? (
                   <div className="bg-gray-50 rounded-lg text-center py-8">
                     <div className="w-16 h-16 bg-byght-turquoise/10 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Folder className="h-8 w-8 text-byght-turquoise" />
                     </div>
                     <h3 className="text-lg font-semibold text-byght-gray mb-2">
-                      {files.length === 0 ? 'Keine Dateien verfügbar' : 'Keine Dateien entsprechen den aktuellen Filtern'}
+                      No files available
                     </h3>
                     <p className="text-gray-600 text-sm">
-                      {files.length === 0 
-                        ? 'Sobald Dateien für Sie freigegeben werden, erscheinen sie hier.'
-                        : 'Versuchen Sie, Ihre Filterkriterien anzupassen.'
-                      }
+                      Files will appear here once they are made available to you.
                     </p>
                   </div>
                 ) : (
@@ -398,33 +284,33 @@ const Dashboard = () => {
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Dateiname
+                              Filename
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                              Produkt
+                              Product
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                               Version
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                              Sprache
+                              Language
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                               Confluence
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                              Größe
+                              Size
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">
-                              Hochgeladen
+                              Date
                             </th>
                             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Aktionen
+                              Actions
                             </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {filteredFiles.map((file) => (
+                          {files.map((file) => (
                             <tr key={file.id} className="hover:bg-gray-50 transition-colors">
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center">
@@ -487,7 +373,7 @@ const Dashboard = () => {
                     </div>
                     {files.length > 0 && (
                       <div className="px-4 py-3 bg-gray-50 text-xs text-gray-600 border-t border-gray-200">
-                        Zeige {filteredFiles.length} von {files.length} Dateien
+                        Showing {files.length} files
                       </div>
                     )}
                   </div>
@@ -525,7 +411,7 @@ const Dashboard = () => {
                   </p>
                   <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
                     <p className="text-sm text-amber-800">
-                      <span className="font-semibold">⚠️ Important:</span> If you're using the <strong>IMS SmartKit</strong>, import the IMS space first, then import the other spaces provided (ISMS, QMS, DSMS).
+                      <span className="font-semibold">⚠️ Important:</span> If you're using the <strong>IMS SmartKit</strong>, import the IMS space first, then import the other spaces provided (e.g. ISMS, QMS, EMS/UMS, DPMS/DSMS).
                     </p>
                   </div>
                 </div>
@@ -558,7 +444,7 @@ const Dashboard = () => {
                     Finish & verify
                   </h3>
                   <p className="text-gray-600">
-                    Go to <strong>Spaces → View all spaces</strong> and open the newly imported SmartKit space.
+                    Go to <strong>Spaces → View all spaces</strong> and open the newly imported SmartKit space(s).
                   </p>
                 </div>
               </div>
@@ -581,12 +467,12 @@ const Dashboard = () => {
               <li className="flex items-start gap-2">
                 <ChevronRight className="text-green-500 mt-1 flex-shrink-0" size={20} />
                 <div>
-                  <strong className="text-gray-800">Grant our service account access to the imported space:</strong>
+                  <strong className="text-gray-800">Grant our service account access to the imported space(s):</strong>
                   <div className="mt-1 font-mono text-sm bg-gray-100 px-2 py-1 rounded inline-block">
                     isms-smartkit@byght.de
                   </div>
                   <div className="text-sm text-gray-600 mt-1">
-                    <strong>Recommended:</strong> Space Admin (or, at minimum, View, Add, Edit, and permission to administer the space).
+                    <strong>Recommended:</strong> Space Admin permissions.
                   </div>
                 </div>
               </li>
@@ -691,7 +577,7 @@ const Dashboard = () => {
                   className="w-full px-5 py-4 text-left bg-white hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors flex items-center justify-between"
                 >
                   <h3 className="font-semibold text-gray-800">
-                    Can't find the space after import / need to reset access.
+                    Can't find the space(s) after import / need to reset access.
                   </h3>
                   <div className="flex-shrink-0 ml-4">
                     {expandedFaq === 'faq3' ? (
@@ -711,7 +597,7 @@ const Dashboard = () => {
                       <ul className="ml-8 space-y-2">
                         <li className="flex items-start gap-2">
                           <span className="text-gray-400">•</span>
-                          <span>Go to <strong>Settings → Space permissions</strong>, find the space by name or key.</span>
+                          <span>Go to <strong>Settings → Space permissions</strong>, find the space(s) by name or key.</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <span className="text-gray-400">•</span>
@@ -719,7 +605,7 @@ const Dashboard = () => {
                         </li>
                         <li className="flex items-start gap-2">
                           <span className="text-gray-400">•</span>
-                          <span>Open the space → <strong>Space settings → Permissions</strong> and:</span>
+                          <span>Open the space(s) → <strong>Space settings → Security → Permissions</strong> and:</span>
                         </li>
                       </ul>
                       <ul className="ml-14 mt-2 space-y-1">
@@ -733,6 +619,33 @@ const Dashboard = () => {
                         </li>
                       </ul>
                     </div>
+                  </div>
+                )}
+              </div>
+
+              {/* FAQ 4 */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => toggleFaq('faq4')}
+                  className="w-full px-5 py-4 text-left bg-white hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors flex items-center justify-between"
+                >
+                  <h3 className="font-semibold text-gray-800">
+                    I don't want to give you space admin permissions. Is a Guest user also possible for the setup?
+                  </h3>
+                  <div className="flex-shrink-0 ml-4">
+                    {expandedFaq === 'faq4' ? (
+                      <ChevronDown className="h-5 w-5 text-gray-500" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-gray-500" />
+                    )}
+                  </div>
+                </button>
+                {expandedFaq === 'faq4' && (
+                  <div className="px-5 pb-4 bg-gray-50">
+                    <p className="text-gray-600 flex items-start gap-2">
+                      <span className="text-amber-500">👉</span>
+                      <span>Yes, but we are a bit limited as guest users. There will be 1-2 things remaining which we need to adjust together with you during the intro…</span>
+                    </p>
                   </div>
                 )}
               </div>

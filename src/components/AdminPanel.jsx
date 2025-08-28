@@ -1631,7 +1631,8 @@ const AdminPanel = () => {
                       <option value="">No Product</option>
                       <option value="IMS SmartKit">IMS SmartKit</option>
                       <option value="ISMS SmartKit">ISMS SmartKit</option>
-                      <option value="DSMS SmartKit">DSMS SmartKit</option>
+                      <option value="DPMS/DSMS SmartKit">DPMS/DSMS SmartKit</option>
+                      <option value="EMS/UMS SmartKit">EMS/UMS SmartKit</option>
                       <option value="Addon">Addon</option>
                       <option value="other">Other</option>
                     </select>
@@ -1850,7 +1851,8 @@ const AdminPanel = () => {
                             <option value="">No Product</option>
                             <option value="IMS SmartKit">IMS SmartKit</option>
                             <option value="ISMS SmartKit">ISMS SmartKit</option>
-                            <option value="DSMS SmartKit">DSMS SmartKit</option>
+                            <option value="DPMS/DSMS SmartKit">DPMS/DSMS SmartKit</option>
+                            <option value="EMS/UMS SmartKit">EMS/UMS SmartKit</option>
                             <option value="Addon">Addon</option>
                             <option value="other">Other</option>
                           </select>
