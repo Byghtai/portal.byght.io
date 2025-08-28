@@ -235,13 +235,10 @@ class S3Storage {
         ])
       });
       
-      // Clean URL from any checksum parameters
-      const cleanUrl = url.replace(/[&?]x-amz-checksum[^&]*/g, '')
-                          .replace(/[&?]x-amz-sdk-checksum[^&]*/g, '');
-      
+      // DO NOT clean/modify the URL - it would break the signature!
       console.log(`Generated signed upload URL for key: ${key}`);
-      console.log(`Clean URL: ${cleanUrl}`);
-      return cleanUrl;
+      console.log(`URL: ${url}`);
+      return url;
     } catch (error) {
       console.error(`Error generating signed upload URL for ${key}:`, error);
       throw error;
