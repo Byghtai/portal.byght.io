@@ -45,6 +45,10 @@ class S3Storage {
 
   async downloadFile(key) {
     try {
+      if (!key) {
+        throw new Error('No S3 key provided for download');
+      }
+      
       console.log(`Attempting to download file from S3: ${key}`);
       
       const command = new GetObjectCommand({
@@ -171,6 +175,10 @@ class S3Storage {
 
   async getSignedDownloadUrl(key, expiresIn = 3600) {
     try {
+      if (!key) {
+        throw new Error('No S3 key provided for signed URL generation');
+      }
+      
       const command = new GetObjectCommand({
         Bucket: this.bucket,
         Key: key,

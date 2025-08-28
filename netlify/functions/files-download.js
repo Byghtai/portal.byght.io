@@ -78,6 +78,15 @@ export default async (req, context) => {
 
     console.log(`Access granted for file: ${fileMetadata.blobKey}`);
 
+    // Check if blobKey exists
+    if (!fileMetadata.blobKey) {
+      console.error(`No blob key found for file: ${fileId}`);
+      return new Response(JSON.stringify({ error: 'File storage key not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     // Use signed URL for large files or when specifically requested
     if (useSignedUrl || fileMetadata.size > 50 * 1024 * 1024) { // 50MB threshold
       console.log('Using signed URL for download');

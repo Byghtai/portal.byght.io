@@ -13,7 +13,8 @@ import {
   Edit2,
   Save,
   Eye,
-  EyeOff
+  EyeOff,
+  Bug
 } from 'lucide-react';
 import Cookies from 'js-cookie';
 
@@ -94,6 +95,11 @@ const AdminPanel = () => {
   const [assignmentFilterVersion, setAssignmentFilterVersion] = useState('');
   const [assignmentFilterLanguage, setAssignmentFilterLanguage] = useState('');
   const [assignmentFilterConfluence, setAssignmentFilterConfluence] = useState('');
+
+  // Debug states
+  const [debugFileId, setDebugFileId] = useState('');
+  const [debugResult, setDebugResult] = useState(null);
+  const [debugging, setDebugging] = useState(false);
 
 
   useEffect(() => {
@@ -284,6 +290,34 @@ const AdminPanel = () => {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const files = Array.from(e.dataTransfer.files);
       setUploadFiles(files);
+    }
+  };
+
+  const handleDebugFile = async () => {
+    if (!debugFileId.trim()) {
+      alert('Please enter a file ID');
+      return;
+    }
+
+    setDebugging(true);
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-debug-file', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ fileId: parseInt(debugFileId) }),
+      });
+
+      const result = await response.json();
+      setDebugResult(result);
+    } catch (error) {
+      console.error('Debug error:', error);
+      setDebugResult({ error: error.message });
+    } finally {
+      setDebugging(false);
     }
   };
 
@@ -977,6 +1011,19 @@ const AdminPanel = () => {
               <span>Users</span>
             </div>
           </button>
+          <button
+            onClick={() => setActiveTab('debug')}
+            className={`px-6 py-2.5 rounded-md font-medium transition-colors ${
+              activeTab === 'debug'
+                ? 'bg-byght-turquoise text-white'
+                : 'text-byght-gray hover:bg-gray-100'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Bug size={18} />
+              <span>Debug</span>
+            </div>
+          </button>
 
         </div>
 
@@ -1253,7 +1300,7 @@ const AdminPanel = () => {
               )}
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'users' ? (
           <div className="space-y-6">
             {/* User Creation Button */}
             <div className="card">
@@ -2310,6 +2357,88 @@ const AdminPanel = () => {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Debug Tab */}
+        {activeTab === 'debug' && (
+          <div className="space-y-6">
+            <div className="card">
+              <h2 className="text-xl font-semibold text-byght-gray mb-4">Debug File</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-byght-gray mb-1">
+                    File ID
+                  </label>
+                  <input
+                    type="number"
+                    value={debugFileId}
+                    onChange={(e) => setDebugFileId(e.target.value)}
+                    className="input-field"
+                    placeholder="Enter file ID (e.g., 28)"
+                  />
+                </div>
+                
+                <button
+                  onClick={handleDebugFile}
+                  disabled={debugging || !debugFileId.trim()}
+                  className="btn-primary"
+                >
+                  {debugging ? 'Debugging...' : 'Debug File'}
+                </button>
+
+                {debugResult && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-lg font-semibold text-byght-gray mb-3">Debug Result</h3>
+                    {debugResult.error ? (
+                      <div className="text-red-600">
+                        <strong>Error:</strong> {debugResult.error}
+                        {debugResult.details && <p className="mt-1 text-sm">{debugResult.details}</p>}
+                      </div>
+                    ) : debugResult.success ? (
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-semibold text-byght-gray mb-2">File Information</h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div><strong>ID:</strong> {debugResult.file.id}</div>
+                            <div><strong>Filename:</strong> {debugResult.file.filename}</div>
+                            <div><strong>Size:</strong> {debugResult.file.fileSize} bytes</div>
+                            <div><strong>MIME Type:</strong> {debugResult.file.mimeType}</div>
+                            <div><strong>Blob Key:</strong> {debugResult.file.blobKey || 'null'}</div>
+                            <div><strong>Uploaded:</strong> {new Date(debugResult.file.uploadedAt).toLocaleString()}</div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h4 className="font-semibold text-byght-gray mb-2">Blob Key Status</h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div><strong>Has Value:</strong> {debugResult.blobKeyStatus.hasValue ? 'Yes' : 'No'}</div>
+                            <div><strong>Is Null:</strong> {debugResult.blobKeyStatus.isNull ? 'Yes' : 'No'}</div>
+                            <div><strong>Is Empty:</strong> {debugResult.blobKeyStatus.isEmpty ? 'Yes' : 'No'}</div>
+                            <div><strong>Length:</strong> {debugResult.blobKeyStatus.length}</div>
+                          </div>
+                        </div>
+
+                        {debugResult.assignments && debugResult.assignments.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-byght-gray mb-2">File Assignments</h4>
+                            <ul className="text-sm space-y-1">
+                              {debugResult.assignments.map((assignment, index) => (
+                                <li key={index}>
+                                  User ID: {assignment.user_id} ({assignment.username})
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-gray-600">Unknown response format</div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
