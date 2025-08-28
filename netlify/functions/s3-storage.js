@@ -14,6 +14,9 @@ class S3Storage {
     this.bucket = S3_CONFIG.bucket;
     this.region = S3_CONFIG.region;
 
+    // Für Hetzner S3-kompatiblen Storage verwenden wir PATH-STYLE URLs
+    // Das vermeidet CORS-Probleme, da alle Requests zum gleichen Host gehen
+    // Ergebnis: https://nbg1.your-objectstorage.com/portal-byght-io/key
     this.client = new S3Client({
       endpoint: `https://${this.endpoint}`,
       region: this.region,
@@ -21,7 +24,7 @@ class S3Storage {
         accessKeyId: this.accessKeyId,
         secretAccessKey: this.secretAccessKey,
       },
-      forcePathStyle: false, // Use virtual-hosted-style URLs for Hetzner
+      forcePathStyle: true, // Path-style URLs für bessere CORS-Kompatibilität
     });
     
     // Remove the flexible checksums middleware that adds checksum headers
@@ -225,20 +228,18 @@ class S3Storage {
         ])
       });
       
-      // Final safety check - if URL still contains checksum params, remove them
-      // This is a last resort and might break the signature, but it's better than CORS failure
-      let cleanUrl = url;
+      // Log warning if URL still contains checksum parameters
       if (url.includes('x-amz-checksum') || url.includes('x-amz-sdk-checksum')) {
-        console.warn('WARNING: URL contains checksum parameters, attempting to remove...');
-        // Remove the checksum parameters from the URL
-        cleanUrl = url.replace(/&x-amz-checksum-[^&]*/g, '')
-                      .replace(/&x-amz-sdk-checksum-[^&]*/g, '');
+        console.warn('WARNING: URL still contains checksum parameters that may cause CORS issues');
+        console.warn('These parameters should not be present. Check AWS SDK configuration.');
       }
       
       console.log(`Generated signed upload URL for key: ${key}`);
-      console.log(`URL: ${cleanUrl}`);
+      console.log(`URL structure: ${url.split('?')[0]}`);
+      console.log(`URL length: ${url.length} characters`);
       
-      return cleanUrl;
+      // Return the URL as-is - don't modify it or the signature will break
+      return url;
     } catch (error) {
       console.error(`Error generating signed upload URL for ${key}:`, error);
       throw error;

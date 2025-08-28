@@ -244,10 +244,13 @@ const AdminPanel = () => {
         try {
           setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 50, status: 'uploading' } }));
           
+          // Simple PUT request without any custom headers
+          // This should avoid CORS preflight on most browsers
           const uploadResponse = await fetch(uploadUrl, { 
             method: "PUT", 
-            body: file
-            // No headers - use exactly what was signed in the URL
+            body: file,
+            // Don't set any headers - let browser use defaults
+            // This might help avoid CORS preflight
           });
           
           if (uploadResponse.ok) {
@@ -343,10 +346,10 @@ const AdminPanel = () => {
             // Retry upload with new URL
             setUploadProgress(prev => ({ ...prev, [fileKey]: { percent: 50, status: 'uploading' } }));
             
+            // Simple PUT request without any custom headers
             const uploadResponse = await fetch(uploadUrl, { 
               method: "PUT", 
               body: file
-              // No headers - use exactly what was signed in the URL
             });
             
             if (uploadResponse.ok) {
