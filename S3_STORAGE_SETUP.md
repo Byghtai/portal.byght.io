@@ -10,7 +10,7 @@ Fügen Sie folgende Umgebungsvariablen in Ihren Netlify-Einstellungen hinzu:
 
 ### Obligatorische Variablen:
 ```
-OBJECT_STORAGE_ENDPOINT=portal-byght-io.nbg1.your-objectstorage.com
+OBJECT_STORAGE_ENDPOINT=nbg1.your-objectstorage.com
 OBJECT_STORAGE_ACCESS_KEY=your_access_key_here
 OBJECT_STORAGE_SECRET_KEY=your_secret_key_here
 OBJECT_STORAGE_BUCKET=your_bucket_name_here
@@ -59,7 +59,7 @@ OBJECT_STORAGE_REGION=nbg1
 ### S3-Kompatibilität:
 - Verwendet AWS SDK v3 für S3
 - Unterstützt S3-kompatible Storage-Provider
-- `forcePathStyle: true` für maximale Kompatibilität
+- Virtual-hosted-style URLs für bessere Kompatibilität mit Hetzner S3
 
 ### Sicherheit:
 - Zugangsdaten werden über Umgebungsvariablen verwaltet

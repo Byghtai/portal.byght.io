@@ -1,6 +1,6 @@
 // S3 Storage Configuration
 export const S3_CONFIG = {
-  endpoint: process.env.OBJECT_STORAGE_ENDPOINT || 'portal-byght-io.nbg1.your-objectstorage.com',
+  endpoint: process.env.OBJECT_STORAGE_ENDPOINT || 'nbg1.your-objectstorage.com',
   accessKeyId: process.env.OBJECT_STORAGE_ACCESS_KEY,
   secretAccessKey: process.env.OBJECT_STORAGE_SECRET_KEY,
   bucket: process.env.OBJECT_STORAGE_BUCKET,
