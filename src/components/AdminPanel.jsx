@@ -88,6 +88,13 @@ const AdminPanel = () => {
   const [filterConfluence, setFilterConfluence] = useState('');
   const [userSearchTerm, setUserSearchTerm] = useState('');
 
+  // Filter states for file assignment modal
+  const [assignmentSearchTerm, setAssignmentSearchTerm] = useState('');
+  const [assignmentFilterProduct, setAssignmentFilterProduct] = useState('');
+  const [assignmentFilterVersion, setAssignmentFilterVersion] = useState('');
+  const [assignmentFilterLanguage, setAssignmentFilterLanguage] = useState('');
+  const [assignmentFilterConfluence, setAssignmentFilterConfluence] = useState('');
+
 
   useEffect(() => {
     fetchData();
@@ -432,6 +439,13 @@ const AdminPanel = () => {
     setEditingUser(user);
     setShowEditUserFiles(true);
     setEditSelectedFiles(userFiles[user.id]?.map(f => f.id) || []);
+    
+    // Reset assignment modal filters
+    setAssignmentSearchTerm('');
+    setAssignmentFilterProduct('');
+    setAssignmentFilterVersion('');
+    setAssignmentFilterLanguage('');
+    setAssignmentFilterConfluence('');
   };
 
   const handleUpdateUserFiles = async () => {
@@ -874,6 +888,19 @@ const AdminPanel = () => {
       (user.customer && user.customer.toLowerCase().includes(userSearchTerm.toLowerCase()));
     
     return matchesSearch;
+  });
+
+  // Filter functions for file assignment modal
+  const filteredAssignmentFiles = files.filter(file => {
+    const matchesSearch = !assignmentSearchTerm || 
+      file.filename.toLowerCase().includes(assignmentSearchTerm.toLowerCase());
+    
+    const matchesProduct = !assignmentFilterProduct || file.productLabel === assignmentFilterProduct;
+    const matchesVersion = !assignmentFilterVersion || file.versionLabel === assignmentFilterVersion;
+    const matchesLanguage = !assignmentFilterLanguage || file.languageLabel === assignmentFilterLanguage;
+    const matchesConfluence = !assignmentFilterConfluence || file.confluenceLabel === assignmentFilterConfluence;
+    
+    return matchesSearch && matchesProduct && matchesVersion && matchesLanguage && matchesConfluence;
   });
 
   // Get unique values for filter dropdowns
@@ -1547,41 +1574,243 @@ const AdminPanel = () => {
         {/* Edit User Files Modal */}
         {showEditUserFiles && editingUser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden">
               <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-byght-gray">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-byght-gray">
                     File assignments for {editingUser.username}
                   </h3>
                   <button
                     onClick={() => setShowEditUserFiles(false)}
                     className="text-gray-400 hover:text-gray-600"
                   >
-                    <X size={20} />
+                    <X size={24} />
                   </button>
                 </div>
-                
-                <div className="space-y-2 mb-4">
-                  {files.map((file) => (
-                    <label key={file.id} className="flex items-center p-2 hover:bg-gray-50 rounded">
+
+                {/* Filter Section */}
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Search
+                      </label>
                       <input
-                        type="checkbox"
-                        checked={editSelectedFiles.includes(file.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setEditSelectedFiles([...editSelectedFiles, file.id]);
-                          } else {
-                            setEditSelectedFiles(editSelectedFiles.filter(id => id !== file.id));
-                          }
-                        }}
-                        className="h-4 w-4 text-byght-turquoise focus:ring-byght-turquoise border-gray-300 rounded"
+                        type="text"
+                        value={assignmentSearchTerm}
+                        onChange={(e) => setAssignmentSearchTerm(e.target.value)}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                        placeholder="Filename..."
                       />
-                      <span className="ml-3 text-sm text-byght-gray">{file.filename}</span>
-                    </label>
-                  ))}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Product
+                      </label>
+                      <select
+                        value={assignmentFilterProduct}
+                        onChange={(e) => setAssignmentFilterProduct(e.target.value)}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                      >
+                        <option value="">All Products</option>
+                        {uniqueProducts.map(product => (
+                          <option key={product} value={product}>{product}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Version
+                      </label>
+                      <select
+                        value={assignmentFilterVersion}
+                        onChange={(e) => setAssignmentFilterVersion(e.target.value)}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                      >
+                        <option value="">All Versions</option>
+                        {uniqueVersions.map(version => (
+                          <option key={version} value={version}>{version}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Language
+                      </label>
+                      <select
+                        value={assignmentFilterLanguage}
+                        onChange={(e) => setAssignmentFilterLanguage(e.target.value)}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                      >
+                        <option value="">All Languages</option>
+                        {uniqueLanguages.map(language => (
+                          <option key={language} value={language}>{language}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Confluence
+                      </label>
+                      <select
+                        value={assignmentFilterConfluence}
+                        onChange={(e) => setAssignmentFilterConfluence(e.target.value)}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                      >
+                        <option value="">All Confluence</option>
+                        {uniqueConfluences.map(confluence => (
+                          <option key={confluence} value={confluence}>{confluence}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-end">
+                      <button
+                        onClick={() => {
+                          setAssignmentSearchTerm('');
+                          setAssignmentFilterProduct('');
+                          setAssignmentFilterVersion('');
+                          setAssignmentFilterLanguage('');
+                          setAssignmentFilterConfluence('');
+                        }}
+                        className="w-full px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
+                      >
+                        Reset Filters
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* File Count and Actions */}
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-gray-600">
+                      {filteredAssignmentFiles.length} of {files.length} files shown
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      {editSelectedFiles.length} files assigned
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        // Select all filtered files
+                        const allFilteredIds = filteredAssignmentFiles.map(f => f.id);
+                        const newSelection = [...new Set([...editSelectedFiles, ...allFilteredIds])];
+                        setEditSelectedFiles(newSelection);
+                      }}
+                      className="text-sm px-3 py-1 bg-byght-turquoise hover:bg-byght-turquoise/80 text-white rounded-md transition-colors"
+                    >
+                      Select All Visible
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Deselect all filtered files
+                        const filteredIds = filteredAssignmentFiles.map(f => f.id);
+                        const newSelection = editSelectedFiles.filter(id => !filteredIds.includes(id));
+                        setEditSelectedFiles(newSelection);
+                      }}
+                      className="text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition-colors"
+                    >
+                      Deselect All Visible
+                    </button>
+                  </div>
                 </div>
                 
-                <div className="flex justify-end gap-2">
+                {/* Files Table */}
+                <div className="max-h-[50vh] overflow-y-auto border border-gray-200 rounded-lg">
+                  {filteredAssignmentFiles.length === 0 ? (
+                    <p className="text-gray-600 text-center py-6">
+                      {files.length === 0 ? 'No files available' : 'No files match the current filters'}
+                    </p>
+                  ) : (
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                            Select
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Filename
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                            Product
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                            Version
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                            Language
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                            Confluence
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                            Size
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                            Date
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredAssignmentFiles.map((file) => (
+                          <tr key={file.id} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 whitespace-nowrap">
+                              <input
+                                type="checkbox"
+                                checked={editSelectedFiles.includes(file.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setEditSelectedFiles([...editSelectedFiles, file.id]);
+                                  } else {
+                                    setEditSelectedFiles(editSelectedFiles.filter(id => id !== file.id));
+                                  }
+                                }}
+                                className="h-4 w-4 text-byght-turquoise focus:ring-byght-turquoise border-gray-300 rounded"
+                              />
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap">
+                              <div className="text-xs font-medium text-byght-gray truncate max-w-xs">{file.filename}</div>
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap hidden lg:table-cell">
+                              <span className="text-xs text-gray-700">
+                                {file.productLabel || '-'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap hidden lg:table-cell">
+                              <span className="text-xs text-gray-700">
+                                {file.versionLabel ? `v${file.versionLabel}` : '-'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap hidden lg:table-cell">
+                              <span className="text-xs text-gray-700">
+                                {file.languageLabel || '-'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap hidden lg:table-cell">
+                              <span className="text-xs text-gray-700">
+                                {file.confluenceLabel || '-'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap hidden sm:table-cell">
+                              <span className="text-xs text-gray-600">{formatFileSize(file.size)}</span>
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap hidden md:table-cell">
+                              <span className="text-xs text-gray-600">{formatDate(file.uploadedAt)}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+                
+                <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-gray-200">
                   <button
                     onClick={() => setShowEditUserFiles(false)}
                     className="btn-secondary"
@@ -1593,7 +1822,7 @@ const AdminPanel = () => {
                     disabled={updatingUserFiles}
                     className="btn-primary"
                   >
-                    {updatingUserFiles ? 'Saving...' : 'Save'}
+                    {updatingUserFiles ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </div>
