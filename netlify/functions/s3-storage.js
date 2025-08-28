@@ -15,13 +15,13 @@ class S3Storage {
     this.region = S3_CONFIG.region;
 
     this.client = new S3Client({
-      endpoint: `https://${this.endpoint}`,
+      endpoint: `https://${this.bucket}.${this.endpoint}`,
       region: this.region,
       credentials: {
         accessKeyId: this.accessKeyId,
         secretAccessKey: this.secretAccessKey,
       },
-      forcePathStyle: true, // Use path-style URLs to avoid SSL certificate issues
+      forcePathStyle: false, // Use virtual-hosted-style URLs
     });
   }
 
