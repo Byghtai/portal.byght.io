@@ -4,12 +4,12 @@
 Direct browser uploads to S3-compatible storage fail with CORS errors, even when CORS is configured on the bucket.
 
 ## Solution Implemented
-The application now uses an intelligent hybrid upload approach:
+The application now uses direct S3 upload only:
 
 ### Upload Flow
-1. **First Attempt**: Direct upload to S3 using presigned URL (fastest, supports large files)
-2. **Automatic Fallback**: If CORS error occurs AND file is ≤5MB, upload via proxy through Netlify Function
-3. **Error Handling**: Clear error messages if file is too large for proxy fallback
+1. **Direct Upload**: All files are uploaded directly to S3 using presigned URLs
+2. **No Fallback**: No proxy upload fallback - CORS must be properly configured
+3. **Error Handling**: Clear error messages with CORS configuration instructions
 
 ## CORS Configuration
 
@@ -56,18 +56,13 @@ Use the provider's web console or API to apply the CORS configuration. Some prov
 3. Paste the JSON configuration
 4. Save and wait for propagation (can take up to 15 minutes)
 
-## How the Hybrid Upload Works
+## How Direct Upload Works
 
-### Small Files (≤5MB)
-- Attempts direct S3 upload first
-- If CORS fails, automatically uses proxy upload through Netlify Function
-- User sees "uploading (via proxy)" status
-- Seamless experience with progress tracking
-
-### Large Files (>5MB)
-- Attempts direct S3 upload
-- If CORS fails, shows error with instructions to fix CORS configuration
-- Cannot use proxy due to Netlify Function 6MB limit
+### All File Sizes
+- All files are uploaded directly to S3 using presigned URLs
+- No proxy fallback - CORS must be properly configured
+- Progress tracking for all uploads
+- Supports files up to 100MB (configurable limit)
 
 ## Troubleshooting Steps
 
@@ -102,14 +97,15 @@ In browser DevTools Network tab, look for:
 - Verify S3_ENDPOINT in environment variables
 - Temporarily bypass CDN if using one
 
-#### Issue: Proxy upload fails for small files
+#### Issue: Direct upload fails for any file size
 **Possible Causes:**
-- File actually larger than reported
+- CORS not properly configured on S3 bucket
 - Network timeout for slow connections
-- Netlify Function timeout (30 seconds)
+- S3 endpoint configuration issues
 
 **Solutions:**
-- Check actual file size in browser
+- Verify CORS configuration is applied correctly
+- Check S3 endpoint and credentials
 - Retry upload
 - Consider chunked upload for very slow connections
 
@@ -157,11 +153,12 @@ To support larger files via proxy (not recommended due to performance):
 2. Ensure Netlify Function timeout is sufficient
 3. Consider Netlify bandwidth costs
 
-### Forcing Direct Upload Only
-To disable proxy fallback entirely:
+### Direct Upload Only
+The application now uses direct upload only:
 
-1. Remove proxy fallback code from `AdminPanel.jsx`
-2. Show clear CORS configuration instructions on error
+1. All files are uploaded directly to S3 using presigned URLs
+2. Clear CORS configuration instructions shown on error
+3. No proxy fallback mechanism
 
 ## Monitoring
 
@@ -172,8 +169,8 @@ To disable proxy fallback entirely:
 
 ### Failure Indicators:
 - Console shows: "S3 direct upload failed - likely CORS issue"
-- For small files: "Trying proxy upload" appears
-- For large files: Error message about CORS configuration
+- Error message about CORS configuration
+- Upload progress stops and shows error status
 
 ## Support
 

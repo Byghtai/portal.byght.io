@@ -6,10 +6,10 @@ This document describes the implementation of direct S3 upload functionality tha
 ## Problem
 Netlify Functions have a 6MB request payload limit (effectively 4.5MB for binary data after Base64 encoding), which prevented uploading files larger than this limit through the original implementation.
 
-## Solution: Presigned URL Upload
+## Solution: Direct S3 Upload with Presigned URLs
 
 ### Architecture
-The new implementation uses a three-step process:
+The implementation uses a three-step process:
 
 1. **Request Presigned URL**: Client requests a presigned upload URL from Netlify Function
 2. **Direct S3 Upload**: Client uploads file directly to S3 using the presigned URL
@@ -21,6 +21,7 @@ The new implementation uses a three-step process:
 - **Progress tracking** for better user experience
 - **Lower server costs** (reduced bandwidth through Netlify)
 - **Automatic retry** on failure
+- **Simplified architecture** (no proxy fallback complexity)
 
 ## Implementation Details
 

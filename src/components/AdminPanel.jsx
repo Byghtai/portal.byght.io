@@ -282,69 +282,8 @@ const AdminPanel = () => {
             xhr.send(file);
           });
         } catch (directUploadError) {
-          console.log(`Direct S3 upload failed: ${directUploadError.message}`);
-          
-          // Check if file is small enough for proxy upload (5MB limit to be safe)
-          const MAX_PROXY_SIZE = 5 * 1024 * 1024; // 5MB
-          if (file.size > MAX_PROXY_SIZE) {
-            console.error(`File too large for proxy upload: ${file.size} bytes > ${MAX_PROXY_SIZE} bytes`);
-            throw new Error(`CORS error prevents direct upload, and file is too large (>${Math.round(MAX_PROXY_SIZE/1024/1024)}MB) for proxy upload. Please configure CORS on your S3 bucket.`);
-          }
-          
-          console.log(`Trying proxy upload for small file (${Math.round(file.size/1024)}KB)...`);
-          
-          // Fallback to proxy upload through Netlify Function
-          setUploadProgress(prev => ({ 
-            ...prev, 
-            [fileKey]: { percent: 0, status: 'uploading (proxy)' } 
-          }));
-          
-          try {
-            await new Promise((resolve, reject) => {
-              const xhr = new XMLHttpRequest();
-              
-              xhr.upload.addEventListener('progress', (event) => {
-                if (event.lengthComputable) {
-                  const percentComplete = Math.round((event.loaded / event.total) * 100);
-                  setUploadProgress(prev => ({ 
-                    ...prev, 
-                    [fileKey]: { percent: percentComplete, status: 'uploading (proxy)' } 
-                  }));
-                }
-              });
-              
-              xhr.addEventListener('load', () => {
-                if (xhr.status === 200) {
-                  console.log(`File uploaded via proxy successfully: ${file.name}`);
-                  setUploadProgress(prev => ({ 
-                    ...prev, 
-                    [fileKey]: { percent: 100, status: 'uploaded' } 
-                  }));
-                  uploadSuccessful = true;
-                  resolve();
-                } else {
-                  reject(new Error(`Proxy upload failed with status ${xhr.status}`));
-                }
-              });
-              
-              xhr.addEventListener('error', () => {
-                reject(new Error('Proxy upload failed'));
-              });
-              
-              xhr.addEventListener('abort', () => {
-                reject(new Error('Upload aborted'));
-              });
-              
-              xhr.open('PUT', '/.netlify/functions/admin-upload-proxy');
-              xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-              xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-              xhr.setRequestHeader('x-blob-key', blobKey);
-              xhr.send(file);
-            });
-          } catch (proxyError) {
-            console.error(`Proxy upload also failed: ${proxyError.message}`);
-            throw new Error(`Both direct and proxy uploads failed: ${proxyError.message}`);
-          }
+          console.error(`Direct S3 upload failed: ${directUploadError.message}`);
+          throw new Error(`Direct S3 upload failed: ${directUploadError.message}. Please ensure CORS is properly configured on your S3 bucket.`);
         }
         
         if (!uploadSuccessful) {
