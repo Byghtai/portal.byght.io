@@ -2,46 +2,33 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, Head
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 /**
- * S3 Storage Class - Optimized for Hetzner Object Storage
- * Uses best practices to minimize CORS issues
+ * S3 Storage Class - Optimized for Amazon AWS S3
+ * Uses AWS S3 best practices and features
  */
 class S3Storage {
   constructor() {
     // Get configuration from environment
-    this.endpoint = process.env.OBJECT_STORAGE_ENDPOINT || 'nbg1.your-objectstorage.com';
-    this.accessKeyId = process.env.OBJECT_STORAGE_ACCESS_KEY;
-    this.secretAccessKey = process.env.OBJECT_STORAGE_SECRET_KEY;
-    this.bucket = process.env.OBJECT_STORAGE_BUCKET;
-    this.region = process.env.OBJECT_STORAGE_REGION || 'nbg1';
+    this.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    this.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    this.bucket = process.env.AWS_S3_BUCKET;
+    this.region = process.env.AWS_REGION || 'eu-central-1';
 
     // Validate configuration
     if (!this.accessKeyId || !this.secretAccessKey || !this.bucket) {
-      throw new Error('Missing required S3 storage environment variables');
+      throw new Error('Missing required AWS S3 environment variables');
     }
 
-    // Initialize S3 Client - optimized configuration
+    // Initialize S3 Client - optimized for AWS S3
     this.client = new S3Client({
-      endpoint: `https://${this.endpoint}`,
       region: this.region,
       credentials: {
         accessKeyId: this.accessKeyId,
         secretAccessKey: this.secretAccessKey
       },
-      // Use path-style URLs for better compatibility with Hetzner
-      // Format: https://endpoint/bucket/key
-      forcePathStyle: true,
-      // Disable features that might not be supported
-      disableS3ExpressSessionAuth: true
+      // AWS S3 supports virtual-hosted style URLs (default)
+      // Format: https://bucket-name.s3.region.amazonaws.com/key
+      // This is more efficient and recommended for AWS S3
     });
-    
-    // Try to remove checksum middleware to prevent CORS issues
-    try {
-      this.client.middlewareStack.remove('flexibleChecksumsMiddleware');
-    } catch (e) {
-      // Middleware might not exist in all versions
-    }
-
-
   }
 
   async uploadFile(key, data, contentType = 'application/octet-stream') {
@@ -51,13 +38,15 @@ class S3Storage {
         Key: key,
         Body: data,
         ContentType: contentType,
+        // AWS S3 specific optimizations
+        ServerSideEncryption: 'AES256', // Enable encryption
+        CacheControl: 'no-cache', // Prevent caching for sensitive files
       });
 
       await this.client.send(command);
-
       return true;
     } catch (error) {
-
+      console.error('S3 upload error:', error);
       throw error;
     }
   }
@@ -67,8 +56,6 @@ class S3Storage {
       if (!key) {
         throw new Error('No S3 key provided for download');
       }
-      
-
       
       const command = new GetObjectCommand({
         Bucket: this.bucket,
@@ -80,8 +67,6 @@ class S3Storage {
       if (!response.Body) {
         throw new Error('No file data received from S3');
       }
-      
-
       
       // Convert the readable stream to a buffer for easier handling
       const chunks = [];
@@ -102,12 +87,11 @@ class S3Storage {
         buffer.set(chunk, offset);
         offset += chunk.length;
       }
-      
 
       return buffer;
       
     } catch (error) {
-
+      console.error('S3 download error:', error);
       
       // Provide more specific error messages
       if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
@@ -115,9 +99,9 @@ class S3Storage {
       } else if (error.name === 'AccessDenied') {
         throw new Error(`Access denied to file in S3: ${key}`);
       } else if (error.name === 'InvalidAccessKeyId') {
-        throw new Error('Invalid S3 access credentials');
+        throw new Error('Invalid AWS S3 access credentials');
       } else if (error.name === 'SignatureDoesNotMatch') {
-        throw new Error('S3 signature verification failed');
+        throw new Error('AWS S3 signature verification failed');
       } else {
         throw new Error(`S3 download error: ${error.message}`);
       }
@@ -132,10 +116,9 @@ class S3Storage {
       });
 
       await this.client.send(command);
-
       return true;
     } catch (error) {
-
+      console.error('S3 delete error:', error);
       throw error;
     }
   }
@@ -184,10 +167,9 @@ class S3Storage {
         continuationToken = response.NextContinuationToken;
       } while (continuationToken);
 
-
       return allObjects;
     } catch (error) {
-
+      console.error('S3 list objects error:', error);
       throw error;
     }
   }
@@ -205,14 +187,14 @@ class S3Storage {
 
       return await getSignedUrl(this.client, command, { expiresIn });
     } catch (error) {
-
+      console.error('S3 signed download URL error:', error);
       throw error;
     }
   }
 
   /**
    * Generate a presigned URL for uploading
-   * Best Practice: Keep it as simple as possible to avoid CORS issues
+   * Optimized for AWS S3 with better CORS support
    */
   async getSignedUploadUrl(key, expiresIn = 300) {
     try {
@@ -220,24 +202,23 @@ class S3Storage {
         throw new Error('No S3 key provided for signed upload URL generation');
       }
       
-      // Create the simplest possible PutObjectCommand
-      // DO NOT include ContentType or any other optional parameters
+      // AWS S3 supports more options in presigned URLs
       const command = new PutObjectCommand({
         Bucket: this.bucket,
-        Key: key
+        Key: key,
+        // AWS S3 specific optimizations
+        ServerSideEncryption: 'AES256',
+        CacheControl: 'no-cache',
       });
 
-      // Generate presigned URL with default settings
-      // Let AWS SDK handle the minimum required headers
+      // Generate presigned URL
       const url = await getSignedUrl(this.client, command, {
-        expiresIn // Default 5 minutes
+        expiresIn
       });
 
-
-      
       return url;
     } catch (error) {
-
+      console.error('S3 signed upload URL error:', error);
       throw error;
     }
   }
