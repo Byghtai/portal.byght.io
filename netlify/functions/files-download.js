@@ -42,7 +42,6 @@ export default async (req, context) => {
     // File ID aus Query-Parametern abrufen
     const url = new URL(req.url);
     const fileId = url.searchParams.get('fileId');
-    const useSignedUrl = url.searchParams.get('signed') === 'true';
     
     if (!fileId) {
       return new Response(JSON.stringify({ error: 'File ID required' }), {
@@ -51,7 +50,7 @@ export default async (req, context) => {
       });
     }
 
-    console.log(`Attempting to download file ID: ${fileId} (signed URL: ${useSignedUrl})`);
+    console.log(`Attempting to download file ID: ${fileId}`);
 
     // Datei-Metadaten aus der Datenbank abrufen
     const fileMetadata = await getFileById(fileId);
@@ -94,47 +93,25 @@ export default async (req, context) => {
       });
     }
 
-    // Use signed URL for large files or when specifically requested
-    if (useSignedUrl || fileMetadata.size > 50 * 1024 * 1024) { // 50MB threshold
-      console.log('Using signed URL for download');
-      try {
-        const s3Storage = new S3Storage();
-        const signedUrl = await s3Storage.getSignedDownloadUrl(fileMetadata.blobKey, 3600); // 1 hour expiry
-        
-        return new Response(JSON.stringify({
-          downloadUrl: signedUrl,
-          filename: fileMetadata.filename,
-          size: fileMetadata.size,
-          mimeType: fileMetadata.mimeType
-        }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      } catch (s3Error) {
-        console.error('Error generating signed URL:', s3Error);
-        return new Response(JSON.stringify({ 
-          error: 'Failed to generate download link',
-          details: s3Error.message,
-          blobKey: fileMetadata.blobKey
-        }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
-    }
-
-    // Direct download for smaller files
-    console.log('Using direct download');
-    const s3Storage = new S3Storage();
-    let fileData;
-    
+    // Always use presigned URL for download
+    console.log('Generating presigned download URL');
     try {
-      fileData = await s3Storage.downloadFile(fileMetadata.blobKey);
-      console.log(`File data retrieved from S3: ${fileData.length} bytes`);
+      const s3Storage = new S3Storage();
+      const signedUrl = await s3Storage.getSignedDownloadUrl(fileMetadata.blobKey, 3600); // 1 hour expiry
+      
+      return new Response(JSON.stringify({
+        downloadUrl: signedUrl,
+        filename: fileMetadata.filename,
+        size: fileMetadata.size,
+        mimeType: fileMetadata.mimeType
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
     } catch (s3Error) {
-      console.error('S3 download error:', s3Error);
+      console.error('Error generating signed URL:', s3Error);
       return new Response(JSON.stringify({ 
-        error: 'File download failed',
+        error: 'Failed to generate download link',
         details: s3Error.message,
         blobKey: fileMetadata.blobKey
       }), {
@@ -142,29 +119,6 @@ export default async (req, context) => {
         headers: { 'Content-Type': 'application/json' }
       });
     }
-    
-    if (!fileData || fileData.length === 0) {
-      console.error('No file data received from S3');
-      return new Response(JSON.stringify({ error: 'File data not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Datei als Download zurückgeben
-    console.log(`Sending file response: ${fileMetadata.filename} (${fileData.length} bytes)`);
-    
-    return new Response(fileData, {
-      status: 200,
-      headers: {
-        'Content-Type': fileMetadata.mimeType || 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${fileMetadata.filename}"`,
-        'Content-Length': fileData.length.toString(),
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
   } catch (error) {
     console.error('Download error:', error);
     return new Response(JSON.stringify({ 

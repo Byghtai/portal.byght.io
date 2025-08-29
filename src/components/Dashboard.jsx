@@ -50,10 +50,7 @@ const Dashboard = () => {
       
       const token = Cookies.get('auth_token');
       
-      // Use signed URL for large files (>50MB) or when direct download fails
-      const useSignedUrl = fileSize > 50 * 1024 * 1024; // 50MB threshold
-      
-      const response = await fetch(`/.netlify/functions/files-download?fileId=${fileId}${useSignedUrl ? '&signed=true' : ''}`, {
+      const response = await fetch(`/.netlify/functions/files-download?fileId=${fileId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
