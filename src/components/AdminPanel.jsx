@@ -14,7 +14,9 @@ import {
   Save,
   Eye,
   EyeOff,
-  Download
+  Download,
+  RefreshCw,
+  Cloud
 } from 'lucide-react';
 import Cookies from 'js-cookie';
 
@@ -51,6 +53,8 @@ const AdminPanel = () => {
   const [editingExpiryDate, setEditingExpiryDate] = useState({});
   const [updatingExpiryDate, setUpdatingExpiryDate] = useState({});
   const [cleaningUp, setCleaningUp] = useState(false);
+  const [syncingS3, setSyncingS3] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
   
   // New states for inline editing
   const [editingUsername, setEditingUsername] = useState({});
@@ -109,17 +113,27 @@ const AdminPanel = () => {
     setLoading(false);
   };
 
-  const fetchFiles = async () => {
+  const fetchFiles = async (syncWithS3 = false) => {
     try {
       const token = Cookies.get('auth_token');
-      const response = await fetch('/.netlify/functions/admin-files-list', {
+      const endpoint = syncWithS3 
+        ? '/.netlify/functions/files-list-s3?sync=true' 
+        : '/.netlify/functions/admin-files-list';
+      
+      const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
+      
       if (response.ok) {
         const data = await response.json();
         setFiles(data.files || []);
+        
+        if (data.synced) {
+          setLastSyncTime(data.syncTime);
+          console.log('Files synchronized with S3 at:', data.syncTime);
+        }
       }
     } catch (error) {
       console.error('Error fetching files:', error);
@@ -594,6 +608,45 @@ const AdminPanel = () => {
       alert('Error during cleanup: ' + error.message);
     } finally {
       setCleaningUp(false);
+    }
+  };
+
+  const handleSyncS3 = async () => {
+    setSyncingS3(true);
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-sync-s3', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setLastSyncTime(new Date().toISOString());
+        
+        const message = `S3 Synchronisation abgeschlossen!\n\n` +
+          `S3 Dateien: ${result.summary.totalS3Files}\n` +
+          `Datenbank Dateien: ${result.summary.totalDbFiles}\n` +
+          `Verwaiste S3 Dateien: ${result.summary.orphanedS3Files}\n` +
+          `Fehlende S3 Dateien: ${result.summary.missingS3Files}\n` +
+          `Größen-Updates: ${result.summary.sizeUpdates}\n` +
+          `Gelöschte DB-Einträge: ${result.summary.deletedDbEntries}`;
+        
+        alert(message);
+        
+        // Reload files after sync
+        fetchFiles();
+      } else {
+        const error = await response.json();
+        alert('Fehler bei der S3-Synchronisation: ' + error.error);
+      }
+    } catch (error) {
+      alert('Fehler bei der S3-Synchronisation: ' + error.message);
+    } finally {
+      setSyncingS3(false);
     }
   };
 
@@ -1321,6 +1374,24 @@ const AdminPanel = () => {
                     title="Clean up orphaned files from blob storage"
                   >
                     {cleaningUp ? 'Cleaning...' : 'Clean blobs'}
+                  </button>
+                  <button
+                    onClick={handleSyncS3}
+                    disabled={syncingS3}
+                    className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    title="Synchronize files with S3 bucket"
+                  >
+                    {syncingS3 ? (
+                      <>
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <Cloud className="h-3 w-3" />
+                        Sync S3
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

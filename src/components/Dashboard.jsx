@@ -22,10 +22,14 @@ const Dashboard = () => {
     fetchUserFiles();
   }, []);
 
-  const fetchUserFiles = async () => {
+  const fetchUserFiles = async (syncWithS3 = false) => {
     try {
       const token = Cookies.get('auth_token');
-      const response = await fetch('/.netlify/functions/files-list', {
+      const endpoint = syncWithS3 
+        ? '/.netlify/functions/files-list-s3?sync=true'
+        : '/.netlify/functions/files-list';
+      
+      const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -37,6 +41,10 @@ const Dashboard = () => {
 
       const data = await response.json();
       setFiles(data.files || []);
+      
+      if (data.synced) {
+        console.log('Files synchronized with S3 at:', data.syncTime);
+      }
     } catch (error) {
       setError(error.message);
     } finally {
