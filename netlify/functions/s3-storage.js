@@ -8,10 +8,10 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 class S3Storage {
   constructor() {
     // Get configuration from environment
-    this.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-    this.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-    this.bucket = process.env.AWS_S3_BUCKET;
-    this.region = process.env.AWS_REGION || 'eu-central-1';
+    this.accessKeyId = process.env.AWS_ACCESS_KEY_IDX;
+    this.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEYX;
+    this.bucket = process.env.AWS_S3_BUCKETX;
+    this.region = process.env.AWS_REGIONX || 'eu-central-1';
 
     // Validate configuration
     if (!this.accessKeyId || !this.secretAccessKey || !this.bucket) {

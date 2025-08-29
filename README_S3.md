@@ -11,10 +11,10 @@
 Add these to your Netlify environment:
 
 ```env
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_S3_BUCKET=your-bucket-name
-AWS_REGION=eu-central-1
+AWS_ACCESS_KEY_IDX=your_aws_access_key
+AWS_SECRET_ACCESS_KEYX=your_aws_secret_key
+AWS_S3_BUCKETX=your-bucket-name
+AWS_REGIONX=eu-central-1
 ```
 
 ## AWS S3 Bucket Setup

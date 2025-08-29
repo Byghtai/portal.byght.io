@@ -78,10 +78,10 @@ In Netlify Dashboard → Site settings → Environment variables:
 #### 2.2 Neue AWS Variablen hinzufügen
 
 **Hinzufügen:**
-- `AWS_ACCESS_KEY_ID` = `your_access_key_from_iam`
-- `AWS_SECRET_ACCESS_KEY` = `your_secret_key_from_iam`
-- `AWS_S3_BUCKET` = `byght-portal-files`
-- `AWS_REGION` = `eu-central-1`
+- `AWS_ACCESS_KEY_IDX` = `your_access_key_from_iam`
+- `AWS_SECRET_ACCESS_KEYX` = `your_secret_key_from_iam`
+- `AWS_S3_BUCKETX` = `byght-portal-files`
+- `AWS_REGIONX` = `eu-central-1`
 
 ### Phase 3: Datenmigration
 
@@ -105,10 +105,10 @@ export OBJECT_STORAGE_BUCKET="your_hetzner_bucket"
 export OBJECT_STORAGE_ENDPOINT="your_hetzner_endpoint"
 
 # Neue AWS Variablen setzen
-export AWS_ACCESS_KEY_ID="your_aws_key"
-export AWS_SECRET_ACCESS_KEY="your_aws_secret"
-export AWS_S3_BUCKET="byght-portal-files"
-export AWS_REGION="eu-central-1"
+export AWS_ACCESS_KEY_IDX="your_aws_key"
+export AWS_SECRET_ACCESS_KEYX="your_aws_secret"
+export AWS_S3_BUCKETX="byght-portal-files"
+export AWS_REGIONX="eu-central-1"
 
 # Migration starten
 node migrate-to-aws-s3.js
@@ -168,7 +168,7 @@ aws s3api get-bucket-cors --bucket byght-portal-files
 - Access Keys gültig?
 
 #### Region Mismatch
-- `AWS_REGION` muss mit Bucket-Region übereinstimmen
+- `AWS_REGIONX` muss mit Bucket-Region übereinstimmen
 - Standard: `eu-central-1`
 
 ### Rollback-Plan
