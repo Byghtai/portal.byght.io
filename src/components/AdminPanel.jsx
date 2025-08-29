@@ -19,7 +19,7 @@ import {
   Cloud
 } from 'lucide-react';
 import Cookies from 'js-cookie';
-import { downloadFile } from '../utils/downloadHelper';
+import { downloadFileFromS3 } from '../utils/s3Download';
 
 
 const AdminPanel = () => {
@@ -460,89 +460,24 @@ const AdminPanel = () => {
   const handleDownload = async (fileId, filename, fileSize = 0) => {
     try {
       const token = Cookies.get('auth_token');
-      await downloadFile(fileId, filename, fileSize, token);
-      console.log(`Download abgeschlossen: ${filename}`);
+      
+      if (!token) {
+        throw new Error('Nicht authentifiziert. Bitte melden Sie sich erneut an.');
+      }
+      
+      console.log(`Starte Download: ${filename}`);
+      
+      // Download über S3 Presigned URL
+      const success = await downloadFileFromS3(fileId, filename, token);
+      
+      if (success) {
+        console.log(`✅ Download erfolgreich: ${filename}`);
+      } else {
+        throw new Error('Download konnte nicht gestartet werden');
+      }
     } catch (error) {
-      console.error('Download-Fehler:', error);
+      console.error('❌ Download-Fehler:', error);
       alert(`Download fehlgeschlagen: ${error.message}`);
-    }
-  };
-
-  const handleDownloadOld = async (fileId, filename, fileSize = 0) => {
-    try {
-      console.log(`Starting download for file: ${filename} (ID: ${fileId}, Size: ${fileSize} bytes)`);
-      
-      const token = Cookies.get('auth_token');
-      
-      const response = await fetch(`/.netlify/functions/files-download?fileId=${fileId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        // Try to get error details from response
-        let errorMessage = 'Download failed';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorData.details || errorMessage;
-        } catch (e) {
-          // If we can't parse the error response, use the status text
-          errorMessage = `${response.status}: ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      // Check if response is a signed URL (JSON) or direct file
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        // This is a signed URL response
-        const data = await response.json();
-        
-        if (data.downloadUrl) {
-          console.log(`Using signed URL for download: ${filename}`);
-          
-          // Create a temporary link to trigger the download
-          const a = document.createElement('a');
-          a.href = data.downloadUrl;
-          a.download = filename;
-          a.target = '_blank';
-          a.style.display = 'none';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          
-          console.log(`Signed URL download initiated: ${filename}`);
-          return;
-        } else {
-          // This is an error response
-          throw new Error(data.error || data.details || 'Download failed');
-        }
-      }
-
-      // Direct file download
-      const blob = await response.blob();
-      
-      if (blob.size === 0) {
-        throw new Error('Downloaded file is empty');
-      }
-      
-      console.log(`Download successful: ${filename} (${blob.size} bytes)`);
-      
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      console.log(`File download completed: ${filename}`);
-    } catch (error) {
-      console.error('Download error:', error);
-      alert(`Download failed: ${error.message}`);
     }
   };
 

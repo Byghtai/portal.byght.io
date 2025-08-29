@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Download, FileText, LogOut, User, Folder, Calendar, HardDrive, Settings, AlertCircle, Menu, X, Cloud, Key, CheckCircle, Upload, Users, FileCheck, HelpCircle, Mail, ChevronRight, ChevronDown } from 'lucide-react';
 import ByghtLogo from '../assets/byght-logo.svg';
 import Cookies from 'js-cookie';
-import { downloadFile } from '../utils/downloadHelper';
+import { downloadFileFromS3 } from '../utils/s3Download';
 
 const Dashboard = () => {
   const { user, logout, isAdmin } = useAuth();
@@ -56,10 +56,24 @@ const Dashboard = () => {
   const handleDownload = async (fileId, filename, fileSize = 0) => {
     try {
       const token = Cookies.get('auth_token');
-      await downloadFile(fileId, filename, fileSize, token);
-      console.log(`Download abgeschlossen: ${filename}`);
+      
+      if (!token) {
+        throw new Error('Nicht authentifiziert. Bitte melden Sie sich erneut an.');
+      }
+      
+      // Zeige Download-Status (optional)
+      console.log(`Starte Download: ${filename}`);
+      
+      // Download über S3 Presigned URL
+      const success = await downloadFileFromS3(fileId, filename, token);
+      
+      if (success) {
+        console.log(`✅ Download erfolgreich: ${filename}`);
+      } else {
+        throw new Error('Download konnte nicht gestartet werden');
+      }
     } catch (error) {
-      console.error('Download-Fehler:', error);
+      console.error('❌ Download-Fehler:', error);
       alert(`Download fehlgeschlagen: ${error.message}`);
     }
   };
