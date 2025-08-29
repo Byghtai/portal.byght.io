@@ -15,13 +15,16 @@ export async function downloadFileFromS3(fileId, filename, token) {
   
   try {
     // 1. Presigned URL vom Backend abrufen
-    const response = await fetch(`/.netlify/functions/files-download-v2?fileId=${fileId}`, {
+    console.log(`[S3 Download] Requesting presigned URL from backend...`);
+    const response = await fetch(`/.netlify/functions/files-download?fileId=${fileId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
       }
     });
+
+    console.log(`[S3 Download] Backend response status: ${response.status}`);
 
     // 2. Response validieren
     if (!response.ok) {
@@ -30,7 +33,7 @@ export async function downloadFileFromS3(fileId, filename, token) {
       try {
         const errorData = await response.json();
         errorMessage = errorData.error || errorData.details || errorMessage;
-        console.error(`[S3 Download] Server error:`, errorData);
+        console.error(`[S3 Download] Server error details:`, errorData);
       } catch (e) {
         console.error(`[S3 Download] Failed to parse error response:`, e);
       }
@@ -40,12 +43,13 @@ export async function downloadFileFromS3(fileId, filename, token) {
 
     // 3. JSON-Response mit Presigned URL parsen
     const data = await response.json();
+    console.log(`[S3 Download] Backend response data:`, data);
     
-    if (!data.success || !data.downloadUrl) {
-      throw new Error(data.error || 'No download URL received');
+    if (!data.downloadUrl) {
+      throw new Error(data.error || 'No download URL received from backend');
     }
 
-    console.log(`[S3 Download] Received presigned URL, expires in ${data.expiresIn} seconds`);
+    console.log(`[S3 Download] Received presigned URL, expires in ${data.expiresIn || 'unknown'} seconds`);
     console.log(`[S3 Download] File info:`, {
       filename: data.filename,
       size: formatFileSize(data.size),
@@ -59,7 +63,7 @@ export async function downloadFileFromS3(fileId, filename, token) {
       console.log(`[S3 Download] Download initiated successfully for: ${filename}`);
       return true;
     } else {
-      throw new Error('Failed to initiate download');
+      throw new Error('Failed to initiate download from S3');
     }
     
   } catch (error) {

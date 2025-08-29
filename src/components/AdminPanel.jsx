@@ -14,12 +14,9 @@ import {
   Save,
   Eye,
   EyeOff,
-  Download,
-  RefreshCw,
-  Cloud
+  Download
 } from 'lucide-react';
 import Cookies from 'js-cookie';
-import { downloadFileFromS3 } from '../utils/s3Download';
 
 
 const AdminPanel = () => {
@@ -54,8 +51,6 @@ const AdminPanel = () => {
   const [editingExpiryDate, setEditingExpiryDate] = useState({});
   const [updatingExpiryDate, setUpdatingExpiryDate] = useState({});
   const [cleaningUp, setCleaningUp] = useState(false);
-  const [syncingS3, setSyncingS3] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState(null);
   
   // New states for inline editing
   const [editingUsername, setEditingUsername] = useState({});
@@ -114,27 +109,17 @@ const AdminPanel = () => {
     setLoading(false);
   };
 
-  const fetchFiles = async (syncWithS3 = false) => {
+  const fetchFiles = async () => {
     try {
       const token = Cookies.get('auth_token');
-      const endpoint = syncWithS3 
-        ? '/.netlify/functions/files-list-s3?sync=true' 
-        : '/.netlify/functions/admin-files-list';
-      
-      const response = await fetch(endpoint, {
+      const response = await fetch('/.netlify/functions/admin-files-list', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
-      
       if (response.ok) {
         const data = await response.json();
         setFiles(data.files || []);
-        
-        if (data.synced) {
-          setLastSyncTime(data.syncTime);
-          console.log('Files synchronized with S3 at:', data.syncTime);
-        }
       }
     } catch (error) {
       console.error('Error fetching files:', error);
@@ -459,25 +444,79 @@ const AdminPanel = () => {
 
   const handleDownload = async (fileId, filename, fileSize = 0) => {
     try {
+      console.log(`Starting download for file: ${filename} (ID: ${fileId}, Size: ${fileSize} bytes)`);
+      
       const token = Cookies.get('auth_token');
       
-      if (!token) {
-        throw new Error('Nicht authentifiziert. Bitte melden Sie sich erneut an.');
+      const response = await fetch(`/.netlify/functions/files-download?fileId=${fileId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        // Try to get error details from response
+        let errorMessage = 'Download failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.details || errorMessage;
+        } catch (e) {
+          // If we can't parse the error response, use the status text
+          errorMessage = `${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Check if response is a signed URL (JSON) or direct file
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        // This is a signed URL response
+        const data = await response.json();
+        
+        if (data.downloadUrl) {
+          console.log(`Using signed URL for download: ${filename}`);
+          
+          // Create a temporary link to trigger the download
+          const a = document.createElement('a');
+          a.href = data.downloadUrl;
+          a.download = filename;
+          a.target = '_blank';
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          
+          console.log(`Signed URL download initiated: ${filename}`);
+          return;
+        } else {
+          // This is an error response
+          throw new Error(data.error || data.details || 'Download failed');
+        }
+      }
+
+      // Direct file download
+      const blob = await response.blob();
+      
+      if (blob.size === 0) {
+        throw new Error('Downloaded file is empty');
       }
       
-      console.log(`Starte Download: ${filename}`);
+      console.log(`Download successful: ${filename} (${blob.size} bytes)`);
       
-      // Download über S3 Presigned URL
-      const success = await downloadFileFromS3(fileId, filename, token);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
       
-      if (success) {
-        console.log(`✅ Download erfolgreich: ${filename}`);
-      } else {
-        throw new Error('Download konnte nicht gestartet werden');
-      }
+      console.log(`File download completed: ${filename}`);
     } catch (error) {
-      console.error('❌ Download-Fehler:', error);
-      alert(`Download fehlgeschlagen: ${error.message}`);
+      console.error('Download error:', error);
+      alert(`Download failed: ${error.message}`);
     }
   };
 
@@ -555,45 +594,6 @@ const AdminPanel = () => {
       alert('Error during cleanup: ' + error.message);
     } finally {
       setCleaningUp(false);
-    }
-  };
-
-  const handleSyncS3 = async () => {
-    setSyncingS3(true);
-    try {
-      const token = Cookies.get('auth_token');
-      const response = await fetch('/.netlify/functions/admin-sync-s3', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setLastSyncTime(new Date().toISOString());
-        
-        const message = `S3 Synchronisation abgeschlossen!\n\n` +
-          `S3 Dateien: ${result.summary.totalS3Files}\n` +
-          `Datenbank Dateien: ${result.summary.totalDbFiles}\n` +
-          `Verwaiste S3 Dateien: ${result.summary.orphanedS3Files}\n` +
-          `Fehlende S3 Dateien: ${result.summary.missingS3Files}\n` +
-          `Größen-Updates: ${result.summary.sizeUpdates}\n` +
-          `Gelöschte DB-Einträge: ${result.summary.deletedDbEntries}`;
-        
-        alert(message);
-        
-        // Reload files after sync
-        fetchFiles();
-      } else {
-        const error = await response.json();
-        alert('Fehler bei der S3-Synchronisation: ' + error.error);
-      }
-    } catch (error) {
-      alert('Fehler bei der S3-Synchronisation: ' + error.message);
-    } finally {
-      setSyncingS3(false);
     }
   };
 
@@ -1321,24 +1321,6 @@ const AdminPanel = () => {
                     title="Clean up orphaned files from blob storage"
                   >
                     {cleaningUp ? 'Cleaning...' : 'Clean blobs'}
-                  </button>
-                  <button
-                    onClick={handleSyncS3}
-                    disabled={syncingS3}
-                    className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                    title="Synchronize files with S3 bucket"
-                  >
-                    {syncingS3 ? (
-                      <>
-                        <RefreshCw className="h-3 w-3 animate-spin" />
-                        Syncing...
-                      </>
-                    ) : (
-                      <>
-                        <Cloud className="h-3 w-3" />
-                        Sync S3
-                      </>
-                    )}
                   </button>
                 </div>
               </div>
