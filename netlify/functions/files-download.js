@@ -65,6 +65,7 @@ export default async (req, context) => {
     }
 
     console.log(`File metadata retrieved: ${fileMetadata.filename} (${fileMetadata.size} bytes)`);
+    console.log(`Blob key: ${fileMetadata.blobKey || 'NULL/UNDEFINED'}`);
 
     // Prüfen ob Benutzer Zugriff hat
     const hasAccess = await hasFileAccess(decoded.userId, fileId);
@@ -78,10 +79,16 @@ export default async (req, context) => {
 
     console.log(`Access granted for file: ${fileMetadata.blobKey}`);
 
-    // Check if blobKey exists
-    if (!fileMetadata.blobKey) {
-      console.error(`No blob key found for file: ${fileId}`);
-      return new Response(JSON.stringify({ error: 'File storage key not found' }), {
+    // Check if blobKey exists and is not empty
+    if (!fileMetadata.blobKey || fileMetadata.blobKey.trim() === '') {
+      console.error(`No blob key found for file: ${fileId} (filename: ${fileMetadata.filename})`);
+      console.error(`File metadata:`, JSON.stringify(fileMetadata, null, 2));
+      return new Response(JSON.stringify({ 
+        error: 'File storage key not found',
+        details: 'The file exists in the database but has no storage key. This may indicate a problem during file upload.',
+        fileId: fileId,
+        filename: fileMetadata.filename
+      }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       });
@@ -107,7 +114,8 @@ export default async (req, context) => {
         console.error('Error generating signed URL:', s3Error);
         return new Response(JSON.stringify({ 
           error: 'Failed to generate download link',
-          details: s3Error.message 
+          details: s3Error.message,
+          blobKey: fileMetadata.blobKey
         }), {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
@@ -127,7 +135,8 @@ export default async (req, context) => {
       console.error('S3 download error:', s3Error);
       return new Response(JSON.stringify({ 
         error: 'File download failed',
-        details: s3Error.message 
+        details: s3Error.message,
+        blobKey: fileMetadata.blobKey
       }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }

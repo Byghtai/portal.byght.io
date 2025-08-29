@@ -754,11 +754,31 @@ export async function deleteFile(fileId) {
 export async function getFileById(fileId) {
   const client = await pool.connect();
   try {
+    console.log(`Fetching file metadata for ID: ${fileId}`);
+    
     const result = await client.query(
       'SELECT id, filename, file_size as size, mime_type as mimeType, blob_key as blobKey FROM files WHERE id = $1',
       [fileId]
     );
-    return result.rows[0] || null;
+    
+    const fileMetadata = result.rows[0] || null;
+    
+    if (fileMetadata) {
+      console.log(`File metadata found:`, {
+        id: fileMetadata.id,
+        filename: fileMetadata.filename,
+        size: fileMetadata.size,
+        mimeType: fileMetadata.mimeType,
+        blobKey: fileMetadata.blobKey ? `${fileMetadata.blobKey.substring(0, 20)}...` : 'NULL'
+      });
+    } else {
+      console.log(`No file found with ID: ${fileId}`);
+    }
+    
+    return fileMetadata;
+  } catch (error) {
+    console.error(`Error fetching file metadata for ID ${fileId}:`, error);
+    throw error;
   } finally {
     client.release();
   }
