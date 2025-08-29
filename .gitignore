@@ -26,7 +26,15 @@ dist-ssr
 # Environment variables
 .env
 .env.local
-.env.production
+.env.development.local
+.env.test.local
+.env.production.local
+
+# AWS and S3 configuration files
+CORS.json
+aws-iam-policy.json
+*.pem
+*.key
 
 # Netlify
 .netlify/

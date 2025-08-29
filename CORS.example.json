@@ -1,0 +1,32 @@
+{
+  "CORSRules": [
+    {
+      "AllowedHeaders": [
+        "*"
+      ],
+      "AllowedMethods": [
+        "GET",
+        "PUT",
+        "POST",
+        "DELETE",
+        "HEAD",
+        "OPTIONS"
+      ],
+      "AllowedOrigins": [
+        "https://your-site.netlify.app",
+        "https://your-domain.com",
+        "http://localhost:5173",
+        "http://localhost:3000"
+      ],
+      "ExposeHeaders": [
+        "ETag",
+        "Content-Length",
+        "Content-Type",
+        "Last-Modified",
+        "x-amz-version-id",
+        "x-amz-delete-marker"
+      ],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}
