@@ -19,6 +19,7 @@ import {
   Cloud
 } from 'lucide-react';
 import Cookies from 'js-cookie';
+import { downloadFile } from '../utils/downloadHelper';
 
 
 const AdminPanel = () => {
@@ -457,6 +458,17 @@ const AdminPanel = () => {
 
 
   const handleDownload = async (fileId, filename, fileSize = 0) => {
+    try {
+      const token = Cookies.get('auth_token');
+      await downloadFile(fileId, filename, fileSize, token);
+      console.log(`Download abgeschlossen: ${filename}`);
+    } catch (error) {
+      console.error('Download-Fehler:', error);
+      alert(`Download fehlgeschlagen: ${error.message}`);
+    }
+  };
+
+  const handleDownloadOld = async (fileId, filename, fileSize = 0) => {
     try {
       console.log(`Starting download for file: ${filename} (ID: ${fileId}, Size: ${fileSize} bytes)`);
       
