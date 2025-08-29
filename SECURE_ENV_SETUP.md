@@ -1,7 +1,7 @@
 # Sichere Environment Variables Setup
 
 ## Problem
-Der Build schlägt fehl, weil `AWS_S3_BUCKETX` als "exposed credential" erkannt wird.
+Der Build schlägt fehl, weil AWS-Umgebungsvariablen als "exposed credential" erkannt werden.
 
 ## Lösung
 

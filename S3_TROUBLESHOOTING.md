@@ -20,7 +20,7 @@ Stellen Sie sicher, dass alle erforderlichen Environment Variables in Netlify ge
 ```env
 AWS_ACCESS_KEY_IDX=your_aws_access_key
 AWS_SECRET_ACCESS_KEYX=your_aws_secret_key
-AWS_S3_BUCKETX=portal-byght
+AWS_S3_BUCKETX=your_bucket_name
 AWS_REGIONX=eu-central-1
 JWT_SECRET=your_jwt_secret
 ```
@@ -51,10 +51,10 @@ Stellen Sie sicher, dass der S3-Bucket keine restriktive Policy hat:
 
 ```bash
 # Bucket Policy abrufen
-aws s3api get-bucket-policy --bucket portal-byght
+aws s3api get-bucket-policy --bucket your-bucket-name
 
 # Falls eine restriktive Policy existiert, entfernen:
-aws s3api delete-bucket-policy --bucket portal-byght
+aws s3api delete-bucket-policy --bucket your-bucket-name
 ```
 
 ### 5. CORS-Konfiguration überprüfen
@@ -63,11 +63,11 @@ Stellen Sie sicher, dass die CORS-Konfiguration korrekt angewendet wurde:
 ```bash
 # CORS-Konfiguration anwenden
 aws s3api put-bucket-cors \
-  --bucket portal-byght \
+  --bucket your-bucket-name \
   --cors-configuration file://CORS.json
 
 # CORS-Konfiguration überprüfen
-aws s3api get-bucket-cors --bucket portal-byght
+aws s3api get-bucket-cors --bucket your-bucket-name
 ```
 
 ### 6. Bucket-Berechtigungen überprüfen
@@ -144,7 +144,7 @@ Presigned URL generated successfully
 
 ### Fehlerhafte Konfiguration:
 ```
-Missing required AWS S3 environment variables: AWS_ACCESS_KEY_IDX
+Missing required AWS S3 environment variables: AWS access key
 ```
 
 ## Sicherheitsrichtlinien

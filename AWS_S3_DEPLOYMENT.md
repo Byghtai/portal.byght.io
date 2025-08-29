@@ -10,7 +10,7 @@
 2. **S3 Service** aufrufen
 3. **"Create bucket"** klicken
 4. **Bucket-Konfiguration:**
-   - **Bucket name**: `byght-portal-files` (oder eindeutiger Name)
+   - **Bucket name**: `your-bucket-name` (oder eindeutiger Name)
    - **Region**: `eu-central-1` (Frankfurt)
    - **Block Public Access**: Alle Optionen aktiviert lassen
    - **Bucket Versioning**: Optional aktivieren
@@ -21,7 +21,7 @@
 1. **IAM Console** öffnen
 2. **Users** → **"Create user"**
 3. **User details:**
-   - **User name**: `byght-s3-user`
+   - **User name**: `your-s3-user`
    - **Access type**: Programmatic access
 4. **Permissions**: **"Attach policies directly"**
 5. **Policy erstellen** (JSON):
@@ -40,8 +40,8 @@
                 "s3:GetBucketLocation"
             ],
             "Resource": [
-                "arn:aws:s3:::byght-portal-files",
-                "arn:aws:s3:::byght-portal-files/*"
+                "arn:aws:s3:::your-bucket-name",
+                "arn:aws:s3:::your-bucket-name/*"
             ]
         }
     ]
@@ -58,7 +58,7 @@
 
 # CORS-Konfiguration anwenden
 aws s3api put-bucket-cors \
-  --bucket byght-portal-files \
+  --bucket your-bucket-name \
   --cors-configuration file://CORS.json
 ```
 
@@ -73,149 +73,76 @@ In Netlify Dashboard → Site settings → Environment variables:
 - `OBJECT_STORAGE_ACCESS_KEY`
 - `OBJECT_STORAGE_SECRET_KEY`
 - `OBJECT_STORAGE_BUCKET`
-- `OBJECT_STORAGE_REGION`
 
-#### 2.2 Neue AWS Variablen hinzufügen
+#### 2.2 Neue Variablen hinzufügen
 
 **Hinzufügen:**
-- `AWS_ACCESS_KEY_IDX` = `your_access_key_from_iam`
-- `AWS_SECRET_ACCESS_KEYX` = `your_secret_key_from_iam`
-- `AWS_S3_BUCKETX` = `byght-portal-files`
+- `AWS_ACCESS_KEY_IDX` = `your_aws_access_key`
+- `AWS_SECRET_ACCESS_KEYX` = `your_aws_secret_key`
+- `AWS_S3_BUCKETX` = `your_bucket_name`
 - `AWS_REGIONX` = `eu-central-1`
 
-### Phase 3: Datenmigration
+### Phase 3: Deployment und Testing
 
-#### 3.1 Migrationsskript vorbereiten
-
-```bash
-# Dependencies installieren
-npm install @aws-sdk/client-s3
-
-# Migrationsskript ausführbar machen
-chmod +x migrate-to-aws-s3.js
-```
-
-#### 3.2 Migration durchführen
+#### 3.1 Code deployen
 
 ```bash
-# Temporär alte Umgebungsvariablen setzen (für Migration)
-export OBJECT_STORAGE_ACCESS_KEY="your_hetzner_key"
-export OBJECT_STORAGE_SECRET_KEY="your_hetzner_secret"
-export OBJECT_STORAGE_BUCKET="your_hetzner_bucket"
-export OBJECT_STORAGE_ENDPOINT="your_hetzner_endpoint"
-
-# Neue AWS Variablen setzen
-export AWS_ACCESS_KEY_IDX="your_aws_key"
-export AWS_SECRET_ACCESS_KEYX="your_aws_secret"
-export AWS_S3_BUCKETX="byght-portal-files"
-export AWS_REGIONX="eu-central-1"
-
-# Migration starten
-node migrate-to-aws-s3.js
+git add .
+git commit -m "Migrate to AWS S3"
+git push origin main
 ```
 
-### Phase 4: Testing
-
-#### 4.1 Lokales Testing
+#### 3.2 S3-Verbindung testen
 
 ```bash
-# Development Server starten
-npm run dev
-
-# Test-Upload durchführen
-# Test-Download durchführen
-# Admin-Panel testen
+# Test-Funktion aufrufen
+curl https://your-site.netlify.app/.netlify/functions/test-s3-connection
 ```
 
-#### 4.2 Production Testing
+#### 3.3 Upload testen
 
-1. **Netlify Deployment** triggern
-2. **Live-Site testen:**
-   - File Upload
-   - File Download
-   - Admin Panel Funktionalität
-   - User Management
+1. **Admin-Panel** öffnen
+2. **Datei hochladen** versuchen
+3. **Logs überprüfen** bei Problemen
 
-### Phase 5: Cleanup
+### Phase 4: Migration bestehender Dateien
 
-#### 5.1 Hetzner Object Storage bereinigen
+#### 4.1 Dateien von Hetzner zu AWS S3 übertragen
 
-Nach erfolgreicher Migration und Testing:
+```bash
+# AWS CLI konfigurieren
+aws configure
 
-1. **Hetzner Object Storage** löschen oder deaktivieren
-2. **Alte Umgebungsvariablen** aus anderen Systemen entfernen
-3. **Backup** der alten Konfiguration erstellen
+# Dateien übertragen (falls vorhanden)
+aws s3 sync s3://old-hetzner-bucket s3://your-bucket-name
+```
 
-#### 5.2 Monitoring einrichten
+#### 4.2 Datenbank aktualisieren
 
-1. **AWS CloudWatch** aktivieren
-2. **S3 Metrics** überwachen
-3. **Kosten-Tracking** einrichten
+Falls bestehende Dateien migriert wurden, müssen die Blob-Keys in der Datenbank aktualisiert werden.
 
 ## Troubleshooting
 
 ### Häufige Probleme
 
-#### CORS-Fehler
-```bash
-# CORS-Konfiguration überprüfen
-aws s3api get-bucket-cors --bucket byght-portal-files
-```
+1. **403 Forbidden**: IAM-Berechtigungen überprüfen
+2. **CORS-Fehler**: CORS-Konfiguration anwenden
+3. **Bucket nicht gefunden**: Bucket-Name und Region überprüfen
+4. **Invalid Credentials**: Access Key und Secret Key überprüfen
 
-#### Access Denied
-- IAM Policy überprüfen
-- Bucket-Name in Policy korrekt?
-- Access Keys gültig?
-
-#### Region Mismatch
-- `AWS_REGIONX` muss mit Bucket-Region übereinstimmen
-- Standard: `eu-central-1`
-
-### Rollback-Plan
-
-Falls Probleme auftreten:
-
-1. **Alte Umgebungsvariablen** wiederherstellen
-2. **S3 Storage-Klasse** auf Hetzner-Konfiguration zurücksetzen
-3. **Netlify** neu deployen
-
-## Kostenoptimierung
-
-### S3 Lifecycle Rules
+### Debugging
 
 ```bash
-# Lifecycle Rule für alte Dateien
-aws s3api put-bucket-lifecycle-configuration \
-  --bucket byght-portal-files \
-  --lifecycle-configuration file://lifecycle-rules.json
+# S3-Verbindung testen
+curl https://your-site.netlify.app/.netlify/functions/test-s3-connection
+
+# Netlify Function Logs überprüfen
+# Dashboard → Functions → Logs
 ```
 
-### Monitoring
+## Sicherheitshinweise
 
-- **CloudWatch Alarms** für Kosten
-- **S3 Analytics** aktivieren
-- **Storage Classes** für alte Dateien
-
-## Sicherheit
-
-### Best Practices
-
-1. **IAM Least Privilege**: Nur notwendige Rechte
-2. **Server-Side Encryption**: AES256 aktiviert
-3. **Access Logging**: Optional aktivieren
-4. **Versioning**: Für kritische Daten
-
-### Compliance
-
-- **GDPR**: Daten in EU-Region
-- **Audit Logs**: CloudTrail aktivieren
-- **Backup Strategy**: Cross-Region Replication
-
-## Support
-
-Bei Problemen:
-
-1. **AWS S3 Dokumentation** konsultieren
-2. **Netlify Logs** überprüfen
-3. **Browser Developer Tools** für CORS-Fehler
-4. **AWS Support** bei AWS-spezifischen Problemen
+- **Access Keys** regelmäßig rotieren
+- **IAM-Policy** auf Minimum-Berechtigungen beschränken
+- **Bucket-Policy** für öffentlichen Zugriff entfernen
+- **CORS-Konfiguration** nur für benötigte Domains

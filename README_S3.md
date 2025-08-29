@@ -84,8 +84,8 @@ If migrating from Hetzner Object Storage:
 
 1. **Access Denied**: Check IAM permissions
 2. **CORS Errors**: Verify CORS configuration is applied
-3. **Region Mismatch**: Ensure AWS_REGION matches bucket region
-4. **Invalid Credentials**: Verify AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+3. **Invalid Credentials**: Verify environment variables
+4. **Bucket Not Found**: Check bucket name and region
 
 ### Testing CORS
 

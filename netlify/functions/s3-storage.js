@@ -16,9 +16,9 @@ class S3Storage {
     // Validate configuration without exposing sensitive data
     if (!this.accessKeyId || !this.secretAccessKey || !this.bucket) {
       const missingVars = [];
-      if (!this.accessKeyId) missingVars.push('AWS_ACCESS_KEY_IDX');
-      if (!this.secretAccessKey) missingVars.push('AWS_SECRET_ACCESS_KEYX');
-      if (!this.bucket) missingVars.push('AWS_S3_BUCKETX');
+      if (!this.accessKeyId) missingVars.push('AWS access key');
+      if (!this.secretAccessKey) missingVars.push('AWS secret key');
+      if (!this.bucket) missingVars.push('S3 bucket name');
       
       throw new Error(`Missing required AWS S3 environment variables: ${missingVars.join(', ')}`);
     }
@@ -227,11 +227,11 @@ class S3Storage {
       
       // Provide more specific error messages for debugging
       if (error.name === 'InvalidAccessKeyId') {
-        throw new Error('Invalid AWS access key ID - check AWS_ACCESS_KEY_IDX environment variable');
+        throw new Error('Invalid AWS access key ID - check AWS access key environment variable');
       } else if (error.name === 'SignatureDoesNotMatch') {
-        throw new Error('AWS signature verification failed - check AWS_SECRET_ACCESS_KEYX environment variable');
+        throw new Error('AWS signature verification failed - check AWS secret key environment variable');
       } else if (error.name === 'NoSuchBucket') {
-        throw new Error('S3 bucket not found - check AWS_S3_BUCKETX environment variable');
+        throw new Error('S3 bucket not found - check S3 bucket name environment variable');
       } else if (error.name === 'AccessDenied') {
         throw new Error('Access denied to S3 bucket - check IAM permissions');
       } else {
