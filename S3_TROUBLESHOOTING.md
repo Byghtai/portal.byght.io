@@ -25,6 +25,8 @@ AWS_REGIONX=eu-central-1
 JWT_SECRET=your_jwt_secret
 ```
 
+**Wichtig**: Diese Variablen nur im Netlify Dashboard setzen, nicht im Code referenzieren!
+
 ### 3. IAM Policy überprüfen
 Stellen Sie sicher, dass die IAM-Policy korrekt angewendet wurde:
 
@@ -81,7 +83,7 @@ Stellen Sie sicher, dass "Block Public Access" korrekt konfiguriert ist:
 **Symptom**: `InvalidAccessKeyId` oder `SignatureDoesNotMatch` Fehler
 
 **Lösung**: 
-- Environment Variables in Netlify überprüfen
+- Environment Variables in Netlify Dashboard überprüfen
 - AWS Access Key und Secret Key neu generieren
 - Bucket-Name und Region überprüfen
 
@@ -107,6 +109,14 @@ Stellen Sie sicher, dass "Block Public Access" korrekt konfiguriert ist:
 - CORS-Konfiguration aus `CORS.json` anwenden
 - Origin-URLs in CORS-Konfiguration überprüfen
 
+### Ursache 5: Exposed Credentials
+**Symptom**: Build-Fehler "exposed credential"
+
+**Lösung**:
+- Environment Variables nur im Netlify Dashboard setzen
+- Keine sensitive Daten in Client-Code oder Logs
+- Sichere Fehlerbehandlung verwenden
+
 ## Debugging-Tools
 
 ### 1. S3 Connection Test
@@ -128,22 +138,31 @@ curl https://your-site.netlify.app/.netlify/functions/test-s3-connection
 
 ### Erfolgreicher Upload:
 ```
-S3Storage initialization: { hasAccessKey: true, hasSecretKey: true, bucket: 'portal-byght', region: 'eu-central-1' }
-✅ S3 connection test passed
-Generating presigned upload URL: { bucket: 'portal-byght', key: '1234567890-abc123-test.zip', expiresIn: 300 }
-✅ Presigned URL generated successfully
+S3 connection test passed
+Presigned URL generated successfully
 ```
 
 ### Fehlerhafte Konfiguration:
 ```
-S3Storage initialization: { hasAccessKey: false, hasSecretKey: true, bucket: 'portal-byght', region: 'eu-central-1' }
 Missing required AWS S3 environment variables: AWS_ACCESS_KEY_IDX
 ```
+
+## Sicherheitsrichtlinien
+
+### ✅ Erlaubt:
+- Environment Variables in Netlify Dashboard
+- Sichere Fehlerbehandlung ohne sensitive Daten
+- Serverless Functions für AWS-Operationen
+
+### ❌ Nicht erlaubt:
+- Sensitive Daten in Client-Code
+- Credentials in Logs oder Debug-Ausgaben
+- Hardcoded AWS-Werte im Code
 
 ## Nächste Schritte
 
 1. **S3-Verbindung testen** mit der neuen Test-Funktion
-2. **Environment Variables** in Netlify überprüfen
+2. **Environment Variables** in Netlify Dashboard überprüfen
 3. **IAM-Policy** anwenden
 4. **CORS-Konfiguration** überprüfen
 5. **Upload erneut versuchen**
@@ -154,3 +173,4 @@ Falls das Problem weiterhin besteht:
 1. **Netlify Function Logs** überprüfen
 2. **AWS CloudTrail** für detaillierte API-Logs aktivieren
 3. **Browser Developer Tools** für Client-seitige Fehler überprüfen
+4. **Sicherheitsrichtlinien** befolgen

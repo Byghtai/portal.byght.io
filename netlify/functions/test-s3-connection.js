@@ -9,8 +9,6 @@ export default async (req, context) => {
   }
 
   try {
-    console.log('Testing S3 connection...');
-    
     // Initialize S3 storage
     const s3Storage = new S3Storage();
     
@@ -27,10 +25,7 @@ export default async (req, context) => {
     return new Response(JSON.stringify({
       success: true,
       message: 'S3 connection test successful',
-      bucket: s3Storage.bucket,
-      region: s3Storage.region,
       presignedUrlGenerated: !!presignedUrl,
-      presignedUrlPreview: presignedUrl ? presignedUrl.substring(0, 100) + '...' : null,
       objectCount: objects.length,
       testKey: testKey
     }), {
@@ -49,8 +44,7 @@ export default async (req, context) => {
       success: false,
       error: 'S3 connection test failed',
       details: error.message,
-      errorType: error.name,
-      stack: error.stack
+      errorType: error.name
     }), {
       status: 500,
       headers: { 

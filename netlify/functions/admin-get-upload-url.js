@@ -73,13 +73,6 @@ export default async (req, context) => {
       });
     }
 
-    console.log('Generating upload URL for:', {
-      filename,
-      fileSize,
-      contentType,
-      userId: decoded.userId
-    });
-
     // Eindeutigen Blob-Key generieren (mit sicherer Dateinamen-Behandlung)
     const safeFileName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
     const blobKey = `${Date.now()}-${Math.random().toString(36).substring(7)}-${safeFileName}`;
@@ -88,9 +81,8 @@ export default async (req, context) => {
     const s3Storage = new S3Storage();
     try {
       await s3Storage.testConnection();
-      console.log('✅ S3 connection test passed');
     } catch (connectionError) {
-      console.error('❌ S3 connection test failed:', connectionError);
+      console.error('S3 connection test failed:', connectionError);
       return new Response(JSON.stringify({ 
         error: 'S3 connection failed',
         details: connectionError.message,
@@ -108,9 +100,8 @@ export default async (req, context) => {
         blobKey,
         300  // 5 minutes expiration - shorter is better for security
       );
-      console.log('✅ Presigned URL generated successfully');
     } catch (urlError) {
-      console.error('❌ Failed to generate presigned URL:', urlError);
+      console.error('Failed to generate presigned URL:', urlError);
       return new Response(JSON.stringify({ 
         error: 'Failed to generate upload URL',
         details: urlError.message,
@@ -126,14 +117,7 @@ export default async (req, context) => {
       uploadUrl,
       blobKey,
       uploaderId: decoded.userId,
-      expiresIn: 300,
-      debug: {
-        bucket: s3Storage.bucket,
-        region: s3Storage.region,
-        filename,
-        fileSize,
-        contentType
-      }
+      expiresIn: 300
     }), {
       status: 200,
       headers: { 

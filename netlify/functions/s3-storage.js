@@ -13,15 +13,7 @@ class S3Storage {
     this.bucket = process.env.AWS_S3_BUCKETX;
     this.region = process.env.AWS_REGIONX || 'eu-central-1';
 
-    // Debug logging for troubleshooting
-    console.log('S3Storage initialization:', {
-      hasAccessKey: !!this.accessKeyId,
-      hasSecretKey: !!this.secretAccessKey,
-      bucket: this.bucket,
-      region: this.region
-    });
-
-    // Validate configuration
+    // Validate configuration without exposing sensitive data
     if (!this.accessKeyId || !this.secretAccessKey || !this.bucket) {
       const missingVars = [];
       if (!this.accessKeyId) missingVars.push('AWS_ACCESS_KEY_IDX');
@@ -215,12 +207,6 @@ class S3Storage {
         throw new Error('No S3 key provided for signed upload URL generation');
       }
       
-      console.log('Generating presigned upload URL:', {
-        bucket: this.bucket,
-        key: key,
-        expiresIn: expiresIn
-      });
-      
       // AWS S3 supports more options in presigned URLs
       const command = new PutObjectCommand({
         Bucket: this.bucket,
@@ -235,7 +221,6 @@ class S3Storage {
         expiresIn
       });
 
-      console.log('Generated presigned URL:', url.substring(0, 100) + '...');
       return url;
     } catch (error) {
       console.error('S3 signed upload URL error:', error);
@@ -246,9 +231,9 @@ class S3Storage {
       } else if (error.name === 'SignatureDoesNotMatch') {
         throw new Error('AWS signature verification failed - check AWS_SECRET_ACCESS_KEYX environment variable');
       } else if (error.name === 'NoSuchBucket') {
-        throw new Error(`S3 bucket not found: ${this.bucket} - check AWS_S3_BUCKETX environment variable`);
+        throw new Error('S3 bucket not found - check AWS_S3_BUCKETX environment variable');
       } else if (error.name === 'AccessDenied') {
-        throw new Error(`Access denied to S3 bucket: ${this.bucket} - check IAM permissions`);
+        throw new Error('Access denied to S3 bucket - check IAM permissions');
       } else {
         throw new Error(`S3 presigned URL generation failed: ${error.message}`);
       }
@@ -260,8 +245,6 @@ class S3Storage {
    */
   async testConnection() {
     try {
-      console.log('Testing S3 connection...');
-      
       // Try to list objects (requires s3:ListBucket permission)
       const command = new ListObjectsV2Command({
         Bucket: this.bucket,
@@ -269,10 +252,9 @@ class S3Storage {
       });
       
       await this.client.send(command);
-      console.log('✅ S3 connection test successful');
       return true;
     } catch (error) {
-      console.error('❌ S3 connection test failed:', error);
+      console.error('S3 connection test failed:', error);
       throw error;
     }
   }
