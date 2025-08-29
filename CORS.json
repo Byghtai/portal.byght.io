@@ -22,7 +22,9 @@
         "ETag",
         "Content-Length",
         "Content-Type",
-        "Last-Modified"
+        "Last-Modified",
+        "x-amz-version-id",
+        "x-amz-delete-marker"
       ],
       "MaxAgeSeconds": 3600
     }

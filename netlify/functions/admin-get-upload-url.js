@@ -18,8 +18,6 @@ export default async (req, context) => {
     });
   }
 
-
-
   try {
     // Token und Admin-Status verifizieren
     const authHeader = req.headers.get('authorization');
@@ -75,23 +73,67 @@ export default async (req, context) => {
       });
     }
 
+    console.log('Generating upload URL for:', {
+      filename,
+      fileSize,
+      contentType,
+      userId: decoded.userId
+    });
+
     // Eindeutigen Blob-Key generieren (mit sicherer Dateinamen-Behandlung)
     const safeFileName = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
     const blobKey = `${Date.now()}-${Math.random().toString(36).substring(7)}-${safeFileName}`;
 
-    // Generate presigned upload URL using best practices
+    // Test S3 connection first
     const s3Storage = new S3Storage();
-    const uploadUrl = await s3Storage.getSignedUploadUrl(
-      blobKey,
-      300  // 5 minutes expiration - shorter is better for security
-    );
+    try {
+      await s3Storage.testConnection();
+      console.log('✅ S3 connection test passed');
+    } catch (connectionError) {
+      console.error('❌ S3 connection test failed:', connectionError);
+      return new Response(JSON.stringify({ 
+        error: 'S3 connection failed',
+        details: connectionError.message,
+        errorType: connectionError.name
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Generate presigned upload URL using best practices
+    let uploadUrl;
+    try {
+      uploadUrl = await s3Storage.getSignedUploadUrl(
+        blobKey,
+        300  // 5 minutes expiration - shorter is better for security
+      );
+      console.log('✅ Presigned URL generated successfully');
+    } catch (urlError) {
+      console.error('❌ Failed to generate presigned URL:', urlError);
+      return new Response(JSON.stringify({ 
+        error: 'Failed to generate upload URL',
+        details: urlError.message,
+        errorType: urlError.name
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
     return new Response(JSON.stringify({ 
       success: true,
       uploadUrl,
       blobKey,
       uploaderId: decoded.userId,
-      expiresIn: 300
+      expiresIn: 300,
+      debug: {
+        bucket: s3Storage.bucket,
+        region: s3Storage.region,
+        filename,
+        fileSize,
+        contentType
+      }
     }), {
       status: 200,
       headers: { 
@@ -105,7 +147,8 @@ export default async (req, context) => {
     console.error('Get upload URL error:', error);
     return new Response(JSON.stringify({ 
       error: 'Server error', 
-      details: error.message
+      details: error.message,
+      errorType: error.name
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

@@ -13,9 +13,22 @@ class S3Storage {
     this.bucket = process.env.AWS_S3_BUCKETX;
     this.region = process.env.AWS_REGIONX || 'eu-central-1';
 
+    // Debug logging for troubleshooting
+    console.log('S3Storage initialization:', {
+      hasAccessKey: !!this.accessKeyId,
+      hasSecretKey: !!this.secretAccessKey,
+      bucket: this.bucket,
+      region: this.region
+    });
+
     // Validate configuration
     if (!this.accessKeyId || !this.secretAccessKey || !this.bucket) {
-      throw new Error('Missing required AWS S3 environment variables');
+      const missingVars = [];
+      if (!this.accessKeyId) missingVars.push('AWS_ACCESS_KEY_IDX');
+      if (!this.secretAccessKey) missingVars.push('AWS_SECRET_ACCESS_KEYX');
+      if (!this.bucket) missingVars.push('AWS_S3_BUCKETX');
+      
+      throw new Error(`Missing required AWS S3 environment variables: ${missingVars.join(', ')}`);
     }
 
     // Initialize S3 Client - optimized for AWS S3
@@ -202,13 +215,19 @@ class S3Storage {
         throw new Error('No S3 key provided for signed upload URL generation');
       }
       
+      console.log('Generating presigned upload URL:', {
+        bucket: this.bucket,
+        key: key,
+        expiresIn: expiresIn
+      });
+      
       // AWS S3 supports more options in presigned URLs
       const command = new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
-        // AWS S3 specific optimizations
-        ServerSideEncryption: 'AES256',
-        CacheControl: 'no-cache',
+        // Remove ServerSideEncryption and CacheControl from presigned URL
+        // These can cause issues with direct browser uploads
+        // They will be set by the client during upload if needed
       });
 
       // Generate presigned URL
@@ -216,9 +235,44 @@ class S3Storage {
         expiresIn
       });
 
+      console.log('Generated presigned URL:', url.substring(0, 100) + '...');
       return url;
     } catch (error) {
       console.error('S3 signed upload URL error:', error);
+      
+      // Provide more specific error messages for debugging
+      if (error.name === 'InvalidAccessKeyId') {
+        throw new Error('Invalid AWS access key ID - check AWS_ACCESS_KEY_IDX environment variable');
+      } else if (error.name === 'SignatureDoesNotMatch') {
+        throw new Error('AWS signature verification failed - check AWS_SECRET_ACCESS_KEYX environment variable');
+      } else if (error.name === 'NoSuchBucket') {
+        throw new Error(`S3 bucket not found: ${this.bucket} - check AWS_S3_BUCKETX environment variable`);
+      } else if (error.name === 'AccessDenied') {
+        throw new Error(`Access denied to S3 bucket: ${this.bucket} - check IAM permissions`);
+      } else {
+        throw new Error(`S3 presigned URL generation failed: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Test S3 connectivity and permissions
+   */
+  async testConnection() {
+    try {
+      console.log('Testing S3 connection...');
+      
+      // Try to list objects (requires s3:ListBucket permission)
+      const command = new ListObjectsV2Command({
+        Bucket: this.bucket,
+        MaxKeys: 1
+      });
+      
+      await this.client.send(command);
+      console.log('✅ S3 connection test successful');
+      return true;
+    } catch (error) {
+      console.error('❌ S3 connection test failed:', error);
       throw error;
     }
   }
