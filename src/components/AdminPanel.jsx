@@ -670,7 +670,6 @@ const AdminPanel = () => {
         setEditingUser(null);
         // Update user list
         await fetchUsers();
-        alert('File assignments successfully updated');
       } else {
         const error = await response.json();
         alert('Error updating: ' + error.error);
@@ -701,7 +700,6 @@ const AdminPanel = () => {
       if (response.ok) {
         setEditingExpiryDate({ ...editingExpiryDate, [userId]: false });
         await fetchUsers();
-        alert('Expiry date successfully updated');
       } else {
         const error = await response.json();
         alert('Error updating: ' + error.error);
@@ -739,7 +737,6 @@ const AdminPanel = () => {
       if (response.ok) {
         setEditingUsername({ ...editingUsername, [userId]: false });
         await fetchUsers();
-        alert('Username successfully updated');
       } else {
         const error = await response.json();
         alert('Error updating username: ' + error.error);
@@ -772,7 +769,6 @@ const AdminPanel = () => {
       if (response.ok) {
         setEditingCompany({ ...editingCompany, [userId]: false });
         await fetchUsers();
-        alert('Company successfully updated');
       } else {
         const error = await response.json();
         alert('Error updating company: ' + error.error);
@@ -837,7 +833,6 @@ const AdminPanel = () => {
         setShowPasswordModal(false);
         setNewPassword('');
         setPasswordError('');
-        alert('Password successfully updated');
       } else {
         const error = await response.json();
         setPasswordError(error.error);
@@ -912,7 +907,6 @@ const AdminPanel = () => {
         setShowEditFileModal(false);
         setEditingFile(null);
         await fetchFiles();
-        alert('File data successfully updated');
       } else {
         const error = await response.json();
         let errorMessage = error.error;
@@ -1005,7 +999,6 @@ const AdminPanel = () => {
             message += `\n... and ${errorMessages.length - 3} more errors`;
           }
         }
-        alert(message);
         setShowLabelPopup(false);
         setUploadedFiles([]);
         setFileLabels({});
@@ -2256,33 +2249,49 @@ const AdminPanel = () => {
         {/* Label Popup Modal for newly uploaded files */}
         {showLabelPopup && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-xl">
               <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-semibold text-byght-gray">
-                    Add Labels to Uploaded Files
-                  </h3>
+                {/* Header */}
+                <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                  <div>
+                    <h3 className="text-xl font-semibold text-byght-gray">
+                      Add Labels to Files
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} uploaded successfully
+                    </p>
+                  </div>
                   <button
                     onClick={handleSkipLabels}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Skip labeling"
                   >
                     <X size={24} />
                   </button>
                 </div>
 
-                {/* Bulk Label Assignment */}
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <h4 className="text-sm font-semibold text-byght-gray mb-3">Apply to All Files</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                {/* Quick Label All Section */}
+                <div className="mb-6 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-base font-semibold text-byght-gray flex items-center">
+                      <span className="w-2 h-2 bg-byght-turquoise rounded-full mr-2"></span>
+                      Quick Label All Files
+                    </h4>
+                    <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full">
+                      Optional
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Product
                       </label>
                       <select
                         id="bulk-product"
-                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-byght-turquoise focus:border-transparent transition-all"
                       >
-                        <option value=""></option>
+                        <option value="">Select product...</option>
                         <option value="IMS SmartKit">IMS SmartKit</option>
                         <option value="ISMS SmartKit">ISMS SmartKit</option>
                         <option value="DPMS/DSMS SmartKit">DPMS/DSMS SmartKit</option>
@@ -2293,13 +2302,13 @@ const AdminPanel = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Version
                       </label>
                       <input
                         type="text"
                         id="bulk-version"
-                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-byght-turquoise focus:border-transparent transition-all"
                         placeholder="e.g. 1.2.3"
                         onChange={(e) => {
                           const value = e.target.value.replace(/[^0-9.]/g, '');
@@ -2309,41 +2318,47 @@ const AdminPanel = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Language
                       </label>
                       <select
                         id="bulk-language"
-                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-byght-turquoise focus:border-transparent transition-all"
                       >
-                        <option value=""></option>
-                        <option value="EN">EN</option>
-                        <option value="DE">DE</option>
-                        <option value="EN/DE">EN/DE</option>
+                        <option value="">Select language...</option>
+                        <option value="EN">English</option>
+                        <option value="DE">German</option>
+                        <option value="EN/DE">English/German</option>
                         <option value="other">Other</option>
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Confluence
                       </label>
                       <select
                         id="bulk-confluence"
-                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-byght-turquoise focus:border-transparent transition-all"
                       >
-                        <option value=""></option>
+                        <option value="">Select type...</option>
                         <option value="Cloud">Cloud</option>
                         <option value="Server">Server</option>
                       </select>
                     </div>
                   </div>
+                  
                   <button
                     onClick={() => {
                       const product = document.getElementById('bulk-product').value;
                       const version = document.getElementById('bulk-version').value;
                       const language = document.getElementById('bulk-language').value;
                       const confluence = document.getElementById('bulk-confluence').value;
+                      
+                      if (!product && !version && !language && !confluence) {
+                        alert('Please select at least one label to apply to all files.');
+                        return;
+                      }
                       
                       const newFileLabels = { ...fileLabels };
                       uploadedFiles.forEach(file => {
@@ -2356,117 +2371,158 @@ const AdminPanel = () => {
                         if (confluence) newFileLabels[file.id].confluenceLabel = confluence;
                       });
                       setFileLabels(newFileLabels);
+                      
+                      // Clear bulk inputs
+                      document.getElementById('bulk-product').value = '';
+                      document.getElementById('bulk-version').value = '';
+                      document.getElementById('bulk-language').value = '';
+                      document.getElementById('bulk-confluence').value = '';
                     }}
-                    className="text-sm px-3 py-1 bg-byght-turquoise hover:bg-byght-turquoise/80 text-white rounded-md transition-colors"
+                    className="w-full sm:w-auto px-6 py-2 bg-gradient-to-r from-byght-turquoise to-blue-500 hover:from-byght-turquoise/90 hover:to-blue-500/90 text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                   >
                     Apply to All Files
                   </button>
                 </div>
                 
-                <div className="max-h-[60vh] overflow-y-auto space-y-4">
-                  {uploadedFiles.map((file) => (
-                    <div key={file.id} className="border border-gray-200 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-lg flex items-center justify-center">
-                            <FileText className="w-4 h-4 text-white" />
+                {/* Individual Files Section */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-base font-semibold text-byght-gray flex items-center">
+                      <span className="w-2 h-2 bg-orange-400 rounded-full mr-2"></span>
+                      Individual File Labels
+                    </h4>
+                    <span className="text-xs text-gray-500">
+                      Customize labels for each file
+                    </span>
+                  </div>
+                  
+                  <div className="max-h-[50vh] overflow-y-auto space-y-3 pr-2">
+                    {uploadedFiles.map((file, index) => (
+                      <div key={file.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                        {/* File Header */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-lg flex items-center justify-center shadow-sm">
+                              <FileText className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-semibold text-byght-gray truncate max-w-xs" title={file.filename}>
+                                {file.filename}
+                              </h4>
+                              <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                            </div>
                           </div>
+                          <span className="text-xs text-gray-400 bg-white px-2 py-1 rounded-full border">
+                            {index + 1} of {uploadedFiles.length}
+                          </span>
+                        </div>
+                        
+                        {/* Labels Grid */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                           <div>
-                            <h4 className="text-sm font-semibold text-byght-gray">{file.filename}</h4>
-                            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                              Product
+                            </label>
+                            <select
+                              value={fileLabels[file.id]?.productLabel || ''}
+                              onChange={(e) => handleLabelChange(file.id, 'productLabel', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-byght-turquoise focus:border-transparent bg-white transition-all"
+                            >
+                              <option value="">Select...</option>
+                              <option value="IMS SmartKit">IMS SmartKit</option>
+                              <option value="ISMS SmartKit">ISMS SmartKit</option>
+                              <option value="DPMS/DSMS SmartKit">DPMS/DSMS SmartKit</option>
+                              <option value="EMS/UMS SmartKit">EMS/UMS SmartKit</option>
+                              <option value="Addon">Addon</option>
+                              <option value="other">Other</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                              Version
+                            </label>
+                            <input
+                              type="text"
+                              value={fileLabels[file.id]?.versionLabel || ''}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^0-9.]/g, '');
+                                handleLabelChange(file.id, 'versionLabel', value);
+                              }}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-byght-turquoise focus:border-transparent bg-white transition-all"
+                              placeholder="1.2.3"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                              Language
+                            </label>
+                            <select
+                              value={fileLabels[file.id]?.languageLabel || ''}
+                              onChange={(e) => handleLabelChange(file.id, 'languageLabel', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-byght-turquoise focus:border-transparent bg-white transition-all"
+                            >
+                              <option value="">Select...</option>
+                              <option value="EN">English</option>
+                              <option value="DE">German</option>
+                              <option value="EN/DE">English/German</option>
+                              <option value="other">Other</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                              Confluence
+                            </label>
+                            <select
+                              value={fileLabels[file.id]?.confluenceLabel || ''}
+                              onChange={(e) => handleLabelChange(file.id, 'confluenceLabel', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-byght-turquoise focus:border-transparent bg-white transition-all"
+                            >
+                              <option value="">Select...</option>
+                              <option value="Cloud">Cloud</option>
+                              <option value="Server">Server</option>
+                            </select>
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Product
-                          </label>
-                          <select
-                            value={fileLabels[file.id]?.productLabel || ''}
-                            onChange={(e) => handleLabelChange(file.id, 'productLabel', e.target.value)}
-                            className="input-field"
-                          >
-                            <option value=""></option>
-                            <option value="IMS SmartKit">IMS SmartKit</option>
-                            <option value="ISMS SmartKit">ISMS SmartKit</option>
-                            <option value="DPMS/DSMS SmartKit">DPMS/DSMS SmartKit</option>
-                            <option value="EMS/UMS SmartKit">EMS/UMS SmartKit</option>
-                            <option value="Addon">Addon</option>
-                            <option value="other">Other</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Version
-                          </label>
-                          <input
-                            type="text"
-                            value={fileLabels[file.id]?.versionLabel || ''}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/[^0-9.]/g, '');
-                              handleLabelChange(file.id, 'versionLabel', value);
-                            }}
-                            className="input-field"
-                            placeholder="e.g. 1.2.3"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Language
-                          </label>
-                          <select
-                            value={fileLabels[file.id]?.languageLabel || ''}
-                            onChange={(e) => handleLabelChange(file.id, 'languageLabel', e.target.value)}
-                            className="input-field"
-                          >
-                            <option value=""></option>
-                            <option value="EN">EN</option>
-                            <option value="DE">DE</option>
-                            <option value="EN/DE">EN/DE</option>
-                            <option value="other">Other</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Confluence
-                          </label>
-                          <select
-                            value={fileLabels[file.id]?.confluenceLabel || ''}
-                            onChange={(e) => handleLabelChange(file.id, 'confluenceLabel', e.target.value)}
-                            className="input-field"
-                          >
-                            <option value=""></option>
-                            <option value="Cloud">Cloud</option>
-                            <option value="Server">Server</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
                 
-                <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
-                  <button
-                    onClick={handleSkipLabels}
-                    className="btn-secondary"
-                  >
-                    Skip
-                  </button>
-                  <div className="flex gap-2">
-                    <span className="text-sm text-gray-500 self-center">
-                      {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} uploaded
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-6 border-t-2 border-gray-100">
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span>
+                      {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} ready to be labeled
                     </span>
+                  </div>
+                  
+                  <div className="flex gap-3 w-full sm:w-auto">
+                    <button
+                      onClick={handleSkipLabels}
+                      className="flex-1 sm:flex-none px-6 py-2.5 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
+                    >
+                      Skip Labeling
+                    </button>
                     <button
                       onClick={handleSaveLabels}
                       disabled={savingLabels}
-                      className="btn-primary"
+                      className="flex-1 sm:flex-none px-8 py-2.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center min-w-[140px]"
                     >
-                      {savingLabels ? 'Saving...' : 'Save Labels'}
+                      {savingLabels ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Saving...
+                        </>
+                      ) : (
+                        'Save & Continue'
+                      )}
                     </button>
                   </div>
                 </div>

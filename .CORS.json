@@ -1,32 +1,25 @@
-{
-  "CORSRules": [
-    {
+[
+  {
       "AllowedHeaders": [
-        "*"
+          "*"
       ],
       "AllowedMethods": [
-        "GET",
-        "PUT",
-        "POST",
-        "DELETE",
-        "HEAD",
-        "OPTIONS"
+          "GET",
+          "PUT",
+          "POST",
+          "DELETE",
+          "HEAD"
       ],
       "AllowedOrigins": [
-        "https://portal-byght-io.netlify.app",
-        "https://portal.byght.io",
-        "http://localhost:5173",
-        "http://localhost:3000"
+          "https://portal-byght-io.netlify.app",
+          "https://portal.byght.io"
       ],
       "ExposeHeaders": [
-        "ETag",
-        "Content-Length",
-        "Content-Type",
-        "Last-Modified",
-        "x-amz-version-id",
-        "x-amz-delete-marker"
+          "ETag",
+          "Content-Length",
+          "Content-Type",
+          "Last-Modified"
       ],
       "MaxAgeSeconds": 3600
-    }
-  ]
-}
+  }
+]
