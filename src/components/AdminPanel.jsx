@@ -1485,27 +1485,17 @@ const AdminPanel = () => {
           </div>
         ) : activeTab === 'users' ? (
           <div className="space-y-6">
-            {/* User Creation Button */}
+            {/* Users List */}
             <div className="card">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-byght-gray">Manage Users</h2>
                 <button
                   onClick={() => setShowNewUserModal(true)}
-                  className="btn-secondary flex items-center whitespace-nowrap py-3 px-6"
+                  className="bg-byght-turquoise hover:bg-byght-turquoise/90 text-white px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors"
                 >
-                  <Plus size={18} />
-                  <span className="ml-2">Create New User</span>
+                  <Plus size={14} />
+                  Create User
                 </button>
-              </div>
-            </div>
-
-            {/* Users List */}
-            <div className="card">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-byght-gray">Manage Users</h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">{filteredUsers.length} of {users.length} users</span>
-                </div>
               </div>
 
               {/* User Search */}
@@ -1797,6 +1787,11 @@ const AdminPanel = () => {
                   </table>
                 </div>
               )}
+              
+              {/* User count display */}
+              <div className="mt-4 pt-3 border-t border-gray-200 flex justify-center">
+                <span className="text-sm text-gray-600">{filteredUsers.length} of {users.length} users</span>
+              </div>
             </div>
           </div>
         ) : null}
