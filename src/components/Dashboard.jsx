@@ -96,6 +96,30 @@ const Dashboard = () => {
     });
   };
 
+  const truncateFilename = (filename, maxLength = 35) => {
+    if (filename.length <= maxLength) return filename;
+    
+    // Find the last dot to preserve file extension
+    const lastDotIndex = filename.lastIndexOf('.');
+    if (lastDotIndex === -1) {
+      // No extension, just truncate
+      return filename.substring(0, maxLength - 3) + '...';
+    }
+    
+    const extension = filename.substring(lastDotIndex);
+    const nameWithoutExtension = filename.substring(0, lastDotIndex);
+    
+    // Calculate how much space we have for the name part
+    const availableSpace = maxLength - extension.length - 3; // 3 for "..."
+    
+    if (availableSpace <= 0) {
+      // Extension is too long, just truncate everything
+      return filename.substring(0, maxLength - 3) + '...';
+    }
+    
+    return nameWithoutExtension.substring(0, availableSpace) + '...' + extension;
+  };
+
 
 
   const toggleFaq = (faqId) => {
@@ -302,9 +326,6 @@ const Dashboard = () => {
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                               Size
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">
-                              Date
-                            </th>
                             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Actions
                             </th>
@@ -319,7 +340,12 @@ const Dashboard = () => {
                                     <FileText className="h-4 w-4 text-byght-turquoise" />
                                   </div>
                                   <div>
-                                    <div className="text-sm font-medium text-byght-gray">{file.filename}</div>
+                                    <div 
+                                      className="text-sm font-medium text-byght-gray" 
+                                      title={file.filename}
+                                    >
+                                      {truncateFilename(file.filename)}
+                                    </div>
                                     <div className="lg:hidden text-xs text-gray-500 mt-1">
                                       {[file.productLabel, file.versionLabel, file.languageLabel, file.confluenceLabel].filter(Boolean).join(' • ')}
                                     </div>
@@ -352,19 +378,13 @@ const Dashboard = () => {
                                   {formatFileSize(file.size)}
                                 </div>
                               </td>
-                              <td className="px-4 py-3 whitespace-nowrap hidden xl:table-cell">
-                                <div className="flex items-center text-sm text-gray-600">
-                                  <Calendar className="h-3 w-3 text-gray-400 mr-1" />
-                                  {formatDate(file.uploadedAt)}
-                                </div>
-                              </td>
                               <td className="px-4 py-3 whitespace-nowrap text-right">
                                 <button
                                   onClick={() => handleDownload(file.id, file.filename, file.size)}
-                                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-byght-turquoise hover:bg-byght-turquoise/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-byght-turquoise transition-colors"
+                                  className="text-blue-600 hover:text-blue-800 transition-colors p-1"
+                                  title="Download"
                                 >
-                                  <Download size={14} className="mr-1" />
-                                  <span className="hidden sm:inline">Download</span>
+                                  <Download size={14} />
                                 </button>
                               </td>
                             </tr>
