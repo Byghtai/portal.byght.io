@@ -3,9 +3,6 @@ import { getFileById, hasFileAccess } from './db.js';
 import S3Storage from './s3-storage.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is not set');
-}
 
 export default async (req, context) => {
   if (req.method !== 'GET') {
@@ -17,6 +14,14 @@ export default async (req, context) => {
 
   try {
     console.log('Download function called');
+    
+    // JWT_SECRET prüfen
+    if (!JWT_SECRET) {
+      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     
     // Token verifizieren
     const authHeader = req.headers.get('authorization');
@@ -53,7 +58,19 @@ export default async (req, context) => {
     console.log(`Attempting to download file ID: ${fileId}`);
 
     // Datei-Metadaten aus der Datenbank abrufen
-    const fileMetadata = await getFileById(fileId);
+    let fileMetadata;
+    try {
+      fileMetadata = await getFileById(fileId);
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return new Response(JSON.stringify({ 
+        error: 'Database connection failed',
+        details: dbError.message
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     
     if (!fileMetadata) {
       console.log(`File not found in database: ${fileId}`);
@@ -67,7 +84,20 @@ export default async (req, context) => {
     console.log(`Blob key: ${fileMetadata.blobKey || 'NULL/UNDEFINED'}`);
 
     // Prüfen ob Benutzer Zugriff hat
-    const hasAccess = await hasFileAccess(decoded.userId, fileId);
+    let hasAccess;
+    try {
+      hasAccess = await hasFileAccess(decoded.userId, fileId);
+    } catch (accessError) {
+      console.error('Access check error:', accessError);
+      return new Response(JSON.stringify({ 
+        error: 'Access check failed',
+        details: accessError.message
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
     if (!hasAccess && !decoded.isAdmin) {
       console.log(`Access denied for user ${decoded.userId} to file ${fileId}`);
       return new Response(JSON.stringify({ error: 'Access denied' }), {
@@ -97,6 +127,22 @@ export default async (req, context) => {
     console.log('Generating presigned download URL');
     try {
       const s3Storage = new S3Storage();
+      
+      // Test S3 connection first
+      try {
+        await s3Storage.testConnection();
+        console.log('S3 connection test successful');
+      } catch (connectionError) {
+        console.error('S3 connection test failed:', connectionError);
+        return new Response(JSON.stringify({ 
+          error: 'S3 connection failed',
+          details: connectionError.message
+        }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      
       const signedUrl = await s3Storage.getSignedDownloadUrl(fileMetadata.blobKey, 3600); // 1 hour expiry
       
       return new Response(JSON.stringify({
