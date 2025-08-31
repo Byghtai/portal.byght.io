@@ -2249,7 +2249,7 @@ const AdminPanel = () => {
         {/* Label Popup Modal for newly uploaded files */}
         {showLabelPopup && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-xl">
+            <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-xl">
               <div className="p-6">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
@@ -2276,16 +2276,29 @@ const AdminPanel = () => {
                     <table className="w-full border-collapse bg-white rounded-lg overflow-hidden shadow-sm">
                       <thead>
                         <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700 border-b border-gray-200">
+                          <th className="text-left px-3 py-2 font-medium text-xs text-gray-700 border-b border-gray-200">
                             File
                           </th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700 border-b border-gray-200 min-w-[160px]">
-                            <div className="flex flex-col space-y-2">
+                          <th className="text-left px-3 py-2 font-medium text-xs text-gray-700 border-b border-gray-200 min-w-[140px]">
+                            <div className="flex flex-col space-y-1.5">
                               <span>Product</span>
                               <select
                                 id="bulk-product"
                                 className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
-                                title="Apply to all files"
+                                title="Auto-apply to all files"
+                                onChange={(e) => {
+                                  const product = e.target.value;
+                                  if (product) {
+                                    const newFileLabels = { ...fileLabels };
+                                    uploadedFiles.forEach(file => {
+                                      if (!newFileLabels[file.id]) {
+                                        newFileLabels[file.id] = {};
+                                      }
+                                      newFileLabels[file.id].productLabel = product;
+                                    });
+                                    setFileLabels(newFileLabels);
+                                  }
+                                }}
                               >
                                 <option value="">Quick select...</option>
                                 <option value="IMS SmartKit">IMS SmartKit</option>
@@ -2297,29 +2310,52 @@ const AdminPanel = () => {
                               </select>
                             </div>
                           </th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700 border-b border-gray-200 min-w-[120px]">
-                            <div className="flex flex-col space-y-2">
+                          <th className="text-left px-3 py-2 font-medium text-xs text-gray-700 border-b border-gray-200 min-w-[100px]">
+                            <div className="flex flex-col space-y-1.5">
                               <span>Version</span>
                               <input
                                 type="text"
                                 id="bulk-version"
                                 className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
                                 placeholder="e.g. 1.2.3"
-                                title="Apply to all files"
+                                title="Auto-apply to all files"
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   e.target.value = value;
+                                  if (value) {
+                                    const newFileLabels = { ...fileLabels };
+                                    uploadedFiles.forEach(file => {
+                                      if (!newFileLabels[file.id]) {
+                                        newFileLabels[file.id] = {};
+                                      }
+                                      newFileLabels[file.id].versionLabel = value;
+                                    });
+                                    setFileLabels(newFileLabels);
+                                  }
                                 }}
                               />
                             </div>
                           </th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700 border-b border-gray-200 min-w-[120px]">
-                            <div className="flex flex-col space-y-2">
+                          <th className="text-left px-3 py-2 font-medium text-xs text-gray-700 border-b border-gray-200 min-w-[100px]">
+                            <div className="flex flex-col space-y-1.5">
                               <span>Language</span>
                               <select
                                 id="bulk-language"
                                 className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
-                                title="Apply to all files"
+                                title="Auto-apply to all files"
+                                onChange={(e) => {
+                                  const language = e.target.value;
+                                  if (language) {
+                                    const newFileLabels = { ...fileLabels };
+                                    uploadedFiles.forEach(file => {
+                                      if (!newFileLabels[file.id]) {
+                                        newFileLabels[file.id] = {};
+                                      }
+                                      newFileLabels[file.id].languageLabel = language;
+                                    });
+                                    setFileLabels(newFileLabels);
+                                  }
+                                }}
                               >
                                 <option value="">Quick select...</option>
                                 <option value="EN">English</option>
@@ -2329,13 +2365,26 @@ const AdminPanel = () => {
                               </select>
                             </div>
                           </th>
-                          <th className="text-left px-4 py-3 font-semibold text-gray-700 border-b border-gray-200 min-w-[120px]">
-                            <div className="flex flex-col space-y-2">
+                          <th className="text-left px-3 py-2 font-medium text-xs text-gray-700 border-b border-gray-200 min-w-[100px]">
+                            <div className="flex flex-col space-y-1.5">
                               <span>Confluence</span>
                               <select
                                 id="bulk-confluence"
                                 className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
-                                title="Apply to all files"
+                                title="Auto-apply to all files"
+                                onChange={(e) => {
+                                  const confluence = e.target.value;
+                                  if (confluence) {
+                                    const newFileLabels = { ...fileLabels };
+                                    uploadedFiles.forEach(file => {
+                                      if (!newFileLabels[file.id]) {
+                                        newFileLabels[file.id] = {};
+                                      }
+                                      newFileLabels[file.id].confluenceLabel = confluence;
+                                    });
+                                    setFileLabels(newFileLabels);
+                                  }
+                                }}
                               >
                                 <option value="">Quick select...</option>
                                 <option value="Cloud">Cloud</option>
@@ -2343,66 +2392,29 @@ const AdminPanel = () => {
                               </select>
                             </div>
                           </th>
-                          <th className="text-center px-4 py-3 font-semibold text-gray-700 border-b border-gray-200 w-16">
-                            <button
-                              onClick={() => {
-                                const product = document.getElementById('bulk-product').value;
-                                const version = document.getElementById('bulk-version').value;
-                                const language = document.getElementById('bulk-language').value;
-                                const confluence = document.getElementById('bulk-confluence').value;
-                                
-                                if (!product && !version && !language && !confluence) {
-                                  alert('Please select at least one label to apply to all files.');
-                                  return;
-                                }
-                                
-                                const newFileLabels = { ...fileLabels };
-                                uploadedFiles.forEach(file => {
-                                  if (!newFileLabels[file.id]) {
-                                    newFileLabels[file.id] = {};
-                                  }
-                                  if (product) newFileLabels[file.id].productLabel = product;
-                                  if (version) newFileLabels[file.id].versionLabel = version;
-                                  if (language) newFileLabels[file.id].languageLabel = language;
-                                  if (confluence) newFileLabels[file.id].confluenceLabel = confluence;
-                                });
-                                setFileLabels(newFileLabels);
-                                
-                                // Clear bulk inputs
-                                document.getElementById('bulk-product').value = '';
-                                document.getElementById('bulk-version').value = '';
-                                document.getElementById('bulk-language').value = '';
-                                document.getElementById('bulk-confluence').value = '';
-                              }}
-                              className="px-3 py-1 bg-byght-turquoise hover:bg-byght-turquoise/80 text-white text-xs rounded transition-colors"
-                              title="Apply selected values to all files"
-                            >
-                              Apply All
-                            </button>
-                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {uploadedFiles.map((file, index) => (
                           <tr key={file.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
-                            <td className="px-4 py-3 border-b border-gray-100">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-lg flex items-center justify-center shadow-sm">
-                                  <FileText className="w-4 h-4 text-white" />
+                            <td className="px-3 py-2 border-b border-gray-100">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-6 h-6 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-md flex items-center justify-center shadow-sm">
+                                  <FileText className="w-3 h-3 text-white" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <h4 className="text-sm font-medium text-gray-900 truncate" title={file.filename}>
+                                  <h4 className="text-xs font-medium text-gray-900 truncate" title={file.filename}>
                                     {file.filename}
                                   </h4>
                                   <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-3 border-b border-gray-100">
+                            <td className="px-3 py-2 border-b border-gray-100">
                               <select
                                 value={fileLabels[file.id]?.productLabel || ''}
                                 onChange={(e) => handleLabelChange(file.id, 'productLabel', e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
                               >
                                 <option value="">Select...</option>
                                 <option value="IMS SmartKit">IMS SmartKit</option>
@@ -2413,7 +2425,7 @@ const AdminPanel = () => {
                                 <option value="other">Other</option>
                               </select>
                             </td>
-                            <td className="px-4 py-3 border-b border-gray-100">
+                            <td className="px-3 py-2 border-b border-gray-100">
                               <input
                                 type="text"
                                 value={fileLabels[file.id]?.versionLabel || ''}
@@ -2421,15 +2433,15 @@ const AdminPanel = () => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   handleLabelChange(file.id, 'versionLabel', value);
                                 }}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
                                 placeholder="1.2.3"
                               />
                             </td>
-                            <td className="px-4 py-3 border-b border-gray-100">
+                            <td className="px-3 py-2 border-b border-gray-100">
                               <select
                                 value={fileLabels[file.id]?.languageLabel || ''}
                                 onChange={(e) => handleLabelChange(file.id, 'languageLabel', e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
                               >
                                 <option value="">Select...</option>
                                 <option value="EN">English</option>
@@ -2438,21 +2450,16 @@ const AdminPanel = () => {
                                 <option value="other">Other</option>
                               </select>
                             </td>
-                            <td className="px-4 py-3 border-b border-gray-100">
+                            <td className="px-3 py-2 border-b border-gray-100">
                               <select
                                 value={fileLabels[file.id]?.confluenceLabel || ''}
                                 onChange={(e) => handleLabelChange(file.id, 'confluenceLabel', e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
                               >
                                 <option value="">Select...</option>
                                 <option value="Cloud">Cloud</option>
                                 <option value="Server">Server</option>
                               </select>
-                            </td>
-                            <td className="px-4 py-3 border-b border-gray-100 text-center">
-                              <span className="text-xs text-gray-400">
-                                {index + 1}
-                              </span>
                             </td>
                           </tr>
                         ))}
