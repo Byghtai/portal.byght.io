@@ -23,14 +23,10 @@ const Dashboard = () => {
     fetchUserFiles();
   }, []);
 
-  const fetchUserFiles = async (syncWithS3 = false) => {
+  const fetchUserFiles = async () => {
     try {
       const token = Cookies.get('auth_token');
-      const endpoint = syncWithS3 
-        ? '/.netlify/functions/files-list-s3?sync=true'
-        : '/.netlify/functions/files-list';
-      
-      const response = await fetch(endpoint, {
+      const response = await fetch('/.netlify/functions/files-list', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -42,10 +38,6 @@ const Dashboard = () => {
 
       const data = await response.json();
       setFiles(data.files || []);
-      
-      if (data.synced) {
-        console.log('Files synchronized with S3 at:', data.syncTime);
-      }
     } catch (error) {
       setError(error.message);
     } finally {
@@ -64,27 +56,7 @@ const Dashboard = () => {
       // Zeige Download-Status (optional)
       console.log(`Starte Download: ${filename}`);
       
-      // Optional: Test download functionality first
-      if (process.env.NODE_ENV === 'development') {
-        try {
-          console.log('Testing download functionality...');
-          const testResponse = await fetch(`/.netlify/functions/test-download?fileId=${fileId}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-          
-          if (testResponse.ok) {
-            const testData = await testResponse.json();
-            console.log('Download test successful:', testData);
-          } else {
-            const testError = await testResponse.json();
-            console.warn('Download test failed:', testError);
-          }
-        } catch (testError) {
-          console.warn('Download test error:', testError);
-        }
-      }
+
       
       // Download über S3 Presigned URL
       const success = await downloadFileFromS3(fileId, filename, token);

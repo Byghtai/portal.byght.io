@@ -241,6 +241,45 @@ class S3Storage {
   }
 
   /**
+   * Generate a presigned URL for deleting files
+   * Allows secure file deletion through presigned URLs
+   */
+  async getSignedDeleteUrl(key, expiresIn = 300) {
+    try {
+      if (!key) {
+        throw new Error('No S3 key provided for signed delete URL generation');
+      }
+      
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      });
+
+      // Generate presigned URL for DELETE operation
+      const url = await getSignedUrl(this.client, command, {
+        expiresIn
+      });
+
+      return url;
+    } catch (error) {
+      console.error('S3 signed delete URL error:', error);
+      
+      // Provide more specific error messages for debugging
+      if (error.name === 'InvalidAccessKeyId') {
+        throw new Error('Invalid AWS access key ID - check AWS access key environment variable');
+      } else if (error.name === 'SignatureDoesNotMatch') {
+        throw new Error('AWS signature verification failed - check AWS secret key environment variable');
+      } else if (error.name === 'NoSuchBucket') {
+        throw new Error('S3 bucket not found - check S3 bucket name environment variable');
+      } else if (error.name === 'AccessDenied') {
+        throw new Error('Access denied to S3 bucket - check IAM permissions');
+      } else {
+        throw new Error(`S3 presigned delete URL generation failed: ${error.message}`);
+      }
+    }
+  }
+
+  /**
    * Test S3 connectivity and permissions
    */
   async testConnection() {

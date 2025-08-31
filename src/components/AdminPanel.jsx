@@ -50,7 +50,6 @@ const AdminPanel = () => {
   const [loadingUserFiles, setLoadingUserFiles] = useState({});
   const [editingExpiryDate, setEditingExpiryDate] = useState({});
   const [updatingExpiryDate, setUpdatingExpiryDate] = useState({});
-  const [cleaningUp, setCleaningUp] = useState(false);
   
   // New states for inline editing
   const [editingUsername, setEditingUsername] = useState({});
@@ -141,16 +140,7 @@ const AdminPanel = () => {
         // Load files for all users
         await fetchAllUserFiles(data.users || []);
         
-        // Test customer data
-        try {
-          const testResponse = await fetch('/.netlify/functions/test-customer-data');
-          if (testResponse.ok) {
-            const testData = await testResponse.json();
-            console.log('Customer data test:', testData);
-          }
-        } catch (error) {
-          console.error('Error testing customer data:', error);
-        }
+
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -526,6 +516,8 @@ const AdminPanel = () => {
     setDeletingFile(fileId);
     try {
       const token = Cookies.get('auth_token');
+      
+      // Step 1: Call admin-delete-file to delete from database and get presigned delete URL
       const response = await fetch('/.netlify/functions/admin-delete-file', {
         method: 'DELETE',
         headers: {
@@ -537,24 +529,26 @@ const AdminPanel = () => {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Deletion successful:', result);
+        console.log('Database deletion successful:', result);
         
-        // Show debug information
-        if (result.debugInfo) {
-          console.log('Debug-Info:', {
-            'Blob existed before': result.debugInfo.blobExistedBefore,
-            'Blob exists after': result.debugInfo.blobExistsAfter,
-            'Blob was deleted': result.debugInfo.blobDeleted
-          });
-        }
-        
-        // Show success feedback
-        if (result.blobDeleted) {
-          console.log(`✅ File ${result.fileId} and blob ${result.blobKey} were successfully deleted`);
-        } else if (result.debugInfo?.blobExistedBefore) {
-          console.error(`⚠️ File ${result.fileId} was deleted from DB, but blob ${result.blobKey} could not be deleted!`);
+        // Step 2: If we got a presigned delete URL, use it to delete from S3
+        if (result.s3DeleteUrl) {
+          console.log('Deleting file from S3 using presigned URL...');
+          try {
+            const s3DeleteResponse = await fetch(result.s3DeleteUrl, {
+              method: 'DELETE',
+            });
+            
+            if (s3DeleteResponse.ok || s3DeleteResponse.status === 204) {
+              console.log(`✅ File ${result.fileId} and S3 object ${result.blobKey} were successfully deleted`);
+            } else {
+              console.error(`⚠️ File ${result.fileId} was deleted from DB, but S3 deletion failed with status: ${s3DeleteResponse.status}`);
+            }
+          } catch (s3Error) {
+            console.error(`⚠️ File ${result.fileId} was deleted from DB, but S3 deletion failed:`, s3Error);
+          }
         } else {
-          console.warn(`ℹ️ File ${result.fileId} was deleted from DB (no blob present)`);
+          console.log(`ℹ️ File ${result.fileId} was deleted from DB (no S3 file to delete)`);
         }
         
         fetchFiles();
@@ -569,33 +563,7 @@ const AdminPanel = () => {
     }
   };
 
-  const handleCleanupOrphanedFiles = async () => {
-    if (!confirm('Do you really want to clean up all orphaned files from blob storage? This action cannot be undone.')) return;
-    
-    setCleaningUp(true);
-    try {
-      const token = Cookies.get('auth_token');
-      const response = await fetch('/.netlify/functions/admin-cleanup-orphaned-files', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (response.ok) {
-        const result = await response.json();
-        alert(`Cleanup completed!\n\nDeleted files: ${result.deletedCount}\nOrphaned files found: ${result.totalOrphaned}${result.errors ? '\n\nErrors occurred: ' + result.errors.length : ''}`);
-      } else {
-        const error = await response.json();
-        alert('Error during cleanup: ' + error.error);
-      }
-    } catch (error) {
-      alert('Error during cleanup: ' + error.message);
-    } finally {
-      setCleaningUp(false);
-    }
-  };
 
 
 
@@ -1314,14 +1282,6 @@ const AdminPanel = () => {
                 <h2 className="text-lg font-semibold text-byght-gray">Uploaded Files</h2>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-600">{filteredFiles.length} of {files.length} file(s)</span>
-                  <button
-                    onClick={handleCleanupOrphanedFiles}
-                    disabled={cleaningUp}
-                    className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Clean up orphaned files from blob storage"
-                  >
-                    {cleaningUp ? 'Cleaning...' : 'Clean blobs'}
-                  </button>
                 </div>
               </div>
 

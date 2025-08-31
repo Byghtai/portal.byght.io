@@ -67,80 +67,34 @@ export default async (req, context) => {
     
     console.log(`Starting deletion of file ${fileId} with blob key: ${blobKey}`);
     
-    // Delete file from S3 storage (BEFORE DB deletion)
-    let s3DeletionSuccess = false;
+    // Generate presigned delete URL for S3 file deletion
+    let s3DeleteUrl = null;
     let fileExistedBefore = false;
     
     if (blobKey) {
       try {
         const s3Storage = new S3Storage();
-        console.log(`Attempting to delete file from S3: ${blobKey}`);
+        console.log(`Preparing presigned delete URL for file: ${blobKey}`);
         
-        // Check if file exists before deletion
+        // Check if file exists before generating delete URL
         try {
           fileExistedBefore = await s3Storage.fileExists(blobKey);
-          console.log(`File exists in S3 before deletion: ${fileExistedBefore}`);
+          console.log(`File exists in S3: ${fileExistedBefore}`);
         } catch (e) {
-          console.log(`File does not exist in S3 before deletion: ${blobKey}`);
+          console.log(`File does not exist in S3: ${blobKey}`);
           fileExistedBefore = false;
         }
         
-        // Delete file from S3 with improved error handling
+        // Generate presigned delete URL if file exists
         if (fileExistedBefore) {
-          console.log(`Attempting to delete file from S3: ${blobKey}`);
-          
           try {
-            // Direct deletion without retry logic initially
-            await s3Storage.deleteFile(blobKey);
-            console.log(`S3 deletion command sent for: ${blobKey}`);
-            
-            // Wait a moment for S3 eventual consistency
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Verify deletion
-            try {
-              const stillExists = await s3Storage.fileExists(blobKey);
-              if (!stillExists) {
-                s3DeletionSuccess = true;
-                console.log(`✅ File successfully deleted from S3: ${blobKey}`);
-              } else {
-                // File still exists, try once more
-                console.log(`⚠️ File still exists, attempting deletion again: ${blobKey}`);
-                await s3Storage.deleteFile(blobKey);
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Final check
-                const finalCheck = await s3Storage.fileExists(blobKey);
-                if (!finalCheck) {
-                  s3DeletionSuccess = true;
-                  console.log(`✅ File successfully deleted from S3 on second attempt: ${blobKey}`);
-                } else {
-                  console.error(`❌ File persists in S3 after deletion attempts: ${blobKey}`);
-                }
-              }
-            } catch (verifyError) {
-              // If fileExists throws a 404, the file was successfully deleted
-              if (verifyError.name === 'NotFound' || verifyError.$metadata?.httpStatusCode === 404) {
-                s3DeletionSuccess = true;
-                console.log(`✅ File successfully deleted from S3 (confirmed by 404): ${blobKey}`);
-              } else {
-                console.error(`Error verifying S3 deletion: ${verifyError.message}`);
-              }
-            }
-          } catch (deleteError) {
-            console.error(`Error deleting from S3: ${deleteError.message}`);
-            console.error(`Full error details:`, deleteError);
-            
-            // Check if it's a "not found" error (file already deleted)
-            if (deleteError.name === 'NoSuchKey' || deleteError.$metadata?.httpStatusCode === 404) {
-              s3DeletionSuccess = true;
-              console.log(`File already deleted from S3: ${blobKey}`);
-            }
+            s3DeleteUrl = await s3Storage.getSignedDeleteUrl(blobKey, 300); // 5 minutes expiry
+            console.log(`✅ Generated presigned delete URL for: ${blobKey}`);
+          } catch (deleteUrlError) {
+            console.error(`Error generating presigned delete URL: ${deleteUrlError.message}`);
           }
         } else {
-          // File didn't exist in S3, so mark as "deleted"
-          s3DeletionSuccess = true;
-          console.log(`ℹ️ File did not exist in S3, no deletion necessary: ${blobKey}`);
+          console.log(`ℹ️ File does not exist in S3, no delete URL needed: ${blobKey}`);
         }
         
       } catch (storageError) {
@@ -149,7 +103,6 @@ export default async (req, context) => {
       }
     } else {
       console.warn(`No blob key found for file ${fileId}`);
-      s3DeletionSuccess = true; // No S3 file to delete
     }
     
     // Delete file from database (including all assignments)
@@ -158,17 +111,16 @@ export default async (req, context) => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: s3DeletionSuccess 
-        ? 'File and associated storage data successfully deleted' 
-        : 'File deleted from database, but S3 storage deletion failed',
-      fileDeleted: s3DeletionSuccess,
-      blobKey: blobKey,
+      message: s3DeleteUrl 
+        ? 'File deleted from database. Use presigned URL to delete from S3 storage.' 
+        : 'File deleted from database. No S3 storage deletion needed.',
       fileId: fileId,
-      debugInfo: {
-        fileExistedBefore: fileExistedBefore,
-        s3DeletionSuccess: s3DeletionSuccess,
-        blobKey: blobKey
-      }
+      blobKey: blobKey,
+      s3DeleteUrl: s3DeleteUrl,
+      fileExistedInS3: fileExistedBefore,
+      instructions: s3DeleteUrl 
+        ? 'Use the provided s3DeleteUrl with a DELETE request to remove the file from S3 storage.'
+        : null
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
