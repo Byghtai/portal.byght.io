@@ -2280,11 +2280,12 @@ const AdminPanel = () => {
                             File
                           </th>
                           <th className="text-left px-3 py-2 font-medium text-xs text-gray-700 border-b border-gray-200 min-w-[140px]">
-                            <div className="flex flex-col space-y-1.5">
+                            <div className="flex flex-col space-y-2">
                               <span>Product</span>
+                              <div className="text-xs text-gray-500 font-normal">Quick apply to all:</div>
                               <select
                                 id="bulk-product"
-                                className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
+                                className="text-xs px-2 py-1 border-2 border-byght-turquoise/30 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-byght-turquoise/5"
                                 title="Auto-apply to all files"
                                 onChange={(e) => {
                                   const product = e.target.value;
@@ -2300,7 +2301,7 @@ const AdminPanel = () => {
                                   }
                                 }}
                               >
-                                <option value="">Quick select...</option>
+                                <option value=""></option>
                                 <option value="IMS SmartKit">IMS SmartKit</option>
                                 <option value="ISMS SmartKit">ISMS SmartKit</option>
                                 <option value="DPMS/DSMS SmartKit">DPMS/DSMS SmartKit</option>
@@ -2311,12 +2312,13 @@ const AdminPanel = () => {
                             </div>
                           </th>
                           <th className="text-left px-3 py-2 font-medium text-xs text-gray-700 border-b border-gray-200 min-w-[100px]">
-                            <div className="flex flex-col space-y-1.5">
+                            <div className="flex flex-col space-y-2">
                               <span>Version</span>
+                              <div className="text-xs text-gray-500 font-normal">Quick apply to all:</div>
                               <input
                                 type="text"
                                 id="bulk-version"
-                                className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
+                                className="text-xs px-2 py-1 border-2 border-byght-turquoise/30 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-byght-turquoise/5"
                                 placeholder="e.g. 1.2.3"
                                 title="Auto-apply to all files"
                                 onChange={(e) => {
@@ -2337,11 +2339,12 @@ const AdminPanel = () => {
                             </div>
                           </th>
                           <th className="text-left px-3 py-2 font-medium text-xs text-gray-700 border-b border-gray-200 min-w-[100px]">
-                            <div className="flex flex-col space-y-1.5">
+                            <div className="flex flex-col space-y-2">
                               <span>Language</span>
+                              <div className="text-xs text-gray-500 font-normal">Quick apply to all:</div>
                               <select
                                 id="bulk-language"
-                                className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
+                                className="text-xs px-2 py-1 border-2 border-byght-turquoise/30 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-byght-turquoise/5"
                                 title="Auto-apply to all files"
                                 onChange={(e) => {
                                   const language = e.target.value;
@@ -2357,7 +2360,7 @@ const AdminPanel = () => {
                                   }
                                 }}
                               >
-                                <option value="">Quick select...</option>
+                                <option value=""></option>
                                 <option value="EN">English</option>
                                 <option value="DE">German</option>
                                 <option value="EN/DE">English/German</option>
@@ -2366,11 +2369,12 @@ const AdminPanel = () => {
                             </div>
                           </th>
                           <th className="text-left px-3 py-2 font-medium text-xs text-gray-700 border-b border-gray-200 min-w-[100px]">
-                            <div className="flex flex-col space-y-1.5">
+                            <div className="flex flex-col space-y-2">
                               <span>Confluence</span>
+                              <div className="text-xs text-gray-500 font-normal">Quick apply to all:</div>
                               <select
                                 id="bulk-confluence"
-                                className="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
+                                className="text-xs px-2 py-1 border-2 border-byght-turquoise/30 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-byght-turquoise/5"
                                 title="Auto-apply to all files"
                                 onChange={(e) => {
                                   const confluence = e.target.value;
@@ -2386,7 +2390,7 @@ const AdminPanel = () => {
                                   }
                                 }}
                               >
-                                <option value="">Quick select...</option>
+                                <option value=""></option>
                                 <option value="Cloud">Cloud</option>
                                 <option value="Server">Server</option>
                               </select>
@@ -2416,7 +2420,7 @@ const AdminPanel = () => {
                                 onChange={(e) => handleLabelChange(file.id, 'productLabel', e.target.value)}
                                 className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
                               >
-                                <option value="">Select...</option>
+                                <option value=""></option>
                                 <option value="IMS SmartKit">IMS SmartKit</option>
                                 <option value="ISMS SmartKit">ISMS SmartKit</option>
                                 <option value="DPMS/DSMS SmartKit">DPMS/DSMS SmartKit</option>
@@ -2443,7 +2447,7 @@ const AdminPanel = () => {
                                 onChange={(e) => handleLabelChange(file.id, 'languageLabel', e.target.value)}
                                 className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
                               >
-                                <option value="">Select...</option>
+                                <option value=""></option>
                                 <option value="EN">English</option>
                                 <option value="DE">German</option>
                                 <option value="EN/DE">English/German</option>
@@ -2456,7 +2460,7 @@ const AdminPanel = () => {
                                 onChange={(e) => handleLabelChange(file.id, 'confluenceLabel', e.target.value)}
                                 className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-byght-turquoise bg-white"
                               >
-                                <option value="">Select...</option>
+                                <option value=""></option>
                                 <option value="Cloud">Cloud</option>
                                 <option value="Server">Server</option>
                               </select>
@@ -2487,7 +2491,7 @@ const AdminPanel = () => {
                     <button
                       onClick={handleSaveLabels}
                       disabled={savingLabels}
-                      className="flex-1 sm:flex-none px-8 py-2.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center min-w-[140px]"
+                      className="flex-1 sm:flex-none px-8 py-2.5 bg-[rgb(56,184,189)] hover:bg-[rgb(56,184,189)]/90 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center min-w-[120px]"
                     >
                       {savingLabels ? (
                         <>
@@ -2498,7 +2502,7 @@ const AdminPanel = () => {
                           Saving...
                         </>
                       ) : (
-                        'Save & Continue'
+                        'Save'
                       )}
                     </button>
                   </div>
