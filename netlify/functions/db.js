@@ -757,11 +757,23 @@ export async function getFileById(fileId) {
     console.log(`Fetching file metadata for ID: ${fileId}`);
     
     const result = await client.query(
-      'SELECT id, filename, file_size as size, mime_type as mimeType, blob_key as blobKey FROM files WHERE id = $1',
+      'SELECT id, filename, file_size, mime_type, blob_key FROM files WHERE id = $1',
       [fileId]
     );
     
-    const fileMetadata = result.rows[0] || null;
+    const row = result.rows[0];
+    if (!row) {
+      return null;
+    }
+    
+    // Manual mapping to ensure correct property names
+    const fileMetadata = {
+      id: row.id,
+      filename: row.filename,
+      size: row.file_size,
+      mimeType: row.mime_type,
+      blobKey: row.blob_key
+    };
     
     if (fileMetadata) {
       console.log(`File metadata found:`, {
@@ -769,7 +781,7 @@ export async function getFileById(fileId) {
         filename: fileMetadata.filename,
         size: fileMetadata.size,
         mimeType: fileMetadata.mimeType,
-        blobKey: fileMetadata.blobKey ? `${fileMetadata.blobKey.substring(0, 20)}...` : 'NULL'
+        blobKey: fileMetadata.blobKey || 'NULL'
       });
     } else {
       console.log(`No file found with ID: ${fileId}`);
