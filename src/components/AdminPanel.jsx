@@ -2138,13 +2138,6 @@ const AdminPanel = () => {
                       <option value="Cloud">Cloud</option>
                       <option value="Server">Server</option>
                     </select>
-                    {editFileData.confluenceLabel && (
-                      <div className={`text-xs mt-1 ${
-                        editFileData.confluenceLabel.length > 50 ? 'text-red-600' : 'text-gray-500'
-                      }`}>
-                        {editFileData.confluenceLabel.length}/50 characters
-                      </div>
-                    )}
                   </div>
                 </div>
                 
@@ -2276,25 +2269,118 @@ const AdminPanel = () => {
                     <X size={24} />
                   </button>
                 </div>
+
+                {/* Bulk Label Assignment */}
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h4 className="text-sm font-semibold text-byght-gray mb-3">Apply to All Files</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Product
+                      </label>
+                      <select
+                        id="bulk-product"
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                      >
+                        <option value=""></option>
+                        <option value="IMS SmartKit">IMS SmartKit</option>
+                        <option value="ISMS SmartKit">ISMS SmartKit</option>
+                        <option value="DPMS/DSMS SmartKit">DPMS/DSMS SmartKit</option>
+                        <option value="EMS/UMS SmartKit">EMS/UMS SmartKit</option>
+                        <option value="Addon">Addon</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Version
+                      </label>
+                      <input
+                        type="text"
+                        id="bulk-version"
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                        placeholder="e.g. 1.2.3"
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9.]/g, '');
+                          e.target.value = value;
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Language
+                      </label>
+                      <select
+                        id="bulk-language"
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                      >
+                        <option value=""></option>
+                        <option value="EN">EN</option>
+                        <option value="DE">DE</option>
+                        <option value="EN/DE">EN/DE</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Confluence
+                      </label>
+                      <select
+                        id="bulk-confluence"
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-byght-turquoise"
+                      >
+                        <option value=""></option>
+                        <option value="Cloud">Cloud</option>
+                        <option value="Server">Server</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const product = document.getElementById('bulk-product').value;
+                      const version = document.getElementById('bulk-version').value;
+                      const language = document.getElementById('bulk-language').value;
+                      const confluence = document.getElementById('bulk-confluence').value;
+                      
+                      const newFileLabels = { ...fileLabels };
+                      uploadedFiles.forEach(file => {
+                        if (!newFileLabels[file.id]) {
+                          newFileLabels[file.id] = {};
+                        }
+                        if (product) newFileLabels[file.id].productLabel = product;
+                        if (version) newFileLabels[file.id].versionLabel = version;
+                        if (language) newFileLabels[file.id].languageLabel = language;
+                        if (confluence) newFileLabels[file.id].confluenceLabel = confluence;
+                      });
+                      setFileLabels(newFileLabels);
+                    }}
+                    className="text-sm px-3 py-1 bg-byght-turquoise hover:bg-byght-turquoise/80 text-white rounded-md transition-colors"
+                  >
+                    Apply to All Files
+                  </button>
+                </div>
                 
-                <div className="max-h-[60vh] overflow-y-auto space-y-6">
+                <div className="max-h-[60vh] overflow-y-auto space-y-4">
                   {uploadedFiles.map((file) => (
-                    <div key={file.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-lg flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-white" />
+                    <div key={file.id} className="border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-gradient-to-r from-[rgb(255,179,0)] to-[rgb(56,184,189)] rounded-lg flex items-center justify-center">
+                            <FileText className="w-4 h-4 text-white" />
                           </div>
                           <div>
-                            <h4 className="font-semibold text-byght-gray">{file.filename}</h4>
-                            <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
+                            <h4 className="text-sm font-semibold text-byght-gray">{file.filename}</h4>
+                            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                         <div>
-                          <label className="block text-sm font-medium text-byght-gray mb-1">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
                             Product
                           </label>
                           <select
@@ -2302,7 +2388,7 @@ const AdminPanel = () => {
                             onChange={(e) => handleLabelChange(file.id, 'productLabel', e.target.value)}
                             className="input-field"
                           >
-                            <option value="">No Product</option>
+                            <option value=""></option>
                             <option value="IMS SmartKit">IMS SmartKit</option>
                             <option value="ISMS SmartKit">ISMS SmartKit</option>
                             <option value="DPMS/DSMS SmartKit">DPMS/DSMS SmartKit</option>
@@ -2313,7 +2399,7 @@ const AdminPanel = () => {
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-byght-gray mb-1">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
                             Version
                           </label>
                           <input
@@ -2329,7 +2415,7 @@ const AdminPanel = () => {
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-byght-gray mb-1">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
                             Language
                           </label>
                           <select
@@ -2337,7 +2423,7 @@ const AdminPanel = () => {
                             onChange={(e) => handleLabelChange(file.id, 'languageLabel', e.target.value)}
                             className="input-field"
                           >
-                            <option value="">No Language</option>
+                            <option value=""></option>
                             <option value="EN">EN</option>
                             <option value="DE">DE</option>
                             <option value="EN/DE">EN/DE</option>
@@ -2346,7 +2432,7 @@ const AdminPanel = () => {
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-byght-gray mb-1">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
                             Confluence
                           </label>
                           <select
@@ -2358,13 +2444,6 @@ const AdminPanel = () => {
                             <option value="Cloud">Cloud</option>
                             <option value="Server">Server</option>
                           </select>
-                          {fileLabels[file.id]?.confluenceLabel && (
-                            <div className={`text-xs mt-1 ${
-                              fileLabels[file.id].confluenceLabel.length > 50 ? 'text-red-600' : 'text-gray-500'
-                            }`}>
-                              {fileLabels[file.id].confluenceLabel.length}/50 characters
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
