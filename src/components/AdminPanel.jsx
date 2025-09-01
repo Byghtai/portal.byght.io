@@ -96,6 +96,12 @@ const AdminPanel = () => {
   const [assignmentFilterLanguage, setAssignmentFilterLanguage] = useState('');
   const [assignmentFilterConfluence, setAssignmentFilterConfluence] = useState('');
 
+  // Confirmation dialog states
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmTitle, setConfirmTitle] = useState('');
+
 
 
 
@@ -510,9 +516,25 @@ const AdminPanel = () => {
     }
   };
 
+  // Helper function to show confirmation dialog
+  const showConfirmation = (title, message, action) => {
+    setConfirmTitle(title);
+    setConfirmMessage(message);
+    setConfirmAction(() => action);
+    setShowConfirmDialog(true);
+  };
+
   const handleDeleteFile = async (fileId) => {
-    if (!confirm('Do you really want to delete this file?')) return;
-    
+    showConfirmation(
+      'Delete File',
+      'Do you really want to delete this file? This action cannot be undone.',
+      async () => {
+        await performDeleteFile(fileId);
+      }
+    );
+  };
+
+  const performDeleteFile = async (fileId) => {
     setDeletingFile(fileId);
     try {
       const token = Cookies.get('auth_token');
@@ -612,8 +634,16 @@ const AdminPanel = () => {
   };
 
   const handleDeleteUser = async (userId, username) => {
-    if (!confirm(`Do you really want to delete user "${username}"?`)) return;
-    
+    showConfirmation(
+      'Delete User',
+      `Do you really want to delete user "${username}"? This action cannot be undone.`,
+      async () => {
+        await performDeleteUser(userId);
+      }
+    );
+  };
+
+  const performDeleteUser = async (userId) => {
     try {
       const token = Cookies.get('auth_token');
       const response = await fetch('/.netlify/functions/admin-delete-user', {
@@ -2656,6 +2686,48 @@ const AdminPanel = () => {
           </div>
         )}
 
+        {/* Confirmation Dialog */}
+        {showConfirmDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {confirmTitle}
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  {confirmMessage}
+                </p>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowConfirmDialog(false);
+                      setConfirmAction(null);
+                      setConfirmMessage('');
+                      setConfirmTitle('');
+                    }}
+                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirmAction) {
+                        confirmAction();
+                      }
+                      setShowConfirmDialog(false);
+                      setConfirmAction(null);
+                      setConfirmMessage('');
+                      setConfirmTitle('');
+                    }}
+                    className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </main>
     </div>
