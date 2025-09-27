@@ -77,6 +77,16 @@ const AdminPanel = () => {
 
   // Label popup states for newly uploaded files
   const [showLabelPopup, setShowLabelPopup] = useState(false);
+  
+  // Training passwords states
+  const [trainingPasswords, setTrainingPasswords] = useState([]);
+  const [newTrainingPassword, setNewTrainingPassword] = useState({
+    password: '',
+    expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 30 days from today
+  });
+  const [showNewTrainingPasswordModal, setShowNewTrainingPasswordModal] = useState(false);
+  const [showTrainingPassword, setShowTrainingPassword] = useState(false);
+  const [trainingPasswordError, setTrainingPasswordError] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [fileLabels, setFileLabels] = useState({});
   const [savingLabels, setSavingLabels] = useState(false);
@@ -110,8 +120,28 @@ const AdminPanel = () => {
   }, []);
 
   const fetchData = async () => {
-    await Promise.all([fetchFiles(), fetchUsers()]);
+    await Promise.all([fetchFiles(), fetchUsers(), fetchTrainingPasswords()]);
     setLoading(false);
+  };
+
+  const fetchTrainingPasswords = async () => {
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-training-passwords-list', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTrainingPasswords(data.trainingPasswords || []);
+      } else {
+        console.error('Error fetching training passwords');
+      }
+    } catch (error) {
+      console.error('Error fetching training passwords:', error);
+    }
   };
 
   const fetchFiles = async () => {
@@ -632,6 +662,69 @@ const AdminPanel = () => {
       alert('Error creating: ' + error.message);
     }
   };
+
+  const handleCreateTrainingPassword = async (e) => {
+    e.preventDefault();
+    
+    // Validate password before sending
+    const validation = validatePassword(newTrainingPassword.password);
+    if (!validation.isValid) {
+      setTrainingPasswordError(validation.message);
+      return;
+    }
+    
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-create-training-password', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          password: newTrainingPassword.password,
+          expiryDate: newTrainingPassword.expiryDate
+        }),
+      });
+
+      if (response.ok) {
+        setShowNewTrainingPasswordModal(false);
+        setNewTrainingPassword({
+          password: '',
+          expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        });
+        setTrainingPasswordError('');
+        fetchTrainingPasswords();
+      } else {
+        const error = await response.json();
+        setTrainingPasswordError(error.error || 'Error creating training password');
+      }
+    } catch (error) {
+      setTrainingPasswordError('Error creating training password: ' + error.message);
+    }
+  };
+
+  const handleDeleteTrainingPassword = async (passwordId) => {
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch(`/.netlify/functions/admin-delete-training-password?passwordId=${passwordId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        fetchTrainingPasswords();
+      } else {
+        const error = await response.json();
+        alert('Error deleting training password: ' + error.error);
+      }
+    } catch (error) {
+      alert('Error deleting training password: ' + error.message);
+    }
+  };
+
 
   const handleDeleteUser = async (userId, username) => {
     showConfirmation(
@@ -1201,7 +1294,19 @@ const AdminPanel = () => {
               <span>Users</span>
             </div>
           </button>
-
+          <button
+            onClick={() => setActiveTab('training')}
+            className={`px-6 py-2.5 rounded-md font-medium transition-colors ${
+              activeTab === 'training'
+                ? 'bg-byght-turquoise text-white'
+                : 'text-byght-gray hover:bg-gray-100'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <FileText size={18} />
+              <span>Training</span>
+            </div>
+          </button>
 
         </div>
 
@@ -1817,6 +1922,106 @@ const AdminPanel = () => {
               </div>
             </div>
           </div>
+        ) : activeTab === 'training' ? (
+          <div className="space-y-6">
+            {/* Training Passwords List */}
+            <div className="card">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-byght-gray">Training Passwords</h2>
+                <button
+                  onClick={() => setShowNewTrainingPasswordModal(true)}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Plus size={18} />
+                  <span>New Training Password</span>
+                </button>
+              </div>
+              
+              {trainingPasswords.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText size={48} className="mx-auto mb-4 text-gray-300" />
+                  <p>No training passwords created yet</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Created
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Created By
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Expires
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {trainingPasswords.map((password) => {
+                        const isExpired = new Date(password.expiry_date) < new Date();
+                        const isExpiringSoon = new Date(password.expiry_date) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                        
+                        return (
+                          <tr key={password.id} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                              {new Date(password.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                              {password.created_by_username}
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                              <span className={`${isExpired ? 'text-red-600' : isExpiringSoon ? 'text-yellow-600' : 'text-gray-900'}`}>
+                                {new Date(password.expiry_date).toLocaleDateString()}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                isExpired 
+                                  ? 'bg-red-100 text-red-800' 
+                                  : isExpiringSoon 
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-green-100 text-green-800'
+                              }`}>
+                                {isExpired ? 'Expired' : isExpiringSoon ? 'Expiring Soon' : 'Active'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded text-gray-600">
+                                  {password.password_hash ? password.password_hash.substring(0, 20) + '...' : '••••••••••••'}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  (Hash)
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    if (confirm('Are you sure you want to delete this training password?')) {
+                                      handleDeleteTrainingPassword(password.id);
+                                    }
+                                  }}
+                                  className="text-red-600 hover:text-red-800 ml-2"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
         ) : null}
 
         {/* Edit User Files Modal */}
@@ -2179,6 +2384,113 @@ const AdminPanel = () => {
                     {updatingFile ? 'Saving...' : 'Save'}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* New Training Password Modal */}
+        {showNewTrainingPasswordModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-byght-gray">
+                    Create New Training Password
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowNewTrainingPasswordModal(false);
+                      setNewTrainingPassword({
+                        password: '',
+                        expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                      });
+                      setTrainingPasswordError('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <form onSubmit={handleCreateTrainingPassword} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Training Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showTrainingPassword ? "text" : "password"}
+                        value={newTrainingPassword.password}
+                        onChange={(e) => setNewTrainingPassword({
+                          ...newTrainingPassword,
+                          password: e.target.value
+                        })}
+                        className="input-field w-full pr-10"
+                        placeholder="Enter training password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowTrainingPassword(!showTrainingPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showTrainingPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    {trainingPasswordError && (
+                      <p className="text-red-600 text-sm mt-1">{trainingPasswordError}</p>
+                    )}
+                    
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-600 font-medium">Password Requirements:</p>
+                      <ul className="text-xs text-gray-500 mt-1 space-y-0.5">
+                        <li className={`${newTrainingPassword.password.length >= 12 ? 'text-green-600' : ''}`}>
+                          • At least 12 characters
+                        </li>
+                        <li className={`${newTrainingPassword.password && (/[A-Z]/.test(newTrainingPassword.password) + /[a-z]/.test(newTrainingPassword.password) + /\d/.test(newTrainingPassword.password) + /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newTrainingPassword.password)) >= 3 ? 'text-green-600' : ''}`}>
+                          • At least 3 of: uppercase, lowercase, numbers, special characters
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      Expiry Date
+                    </label>
+                    <input
+                      type="date"
+                      value={newTrainingPassword.expiryDate}
+                      onChange={(e) => setNewTrainingPassword({
+                        ...newTrainingPassword,
+                        expiryDate: e.target.value
+                      })}
+                      className="input-field w-full"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowNewTrainingPasswordModal(false);
+                        setNewTrainingPassword({
+                          password: '',
+                          expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                        });
+                        setTrainingPasswordError('');
+                      }}
+                      className="btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn-primary">
+                      Create Training Password
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>

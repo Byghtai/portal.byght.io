@@ -117,6 +117,23 @@ export async function initDatabase() {
       ON file_user_assignments(file_id)
     `);
 
+    // Training-Passwörter-Tabelle erstellen
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS training_passwords (
+        id SERIAL PRIMARY KEY,
+        password_hash VARCHAR(255) NOT NULL,
+        expiry_date DATE NOT NULL,
+        created_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Index für bessere Performance bei Abfragen
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_training_passwords_expiry_date 
+      ON training_passwords(expiry_date)
+    `);
+
   } catch (error) {
     console.error('Database initialization failed:', error);
     throw error;
@@ -1041,5 +1058,76 @@ export async function removeDescriptionColumn() {
     client.release();
   }
 }
+
+// Training-Passwort erstellen
+export async function createTrainingPassword(passwordHash, expiryDate, createdBy) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'INSERT INTO training_passwords (password_hash, expiry_date, created_by) VALUES ($1, $2, $3) RETURNING id, password_hash, expiry_date, created_by, created_at',
+      [passwordHash, expiryDate, createdBy]
+    );
+    
+    return {
+      id: result.rows[0].id,
+      passwordHash: result.rows[0].password_hash,
+      expiryDate: result.rows[0].expiry_date,
+      createdBy: result.rows[0].created_by,
+      createdAt: result.rows[0].created_at
+    };
+  } catch (error) {
+    console.error('Database error in createTrainingPassword:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Alle Training-Passwörter abrufen
+export async function getAllTrainingPasswords() {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(`
+      SELECT 
+        tp.id,
+        tp.password_hash,
+        tp.expiry_date,
+        tp.created_at,
+        u.username as created_by_username
+      FROM training_passwords tp
+      LEFT JOIN users u ON tp.created_by = u.id
+      ORDER BY tp.created_at DESC
+    `);
+    
+    return result.rows.map(row => ({
+      id: row.id,
+      password: '••••••••••••', // Masked password
+      password_hash: row.password_hash,
+      expiry_date: row.expiry_date,
+      created_at: row.created_at,
+      created_by_username: row.created_by_username
+    }));
+  } catch (error) {
+    console.error('Database error in getAllTrainingPasswords:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Training-Passwort löschen
+export async function deleteTrainingPassword(passwordId) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query('DELETE FROM training_passwords WHERE id = $1', [passwordId]);
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('Database error in deleteTrainingPassword:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 
 export { pool };
