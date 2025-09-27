@@ -1,4 +1,10 @@
 import { initDatabase, getAllTrainingPasswords } from './db.js';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set');
+}
 
 export const handler = async (event, context) => {
   // CORS-Header für alle Anfragen
@@ -42,8 +48,26 @@ export const handler = async (event, context) => {
 
     const token = authHeader.split(' ')[1];
     
-    // TODO: Token-Validierung implementieren
-    // Für jetzt nehmen wir an, dass der Token gültig ist
+    // Token validieren
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (error) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Invalid token' }),
+      };
+    }
+
+    // Prüfen ob User Admin ist
+    if (!decoded.isAdmin) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Admin access required' }),
+      };
+    }
 
     // Alle Training-Passwörter abrufen
     const trainingPasswords = await getAllTrainingPasswords();

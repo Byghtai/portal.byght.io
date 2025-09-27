@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import AdminPanel from './components/AdminPanel';
-import Setup from './components/Setup';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 
@@ -30,7 +29,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/setup" element={<Setup />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
