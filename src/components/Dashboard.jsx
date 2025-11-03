@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Download, FileText, LogOut, User, Folder, Calendar, HardDrive, Settings, AlertCircle, Menu, X, Cloud, Key, CheckCircle, Upload, Users, FileCheck, HelpCircle, Mail, ChevronRight, ChevronDown } from 'lucide-react';
+import { Download, FileText, LogOut, User, Folder, Calendar, HardDrive, Settings, AlertCircle, Menu, X, Cloud, Key, CheckCircle, Upload, Users, FileCheck, HelpCircle, Mail, ChevronRight, ChevronDown, Eye, EyeOff, Video, Trash2, ExternalLink } from 'lucide-react';
 import ByghtLogo from '../assets/byght-logo.svg';
 import Cookies from 'js-cookie';
 import { downloadFileFromS3 } from '../utils/s3Download';
@@ -14,13 +14,58 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
+  // Training password states
+  const [trainingPasswords, setTrainingPasswords] = useState([]);
+  const [loadingTrainingPassword, setLoadingTrainingPassword] = useState(true);
+  const [showCreatePasswordModal, setShowCreatePasswordModal] = useState(false);
+  const [newTrainingPassword, setNewTrainingPassword] = useState('');
+  const [showTrainingPassword, setShowTrainingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [creatingPassword, setCreatingPassword] = useState(false);
+  const [deletingPasswordId, setDeletingPasswordId] = useState(null);
 
-  
   // FAQ collapse states
   const [expandedFaq, setExpandedFaq] = useState(null);
 
+  // Navigation states
+  const [activeSection, setActiveSection] = useState('');
+  
+  // Refs for sections
+  const sectionRefs = useRef({});
+  
+  // Define navigation items
+  const navigationItems = [
+    { id: 'requirements', title: 'What you\'ll need', icon: CheckCircle },
+    { id: 'guide', title: 'Step-by-step guide', icon: FileCheck },
+    { id: 'handoff', title: 'Hand-off to Byght', icon: Users },
+    { id: 'training', title: 'Introductory training', icon: Video },
+    { id: 'help', title: 'Need help?', icon: Mail },
+    { id: 'faq', title: 'FAQs', icon: HelpCircle }
+  ];
+
   useEffect(() => {
     fetchUserFiles();
+    fetchTrainingPassword();
+  }, []);
+
+  // Scroll spy functionality
+  useEffect(() => {
+    const handleScroll = () => {
+      // Check which section is currently in view
+      for (const item of navigationItems) {
+        const element = sectionRefs.current[item.id];
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= 100 && rect.bottom >= 100) {
+            setActiveSection(item.id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const fetchUserFiles = async () => {
@@ -126,6 +171,152 @@ const Dashboard = () => {
     setExpandedFaq(expandedFaq === faqId ? null : faqId);
   };
 
+  // Scroll to section
+  const scrollToSection = (sectionId) => {
+    const element = sectionRefs.current[sectionId];
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const fetchTrainingPassword = async () => {
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/get-user-training-password', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTrainingPasswords(data.trainingPasswords || []);
+      } else {
+        console.error('Error fetching training passwords');
+      }
+    } catch (error) {
+      console.error('Error fetching training passwords:', error);
+    } finally {
+      setLoadingTrainingPassword(false);
+    }
+  };
+
+  const handleDeleteTrainingPassword = async (passwordId) => {
+    if (!confirm('Are you sure you want to delete this training password?')) {
+      return;
+    }
+
+    setDeletingPasswordId(passwordId);
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch(`/.netlify/functions/delete-user-training-password?passwordId=${passwordId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        await fetchTrainingPassword();
+      } else {
+        const error = await response.json();
+        alert('Error deleting training password: ' + (error.error || 'Unknown error'));
+      }
+    } catch (error) {
+      alert('Error deleting training password: ' + error.message);
+    } finally {
+      setDeletingPasswordId(null);
+    }
+  };
+
+  const validatePassword = (password) => {
+    if (!password || password.length < 12) {
+      return { isValid: false, message: 'Password must be at least 12 characters long' };
+    }
+
+    let criteriaCount = 0;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+    if (hasUppercase) criteriaCount++;
+    if (hasLowercase) criteriaCount++;
+    if (hasNumbers) criteriaCount++;
+    if (hasSpecialChars) criteriaCount++;
+
+    if (criteriaCount < 3) {
+      return { 
+        isValid: false, 
+        message: 'Password must contain at least 3 of the following: uppercase letters, lowercase letters, numbers, special characters' 
+      };
+    }
+
+    return { isValid: true };
+  };
+
+  const checkPasswordCriteria = (password) => {
+    if (!password) return { lengthOk: false, criteriaOk: false };
+    
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChars = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+    
+    let criteriaCount = 0;
+    if (hasUppercase) criteriaCount++;
+    if (hasLowercase) criteriaCount++;
+    if (hasNumbers) criteriaCount++;
+    if (hasSpecialChars) criteriaCount++;
+    
+    return {
+      lengthOk: password.length >= 12,
+      criteriaOk: criteriaCount >= 3
+    };
+  };
+
+  const handleCreateTrainingPassword = async (e) => {
+    e.preventDefault();
+    
+    // Validate password before sending
+    const validation = validatePassword(newTrainingPassword);
+    if (!validation.isValid) {
+      setPasswordError(validation.message);
+      return;
+    }
+    
+    setCreatingPassword(true);
+    setPasswordError('');
+    
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/create-user-training-password', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          password: newTrainingPassword
+        }),
+      });
+
+      if (response.ok) {
+        setShowCreatePasswordModal(false);
+        setNewTrainingPassword('');
+        setPasswordError('');
+        await fetchTrainingPassword();
+      } else {
+        const error = await response.json();
+        setPasswordError(error.error || 'Error creating training password');
+      }
+    } catch (error) {
+      setPasswordError('Error creating training password: ' + error.message);
+    } finally {
+      setCreatingPassword(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -212,7 +403,9 @@ const Dashboard = () => {
 
       {/* Main Content - Confluence Import Anleitung */}
       <main className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="flex gap-8">
+          {/* Main Content */}
+          <div className="flex-1 bg-white rounded-lg shadow-lg p-8">
           {/* Titel */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-800 mb-3 flex items-center gap-3">
@@ -225,7 +418,7 @@ const Dashboard = () => {
           </div>
 
           {/* What you'll need */}
-          <div className="mb-8 bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">
+          <div id="requirements" ref={(el) => sectionRefs.current['requirements'] = el} className="mb-8 bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <CheckCircle className="text-blue-500" size={24} />
               What you'll need
@@ -250,7 +443,7 @@ const Dashboard = () => {
           <div className="border-t border-gray-200 mb-8"></div>
 
           {/* Step-by-step guide */}
-          <div className="mb-8">
+          <div id="guide" ref={(el) => sectionRefs.current['guide'] = el} className="mb-8">
             <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
               <FileCheck className="text-green-500" size={24} />
               Step-by-step guide
@@ -476,7 +669,7 @@ const Dashboard = () => {
           <div className="border-t border-gray-200 mb-8"></div>
 
           {/* Hand-off to Byght */}
-          <div className="mb-8 bg-green-50 border-l-4 border-green-400 p-6 rounded-r-lg">
+          <div id="handoff" ref={(el) => sectionRefs.current['handoff'] = el} className="mb-8 bg-green-50 border-l-4 border-green-400 p-6 rounded-r-lg">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Users className="text-green-500" size={24} />
               Hand-off to Byght (setup & testing)
@@ -509,8 +702,272 @@ const Dashboard = () => {
             </ul>
           </div>
 
+          {/* Training Section */}
+          <div id="training" ref={(el) => sectionRefs.current['training'] = el} className="mb-8 bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Video className="text-blue-500" size={24} />
+              Training Platform Access
+            </h2>
+            <p className="text-gray-700 mb-4">
+              While we're setting everything up, you can already create access to our training platform. There are already a number of videos and content waiting for you to take your first steps.
+            </p>
+            <p className="text-gray-700 mb-6">
+              You can access the platform at any time and flexibly share access with your colleagues!
+            </p>
+            
+            {/* Training Platform Access Box */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <Key className="text-blue-500" size={20} />
+                Training Platform Access
+              </h3>
+              
+              {loadingTrainingPassword ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {trainingPasswords.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-gray-800 mb-3">Your Training Passwords</h4>
+                      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Password
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                                  Created
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Valid Until
+                                </th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Actions
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {trainingPasswords.map((password) => (
+                                <tr key={password.id} className="hover:bg-gray-50 transition-colors">
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="font-mono text-sm text-gray-700 bg-gray-100 px-3 py-1 rounded border border-gray-300 inline-block">
+                                      {'*'.repeat(20)}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap hidden sm:table-cell">
+                                    <span className="text-sm text-gray-600">
+                                      {new Date(password.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className="text-sm text-gray-900">
+                                      {new Date(password.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-right">
+                                    <button
+                                      onClick={() => handleDeleteTrainingPassword(password.id)}
+                                      disabled={deletingPasswordId === password.id}
+                                      className="text-red-500 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1"
+                                      title="Delete password"
+                                    >
+                                      {deletingPasswordId === password.id ? (
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
+                                      ) : (
+                                        <Trash2 size={16} />
+                                      )}
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <button
+                      onClick={() => setShowCreatePasswordModal(true)}
+                      disabled={trainingPasswords.length > 0}
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-500"
+                    >
+                      <Key size={18} />
+                      Create Training Password
+                    </button>
+                    <div className="mt-3 space-y-2">
+                      {trainingPasswords.length === 0 ? (
+                        <>
+                          <p className="text-sm text-gray-700">
+                            Create a training password to access the training platform. The password will be valid for <strong>one year</strong> and can be shared securely with colleagues who want to complete the training.
+                          </p>
+                          <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded-r-lg">
+                            <p className="text-sm font-semibold text-gray-800 mb-2">Important:</p>
+                            <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                              <li>As a user, you can only create <strong>one training password</strong> yourself</li>
+                              <li>If you need additional passwords, please contact Byght at <a href="mailto:Fragen@byght.io" className="text-blue-600 hover:text-blue-800 font-medium underline">Fragen@byght.io</a></li>
+                              <li>Once created, passwords cannot be displayed again</li>
+                              <li>If you forget your password, please delete it and create a new one</li>
+                              <li>Created training passwords are valid for one year by default</li>
+                            </ul>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded-r-lg">
+                          <p className="text-sm font-semibold text-gray-800 mb-2">Important:</p>
+                          <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                            <li>As a user, you can only create <strong>one training password</strong> yourself</li>
+                            <li>If you need additional passwords, please contact Byght at <a href="mailto:Fragen@byght.io" className="text-blue-600 hover:text-blue-800 font-medium underline">Fragen@byght.io</a></li>
+                            <li>Once created, passwords cannot be displayed again</li>
+                            <li>If you forget your password, please delete it and create a new one</li>
+                            <li>Created training passwords are valid for one year by default</li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Personal Introduction Section */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-4">
+              <h3 className="text-base font-medium text-gray-700 mb-2">
+                Would you prefer a personal introduction by us?
+              </h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Feel free to create your training platform access above and book a personal introduction session here as well:
+              </p>
+              <a
+                href="https://calendly.com/d/cqxc-2x3-z4r/einfuhrung-kick-off"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 font-medium px-3 py-1.5 rounded-lg transition-colors text-sm"
+              >
+                <Calendar size={16} />
+                Book Introduction Session
+                <ExternalLink size={14} />
+              </a>
+              <div className="mt-3 bg-amber-50 border-l-4 border-amber-400 p-2 rounded-r-lg">
+                <p className="text-xs text-gray-700">
+                  <strong>Note:</strong> The second part of the introduction "ISMS Coaching" takes place after the first 10 completed tasks and is always conducted in a personal session.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Create Training Password Modal */}
+          {showCreatePasswordModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                    <Key className="text-blue-500" size={24} />
+                    Create Training Password
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowCreatePasswordModal(false);
+                      setNewTrainingPassword('');
+                      setPasswordError('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+                
+                <form onSubmit={handleCreateTrainingPassword} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-800 mb-1">
+                      Training Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showTrainingPassword ? "text" : "password"}
+                        value={newTrainingPassword}
+                        onChange={(e) => {
+                          setNewTrainingPassword(e.target.value);
+                          setPasswordError('');
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                        placeholder="Enter training password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowTrainingPassword(!showTrainingPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showTrainingPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    {passwordError && (
+                      <p className="text-red-600 text-sm mt-1">{passwordError}</p>
+                    )}
+                    
+                    <div className="mt-3">
+                      <p className="text-xs text-gray-600 font-medium mb-1">Password Requirements:</p>
+                      <ul className="text-xs text-gray-500 space-y-0.5">
+                        <li className={checkPasswordCriteria(newTrainingPassword).lengthOk ? 'text-green-600' : ''}>
+                          • At least 12 characters
+                        </li>
+                        <li className={checkPasswordCriteria(newTrainingPassword).criteriaOk ? 'text-green-600' : ''}>
+                          • At least 3 of: uppercase, lowercase, numbers, special characters
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded-r-lg">
+                    <p className="text-sm text-gray-700">
+                      <strong>Note:</strong> The training password will be valid for <strong>one year</strong> from creation. You can share this password securely with colleagues who want to complete the training.
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreatePasswordModal(false);
+                        setNewTrainingPassword('');
+                        setPasswordError('');
+                      }}
+                      className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      disabled={creatingPassword}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      disabled={creatingPassword}
+                    >
+                      {creatingPassword ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={18} />
+                          Create Password
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
           {/* Need help? */}
-          <div className="mb-8 border-t pt-8">
+          <div id="help" ref={(el) => sectionRefs.current['help'] = el} className="mb-8 border-t pt-8">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Mail className="text-byght-turquoise" size={24} />
               Need help?
@@ -530,7 +987,7 @@ const Dashboard = () => {
           <div className="border-t border-gray-200 mb-8"></div>
 
           {/* FAQs */}
-          <div className="mb-8">
+          <div id="faq" ref={(el) => sectionRefs.current['faq'] = el} className="mb-96">
             <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
               <HelpCircle className="text-blue-500" size={24} />
               FAQs
@@ -669,6 +1126,38 @@ const Dashboard = () => {
                     </p>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+          </div>
+          
+          {/* Right Navigation */}
+          <div className="hidden lg:block w-80 flex-shrink-0">
+            <div className="sticky top-8">
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Menu size={20} />
+                  Navigation
+                </h3>
+                <nav className="space-y-2">
+                  {navigationItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => scrollToSection(item.id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-200 flex items-center gap-3 ${
+                          activeSection === item.id
+                            ? 'bg-byght-turquoise text-white shadow-md'
+                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-sm font-medium">{item.title}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
               </div>
             </div>
           </div>

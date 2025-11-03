@@ -1129,5 +1129,78 @@ export async function deleteTrainingPassword(passwordId) {
   }
 }
 
+// Training-Passwort Expiry-Date aktualisieren
+export async function updateTrainingPasswordExpiry(passwordId, expiryDate) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'UPDATE training_passwords SET expiry_date = $1 WHERE id = $2 RETURNING id, expiry_date',
+      [expiryDate, passwordId]
+    );
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    return {
+      id: result.rows[0].id,
+      expiryDate: result.rows[0].expiry_date
+    };
+  } catch (error) {
+    console.error('Database error in updateTrainingPasswordExpiry:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Training-Passwort eines Users abrufen (nur das neueste - für Kompatibilität)
+export async function getTrainingPasswordByUserId(userId) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'SELECT id, expiry_date, created_at FROM training_passwords WHERE created_by = $1 ORDER BY created_at DESC LIMIT 1',
+      [userId]
+    );
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    return {
+      id: result.rows[0].id,
+      expiryDate: result.rows[0].expiry_date,
+      createdAt: result.rows[0].created_at
+    };
+  } catch (error) {
+    console.error('Database error in getTrainingPasswordByUserId:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Alle Training-Passwörter eines Users abrufen
+export async function getAllTrainingPasswordsByUserId(userId) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'SELECT id, expiry_date, created_at FROM training_passwords WHERE created_by = $1 ORDER BY created_at DESC',
+      [userId]
+    );
+    
+    return result.rows.map(row => ({
+      id: row.id,
+      expiryDate: row.expiry_date,
+      createdAt: row.created_at
+    }));
+  } catch (error) {
+    console.error('Database error in getAllTrainingPasswordsByUserId:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 
 export { pool };

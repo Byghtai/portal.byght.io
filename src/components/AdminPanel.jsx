@@ -87,6 +87,10 @@ const AdminPanel = () => {
   const [showNewTrainingPasswordModal, setShowNewTrainingPasswordModal] = useState(false);
   const [showTrainingPassword, setShowTrainingPassword] = useState(false);
   const [trainingPasswordError, setTrainingPasswordError] = useState('');
+  const [showExtendExpiryModal, setShowExtendExpiryModal] = useState(false);
+  const [extendingPasswordId, setExtendingPasswordId] = useState(null);
+  const [newExpiryDate, setNewExpiryDate] = useState('');
+  const [extendingPassword, setExtendingPassword] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [fileLabels, setFileLabels] = useState({});
   const [savingLabels, setSavingLabels] = useState(false);
@@ -722,6 +726,44 @@ const AdminPanel = () => {
       }
     } catch (error) {
       alert('Error deleting training password: ' + error.message);
+    }
+  };
+
+  const handleExtendExpiry = async (e) => {
+    e.preventDefault();
+    if (!extendingPasswordId || !newExpiryDate) {
+      alert('Please select an expiry date.');
+      return;
+    }
+
+    setExtendingPassword(true);
+    try {
+      const token = Cookies.get('auth_token');
+      const response = await fetch('/.netlify/functions/admin-update-training-password-expiry', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          passwordId: extendingPasswordId,
+          expiryDate: newExpiryDate
+        }),
+      });
+
+      if (response.ok) {
+        setShowExtendExpiryModal(false);
+        setExtendingPasswordId(null);
+        setNewExpiryDate('');
+        fetchTrainingPasswords();
+      } else {
+        const error = await response.json();
+        alert('Error extending expiry date: ' + error.error);
+      }
+    } catch (error) {
+      alert('Error extending expiry date: ' + error.message);
+    } finally {
+      setExtendingPassword(false);
     }
   };
 
@@ -2003,6 +2045,19 @@ const AdminPanel = () => {
                                 </span>
                                 <button
                                   onClick={() => {
+                                    setExtendingPasswordId(password.id);
+                                    const currentExpiry = new Date(password.expiry_date);
+                                    const newExpiry = new Date(currentExpiry);
+                                    newExpiry.setDate(newExpiry.getDate() + 30); // Default: extend by 30 days
+                                    setNewExpiryDate(newExpiry.toISOString().split('T')[0]);
+                                    setShowExtendExpiryModal(true);
+                                  }}
+                                  className="text-blue-600 hover:text-blue-800 ml-2"
+                                >
+                                  Extend Expiry
+                                </button>
+                                <button
+                                  onClick={() => {
                                     if (confirm('Are you sure you want to delete this training password?')) {
                                       handleDeleteTrainingPassword(password.id);
                                     }
@@ -2488,6 +2543,72 @@ const AdminPanel = () => {
                     </button>
                     <button type="submit" className="btn-primary">
                       Create Training Password
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Extend Expiry Date Modal */}
+        {showExtendExpiryModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-byght-gray">
+                    Extend Expiry Date
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowExtendExpiryModal(false);
+                      setExtendingPasswordId(null);
+                      setNewExpiryDate('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <form onSubmit={handleExtendExpiry} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-byght-gray mb-1">
+                      New Expiry Date
+                    </label>
+                    <input
+                      type="date"
+                      value={newExpiryDate}
+                      onChange={(e) => setNewExpiryDate(e.target.value)}
+                      className="input-field w-full"
+                      min={new Date().toISOString().split('T')[0]}
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      The expiry date must be in the future.
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowExtendExpiryModal(false);
+                        setExtendingPasswordId(null);
+                        setNewExpiryDate('');
+                      }}
+                      className="btn-secondary"
+                      disabled={extendingPassword}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="btn-primary"
+                      disabled={extendingPassword}
+                    >
+                      {extendingPassword ? 'Extending...' : 'Extend Expiry Date'}
                     </button>
                   </div>
                 </form>
