@@ -706,7 +706,7 @@ const Dashboard = () => {
           <div id="training" ref={(el) => sectionRefs.current['training'] = el} className="mb-8 bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-lg">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Video className="text-blue-500" size={24} />
-              Training Platform Access
+              Introductory training
             </h2>
             <p className="text-gray-700 mb-4">
               While we're setting everything up, you can already create access to our training platform. There are already a number of videos and content waiting for you to take your first steps.
@@ -833,6 +833,30 @@ const Dashboard = () => {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Training Platform Link */}
+            <div className="bg-white rounded-lg p-6 border-2 border-blue-500 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    <Video className="text-blue-500" size={20} />
+                    Access Training Platform
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Visit our training platform to access videos, tutorials, and learning materials.
+                  </p>
+                </div>
+                <a
+                  href="https://training.byght.io/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-4 bg-blue-500 hover:bg-blue-600 text-white font-medium px-6 py-3 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"
+                >
+                  <ExternalLink size={18} />
+                  Open Training Platform
+                </a>
+              </div>
             </div>
 
             {/* Personal Introduction Section */}
